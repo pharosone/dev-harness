@@ -22,7 +22,7 @@ class EvalPluginTest(unittest.TestCase):
     def test_manifest_and_skill_links_resolve(self):
         manifest = json.loads((PLUGIN / ".claude-plugin/plugin.json").read_text())
         self.assertEqual(manifest["name"], "dev-harness-evals")
-        for skill in ("pharos-dev", "pharos-discover"):
+        for skill in ("pharos-dev", "pharos-discover", "pharos-investigate"):
             link = PLUGIN / "skills" / skill
             self.assertTrue(link.is_symlink(), skill)
             self.assertTrue((link / "SKILL.md").is_file(), skill)

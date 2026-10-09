@@ -3,6 +3,16 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.1.0 — 2026-10-09
+
+- `pharos-investigate`: understand before acting — a bug's root cause, research of data or
+  options for a decision, how unfamiliar code works; a report with evidence and confidence that
+  hands off to `pharos-dev`, `pharos-discover` or the user.
+- Depth mode: `pharos-investigate`, `pharos-discover` and `pharos-dev` (a bug with an unknown
+  cause) ask `standard` or `deep`, the recommended one first with its signal. `deep` runs the new
+  read-only `investigator` role on the new `deep-reasoning` profile (Opus `xhigh` / Astra
+  `xhigh`) and gets a second opinion from the other vendor.
+
 ## 1.0.0 — 2026-10-09
 
 - Risk-tiered development process (`pharos-dev`), requirements interview (`pharos-discover`),

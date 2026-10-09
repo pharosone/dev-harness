@@ -27,7 +27,7 @@ read it again.
   `read-only` (their final message is the report; the orchestrator saves it), writers and QA
   `workspace-write`. Permission to run tests is not permission to edit sources.
 - **Models:** from `harness/core/adapters/models.json` (`gpt-6.1-sol` by default, `gpt-6-astra` for
-  Tier-3 review and science, `gpt-6-luna` only with a deterministic check of its output). Check
+  Tier-3 review, science and the `deep-reasoning` investigator, `gpt-6-luna` only with a deterministic check of its output). Check
   availability; never claim a model ran that the session did not resolve.
 - **Cross-review:** the orchestrator runs `harness/core/scripts/xreview.py`, which calls
   `codex exec --sandbox read-only` with the diff as context. As a reviewer: report only, never

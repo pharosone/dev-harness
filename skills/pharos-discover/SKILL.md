@@ -47,13 +47,31 @@ A project adds the rows it asks on every feature in `harness/project/project.jso
 - `drafted_by` names a project role (`project.json → roles`) that drafts the section and its
   open questions. Without it, you draft the section and ask its questions yourself.
 
+## Depth
+
+Ask the mode in the first question batch, recommended option first with the signal behind it:
+
+- **`standard`** — you run discovery on the session's model.
+- **`deep`** — before the approaches, a fresh `investigator` on the `deep-reasoning` profile
+  (Opus `xhigh` / Astra `xhigh`) maps how the touched code really works (paths, invariants,
+  what can break) and drafts the approaches and their trade-offs; before the spec goes to the
+  user, the other vendor gives a second opinion on the draft (what it misses, what will not
+  hold). Recommend it for Tier-3 paths (`harness/core/scripts/tier.py` on the paths the feature
+  will touch), two or more real architectural options, unfamiliar code without specs or tests,
+  concurrency, money, security or data migrations, or when the user asks for depth.
+
+Write it as "`deep` (Recommended) — <signal>" or the same for `standard`; record the answer,
+model and effort in the spec's interview (row Goal and user, source `user:`) and in `run.md`.
+A feature that first needs a question answered (a bug, data for a decision) goes through
+`pharos-investigate`, and its report becomes the design's evidence.
+
 ## How to run it
 
 1. Read the project's map (AGENTS.md), the applicable `harness/project/rules/*.md` and the
    touched code. Inspect the current implementation before assuming a future contract already
    exists.
-2. Map the conversation and repository rules to every row. Ask unresolved Goal, Roles, Scope
-   and UI first, using the question mechanism and batch limit supported by the runtime adapter.
+2. Map the conversation and repository rules to every row. Ask the depth mode (above) and
+   unresolved Goal, Roles, Scope and UI first, using the question mechanism and batch limit supported by the runtime adapter.
    Put the recommended option first, label it "(Recommended)", and state each option's
    consequence.
 3. Dispatch the drafting roles of the project rows in parallel, read-only, with established
@@ -65,8 +83,8 @@ A project adds the rows it asks on every feature in `harness/project/project.jso
    Taste gates recommend the default set: G1 the approved spec, G2 the first end-to-end slice on
    demo data, G3 each milestone, G4 before the PR. Reuse decisions already made; do not ask for
    permissions already granted.
-5. Write back the requirements, their sources and open risks for correction. Compare two or
-   three feasible approaches when there is a real architectural choice, with costs and a
+5. Write back the requirements, their sources and open risks for correction. In `deep` mode
+   start from the investigator's map and approaches. Compare two or three feasible approaches when there is a real architectural choice, with costs and a
    recommendation. When the user already selected an approach, document it and alternatives
    only if new evidence makes them relevant.
 6. Write `docs/superpowers/specs/YYYY-MM-DD-<topic>.md`: requirements table, the section of
@@ -74,7 +92,9 @@ A project adds the rows it asks on every feature in `harness/project/project.jso
    units with dependencies, observable acceptance criteria and the paths each unit may change
    (globs), followed by the Taste gates. Order units so the first end-to-end slice lands early.
    There is no separate plan.
-7. Obtain approval of unresolved material design choices before implementation. Existing
+7. In `deep` mode, give the written spec to the other vendor for its second opinion first and
+   fold in what stands. Obtain approval of unresolved material design choices before
+   implementation. Existing
    approval covers the same design transcribed into a spec; record its source rather than
    requesting it again. A changed scope or new consequential choice requires a new answer.
    An unanswered approval request never becomes approval through elapsed time.

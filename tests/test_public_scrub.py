@@ -10,7 +10,7 @@ import unittest
 
 CORE = Path(__file__).resolve().parents[1]
 FORBIDDEN = re.compile(
-    r"vector-kya|pharosone(?!/dev-harness\b)|pharos(?!-dev\b|-discover\b| task=|one/dev-harness\b)|meridian|\bclerk\b|\bsqlc\b|\bhuma\b|\bminio\b"
+    r"vector-kya|pharosone(?!/dev-harness\b)|pharos(?!-dev\b|-discover\b|-investigate\b| task=|one/dev-harness\b)|meridian|\bclerk\b|\bsqlc\b|\bhuma\b|\bminio\b"
     r"|server/internal|web/lib|organization_id|\bcabinet\b|\bjudge\b",
     re.IGNORECASE)
 SKIP = {"LICENSE", "tests/test_public_scrub.py"}

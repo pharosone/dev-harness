@@ -22,6 +22,12 @@ read their evidence, own the final report.
   A missing required section → `pharos-discover` for that gap, reusing answers already given.
   A spec older than taste gates → propose the default gates (first end-to-end slice, each
   milestone, before the PR) with the start question.
+- **A bug whose cause is not established** (no reproduction yet, intermittent, a fix that did
+  not hold): `pharos-investigate` first, and its reproduction becomes the unit's failing test.
+  Its mode goes into the start question: `standard` (you investigate) or `deep` (an
+  `investigator` on `deep-reasoning` — Opus `xhigh` / Astra `xhigh` — plus a second opinion
+  from the other vendor), recommended first with the signal: "`deep` (Recommended) — the
+  failure is intermittent". A bug with a known cause goes straight to the unit loop.
 - **Runtime mode.** Both vendors by default; Claude-only or Codex-only when one is unavailable
   (`harness/core/README.md`, «Runtime modes»). Record the mode in `run.md`. Codex-only: the
   orchestrator runs on GPT-6.1 Sol `high` (never Astra), stops at a gate at every milestone and

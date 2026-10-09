@@ -65,5 +65,17 @@
     "description": "UX review of user-facing changes: captures its own screenshots of every state the change can show in the running application and judges them against the user's task, the design system and the mockups.",
     "profile": "routine",
     "sandbox": "read-only"
+  },
+  "investigator": {
+    "description": "Deep, read-only investigation that a decision or a fix depends on: the root cause of a non-obvious bug, research of data or options for a decision, or how unfamiliar code really works; returns evidence, a conclusion with its confidence and what is still unknown.",
+    "profile": "deep-reasoning",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Write"
+    ],
+    "sandbox": "read-only"
   }
 }

@@ -529,11 +529,16 @@ class RealCoreTest(RenderCase):
 class RepositoryTest(unittest.TestCase):
     def test_repository_profiles_follow_the_v2_table(self):
         models = json.loads((CORE / "adapters/models.json").read_text())
-        expected = {"mechanical", "routine", "implementation", "critical-review", "escalation"}
+        expected = {"mechanical", "routine", "implementation", "critical-review", "escalation",
+                    "deep-reasoning"}
         for runtime in ("claude", "codex"):
             self.assertEqual(set(models[runtime]), expected)
-            for profile in models[runtime].values():
-                self.assertNotIn(profile["effort"], ("xhigh", "max", "ultra"))
+            for name, profile in models[runtime].items():
+                if name != "deep-reasoning":  # xhigh only where one pass of depth pays
+                    self.assertNotIn(profile["effort"], ("xhigh", "max", "ultra"), name)
+        self.assertEqual(models["claude"]["deep-reasoning"], {"model": "opus", "effort": "xhigh"})
+        self.assertEqual(models["codex"]["deep-reasoning"],
+                         {"model": "gpt-6-astra", "effort": "xhigh"})
         self.assertEqual(models["claude"]["implementation"], {"model": "opus", "effort": "medium"})
         self.assertEqual(models["claude"]["escalation"]["model"], "fable")
         self.assertEqual(models["codex"]["critical-review"]["model"], "gpt-6-astra")
@@ -541,6 +546,8 @@ class RepositoryTest(unittest.TestCase):
         self.assertEqual(manifest["simplifier"]["profile"], "critical-review")
         self.assertEqual(manifest["qa-verifier"]["profile"], "routine")
         self.assertNotIn("tools", manifest["ui-design-verifier"])
+        self.assertEqual(manifest["investigator"]["profile"], "deep-reasoning")
+        self.assertEqual(manifest["investigator"]["sandbox"], "read-only")
 
 
 if __name__ == "__main__":

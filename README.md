@@ -70,6 +70,7 @@ is never pushed. Core releases follow semver (`CHANGELOG.md`).
 | User task | Skill |
 |---|---|
 | Design a feature or fill missing spec decisions | `pharos-discover` |
+| Find a bug's cause, research data or options for a decision, understand unfamiliar code | `pharos-investigate` |
 | Implement, fix, refactor, or resume approved work | `pharos-dev` |
 | Review architecture | `design-review` |
 | Create or update a requested PR | `submit-pr` |
@@ -84,11 +85,12 @@ tests, not the application suites.
 
 ## Roles
 
-Six core roles: `implementer`, `simplifier` (writers), `qa-verifier` (runs gates),
+Seven core roles: `implementer`, `simplifier` (writers), `qa-verifier` (runs gates),
 `perf-analyst`, `security-auditor`, `ui-design-verifier` (read-only; the browser stays with the
 last, which takes its own screenshots of the running application). Reviewers build a model of
 the change in front of them and choose their techniques from it; project knowledge reaches them
-as context. `harness/project/roles/<role>.md` appends project specifics to a core role; a project
+as context. `investigator` (read-only, `deep-reasoning`) does the deep pass of
+`pharos-investigate` and of `pharos-discover` in `deep` mode. `harness/project/roles/<role>.md` appends project specifics to a core role; a project
 role is declared under `roles` in `harness/project/project.json`, body in `roles/<name>.md`.
 
 ## Authorization
@@ -116,9 +118,12 @@ mapping. Record the resolved model and effort.
 | `implementation` | opus · medium | gpt-6.1-sol · high | Tier 2 work and fix-ups; cross-review of the other vendor's Tier 1–2 code |
 | `critical-review` | opus · high | gpt-6-astra · medium | Tier 3 work, refactor, QA, security, perf, design review, Tier-3 cross-review |
 | `escalation` | fable · high | gpt-6-astra · high | after "had the context, tried, still wrong"; science and maths (Astra) |
+| `deep-reasoning` | opus · xhigh | gpt-6-astra · xhigh | one deep pass where a wrong answer is expensive: the `investigator` in `deep` mode (a bug's cause, research for a decision, discovery of a hard feature) |
 
 Escalate the model when an agent had the context it needed, clearly tried, and was still wrong.
-Raise effort when it skipped steps. Use `xhigh`/`max` only where a measured gain justifies them.
+Raise effort when it skipped steps. `xhigh` is the `deep-reasoning` profile's alone — one pass
+whose errors would multiply downstream, chosen by the user in the `deep` mode question; record
+its spend so the gain can be measured. `max` nowhere by default.
 
 ## Runtime modes
 
