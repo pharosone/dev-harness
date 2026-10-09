@@ -25,6 +25,10 @@ Only exit 0 is an approval.
 
 import argparse
 import json
+try:
+    import fcntl
+except ImportError:  # Windows: no advisory locks; the cap is checked without one
+    fcntl = None
 import os
 from pathlib import Path
 import re
@@ -329,6 +333,42 @@ def verdict(report: Path) -> tuple[int, str]:
     return 0, "VERDICT: pass"
 
 
+CRITICAL = ("critical-review", "escalation")
+
+
+def cap_reached(text: str, cap: int, ledger: Path) -> None:
+    """Refuse when the ledger already holds `cap` critical reviews; unreadable lines count."""
+    used = 0
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            used += json.loads(line).get("profile") in CRITICAL
+        except (ValueError, AttributeError):
+            used += 1  # a damaged entry must not open a slot
+    if used >= cap:
+        raise ReviewError(f"critical-review cap reached ({used}/{cap} in {ledger}): "
+                          "review per milestone, or ask the user for more")
+
+
+def reserve(ledger: Path, entry: dict, cap: int | None) -> None:
+    """Count and append under one exclusive lock, so concurrent reviews cannot pass the cap."""
+    ledger.parent.mkdir(parents=True, exist_ok=True)
+    with ledger.open("a+", encoding="utf-8") as stream:
+        if fcntl:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+        try:
+            if cap is not None:
+                stream.seek(0)
+                cap_reached(stream.read(), cap, ledger)
+            stream.seek(0, os.SEEK_END)
+            stream.write(json.dumps(entry) + "\n")
+            stream.flush()
+        finally:
+            if fcntl:
+                fcntl.flock(stream, fcntl.LOCK_UN)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--base", required=True, help="Git ref the diff is taken against")
@@ -375,12 +415,9 @@ def main() -> int:
         if report.is_dir():
             raise ReviewError(f"Report path is a directory: {report}")
         ledger = Path(args.ledger).resolve() if args.ledger else None
-        if ledger and profile_name in ("critical-review", "escalation"):
-            used = sum(1 for line in (ledger.read_text(encoding="utf-8").splitlines() if ledger.is_file() else [])
-                       if json.loads(line).get("profile") in ("critical-review", "escalation"))
-            if used >= args.max_critical:
-                raise ReviewError(f"critical-review cap reached ({used}/{args.max_critical} in {ledger}): "
-                                  "review per milestone, or ask the user for more")
+        critical = profile_name in ("critical-review", "escalation")
+        if ledger and critical and ledger.is_file():
+            cap_reached(ledger.read_text(encoding="utf-8"), args.max_critical, ledger)
         text = context(args, base, names, raw.decode("utf-8", errors="replace"), tier, reviewer, profile_name)
         if skipped:
             text += block("Skipped (possible secrets, not sent)", "\n".join(f"- {n}" for n in skipped))
@@ -404,12 +441,10 @@ def main() -> int:
             return 0
         payload = prompt.rstrip("\n") + "\n\n" + text
         if ledger:
-            ledger.parent.mkdir(parents=True, exist_ok=True)
-            with ledger.open("a", encoding="utf-8") as stream:
-                stream.write(json.dumps({"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                                         "reviewer": reviewer, "profile": profile_name, "model": model,
-                                         "base": base, "tier": tier[0],
-                                         "single_vendor": reviewer == args.writer}) + "\n")
+            reserve(ledger, {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                             "reviewer": reviewer, "profile": profile_name, "model": model,
+                             "base": base, "tier": tier[0], "single_vendor": reviewer == args.writer},
+                    args.max_critical if critical else None)
         code = run(argv, env, payload, root, report, args.timeout)
     except ReviewError as exc:
         print(f"xreview: {exc}", file=sys.stderr)

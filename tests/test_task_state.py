@@ -64,6 +64,12 @@ class TaskStateTest(unittest.TestCase):
         self.git("worktree", "remove", str(self.worktree))
         self.assertTrue((path / "run.md").is_file())
 
+    def test_init_without_a_spec_starts_an_investigation_or_discovery_run(self):
+        path = Path(self.ok(self.run_state("init", "question")))
+        ledger = (path / "run.md").read_text()
+        self.assertIn("- Spec: none yet", ledger)
+        self.assertIn(self.git("rev-parse", "HEAD").strip(), ledger)
+
     def test_legacy_run_is_resumed_without_copying(self):
         legacy = self.root / ".claude/tasks/feature"
         legacy.mkdir(parents=True)

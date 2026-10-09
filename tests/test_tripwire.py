@@ -162,6 +162,33 @@ class TripwireTest(unittest.TestCase):
         self.assertIn("| 02 | 1 | 5 | opus | TRIPPED |", lines)
         self.assertIn("| total | 3 | 47 | | |", lines)
 
+    def test_unknown_usage_is_not_reported_as_zero(self):
+        self.ok(self.tripwire("spend", "feature", "01", "--tool-uses", "10", "--model", "opus"))
+        with (self.units / "01-spend.jsonl").open("a") as stream:
+            stream.write(json.dumps({"at": "2026-10-09T00:00:00+00:00", "model": "opus"}) + "\n")
+        lines = self.ok(self.tripwire("report", "feature")).splitlines()
+        self.assertIn("| 01 | 2 | 10 + unknown | opus | ok |", lines)
+        self.assertIn("| total | 2 | 10 + unknown | | |", lines)
+
+    def test_a_gone_checkout_is_reported_as_unchecked(self):
+        self.scope("server/export/**")
+        self.git("worktree", "remove", "--force", str(self.worktree))
+        self.assertIn("| 01 | 0 | 0 |  | unchecked |", self.ok(self.tripwire("report", "feature")).splitlines())
+
+    def test_a_unit_with_only_frozen_tests_is_reported(self):
+        red = Path(self.temp.name) / "red.log"
+        red.write_text("--- FAIL: TestCSV (0.00s)\n")
+        self.ok(self.run_script(TASK_STATE, "freeze", "feature", "04", "--red-log", str(red),
+                                "tests/csv_test.go"))
+        self.assertIn("| 04 | 0 | 0 |  | ok |", self.ok(self.tripwire("report", "feature")).splitlines())
+
+    def test_a_damaged_ledger_line_does_not_break_the_report(self):
+        self.ok(self.tripwire("spend", "feature", "01", "--tool-uses", "7", "--model", "opus"))
+        with (self.units / "01-spend.jsonl").open("a") as stream:
+            stream.write('{"at": "2026-10-09T00:00:00+00:00", "tool_us')
+        lines = self.ok(self.tripwire("report", "feature")).splitlines()
+        self.assertIn("| 01 | 1 | 7 | opus | ok, 1 unreadable ledger line |", lines)
+
     def test_a_closed_unit_stops_checking_and_a_resolved_flag_keeps_its_decision(self):
         self.scope("server/export/**")
         (self.worktree / "server/auth/middleware.go").write_text("// next unit's work\n")

@@ -269,6 +269,20 @@ class XReviewTest(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertIn("addressed", result.stderr)
 
+    def test_concurrent_reviews_cannot_pass_the_cap_together(self):
+        ledger = self.temp / "run" / "xreview.jsonl"
+        args = [sys.executable, str(self.harness / "scripts/xreview.py"), "--base", "HEAD",
+                "--writer", "claude", "--tier", "3", "--ledger", str(ledger), "--max-critical", "1"]
+        for attempt in range(3):
+            ledger.unlink(missing_ok=True)
+            runs = [subprocess.Popen([*args, "--out", str(self.temp / "out" / f"{attempt}-{n}.md")],
+                                     cwd=self.repo, env=self.env, stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE, text=True) for n in range(4)]
+            codes = [run.wait(timeout=60) for run in runs]
+            with self.subTest(attempt=attempt):
+                self.assertEqual(codes.count(0), 1, codes)
+                self.assertEqual(len(ledger.read_text().splitlines()), 1)
+
     def test_the_ledger_caps_critical_reviews_per_run(self):
         ledger = self.temp / "run" / "xreview.jsonl"
         for _ in range(2):

@@ -106,20 +106,21 @@ def checkout_file(current: Path, name: str) -> Path:
     return path
 
 
-def initialize(run: Path, primary: Path, current: Path, spec: str) -> None:
+def initialize(run: Path, primary: Path, current: Path, spec: str | None) -> None:
     ledger = evidence_path(run / "run.md", primary)
     if ledger.exists():
         if not ledger.is_file():
             raise StateError(f"Run ledger is not a file: {ledger}")
         return
-    spec_path = checkout_file(current, spec)
+    spec_line = (checkout_file(current, spec).relative_to(current).as_posix() if spec
+                 else "none yet (investigation or discovery)")
     base = git("rev-parse", "HEAD", cwd=current)
     run.mkdir(parents=True, exist_ok=True)
     try:
         with ledger.open("x", encoding="utf-8") as stream:
             stream.write(
                 f"# Task: {run.name}\n\n"
-                f"- Spec: {spec_path.relative_to(current).as_posix()}\n"
+                f"- Spec: {spec_line}\n"
                 f"- Base HEAD: {base}\n"
                 f"- Worktree: {current}\n"
                 "- Runtime: pending\n"
@@ -248,7 +249,8 @@ def main() -> int:
         sub = commands.add_parser(command)
         sub.add_argument("task")
         if command == "init":
-            sub.add_argument("--spec", required=True)
+            sub.add_argument("--spec", help="the approved spec; omit it for an investigation or "
+                             "a discovery that has no spec yet")
         if command in ("freeze", "verify", "import-legacy"):
             sub.add_argument("unit")
         if command == "freeze":

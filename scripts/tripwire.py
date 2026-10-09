@@ -75,6 +75,31 @@ def spend(run, primary, unit, entry: dict) -> None:
         stream.write(json.dumps(entry, sort_keys=True) + "\n")
 
 
+def ledger_entries(path: Path) -> tuple[list[dict], int]:
+    """The ledger's readable entries and how many lines could not be read (a write cut short)."""
+    if not path.is_file():
+        return [], 0
+    entries, bad = [], 0
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            bad += 1
+            continue
+        if isinstance(entry, dict):
+            entries.append(entry)
+        else:
+            bad += 1
+    return entries, bad
+
+
+def usage(known: int, unknown: int) -> str:
+    """Tool calls as recorded: a dispatch without a count is unknown, never zero."""
+    return f"{known} + unknown" if unknown else str(known)
+
+
 def check(run, primary, unit, record: bool) -> tuple[list[str], list[str]]:
     """Return (tripwires, notes)."""
     trips, notes = [], []
@@ -114,10 +139,9 @@ def check(run, primary, unit, record: bool) -> tuple[list[str], list[str]]:
     if flag.is_file():
         trips.append("Agent raised a flag: " + flag.read_text(encoding="utf-8").strip()[:500])
 
-    ledger = unit_file(run, primary, unit, "spend.jsonl")
-    if ledger.is_file():
-        uses = [json.loads(line).get("tool_uses") or 0
-                for line in ledger.read_text(encoding="utf-8").splitlines() if line]
+    entries, _ = ledger_entries(unit_file(run, primary, unit, "spend.jsonl"))
+    if entries:
+        uses = [e.get("tool_uses") or 0 for e in entries]
         if uses and uses[-1] > DISPATCH_TOOL_LIMIT:
             trips.append(f"Last dispatch used {uses[-1]} tool calls (limit {DISPATCH_TOOL_LIMIT})")
         budget = declared.get("turn_budget") if declared else None
@@ -129,21 +153,27 @@ def check(run, primary, unit, record: bool) -> tuple[list[str], list[str]]:
 def report(run, primary) -> list[str]:
     """One Markdown row per unit with evidence: dispatches, tool calls, models, status."""
     units = sorted({p.name.rsplit("-", 1)[0] for p in (run / "units").glob("*-*")
-                    if p.name.endswith(("-spend.jsonl", "-scope.json", "-flag.md", "-closed"))})
+                    if p.name.endswith(("-spend.jsonl", "-scope.json", "-tests.json", "-flag.md",
+                                        "-closed"))})
     rows = ["| Unit | Dispatches | Tool calls | Models | Status |", "|---|---|---|---|---|"]
-    total_dispatches = total_uses = 0
+    total_dispatches = total_known = total_unknown = 0
     for unit in units:
-        ledger = unit_file(run, primary, unit, "spend.jsonl")
-        entries = ([json.loads(line) for line in ledger.read_text(encoding="utf-8").splitlines() if line]
-                   if ledger.is_file() else [])
-        uses = sum(e.get("tool_uses") or 0 for e in entries)
+        entries, bad = ledger_entries(unit_file(run, primary, unit, "spend.jsonl"))
+        counts = [e.get("tool_uses") for e in entries]
+        known = sum(c for c in counts if isinstance(c, int))
+        unknown = sum(1 for c in counts if not isinstance(c, int))
         models = ", ".join(sorted({e["model"] for e in entries if e.get("model")}))
         trips, notes = check(run, primary, unit, record=False)
-        status = "TRIPPED" if trips else "closed" if "unit is closed" in notes else "ok"
-        rows.append(f"| {unit} | {len(entries)} | {uses} | {models} | {status} |")
+        status = ("TRIPPED" if trips else "closed" if "unit is closed" in notes
+                  else "unchecked" if any(n.startswith("Scope checkout is gone") for n in notes)
+                  else "ok")
+        if bad:
+            status += f", {bad} unreadable ledger line{'s' if bad > 1 else ''}"
+        rows.append(f"| {unit} | {len(entries)} | {usage(known, unknown)} | {models} | {status} |")
         total_dispatches += len(entries)
-        total_uses += uses
-    rows.append(f"| total | {total_dispatches} | {total_uses} | | |")
+        total_known += known
+        total_unknown += unknown
+    rows.append(f"| total | {total_dispatches} | {usage(total_known, total_unknown)} | | |")
     return rows
 
 

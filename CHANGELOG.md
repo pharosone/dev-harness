@@ -3,6 +3,15 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.1.1 — 2026-10-09
+
+- `task_state.py init` works without `--spec`, as `pharos-investigate` and discovery need.
+- `tripwire.py report` shows a dispatch without a tool count as unknown (never 0), a unit whose
+  checkout is gone as `unchecked`, units that have only frozen tests, and survives an
+  unreadable ledger line instead of failing the whole report.
+- `xreview.py` counts and reserves a critical review under one file lock: concurrent reviews
+  can no longer pass the cap together.
+
 ## 1.1.0 — 2026-10-09
 
 - `pharos-investigate`: understand before acting — a bug's root cause, research of data or
