@@ -1,0 +1,16 @@
+{
+  "claude": {
+    "mechanical": {"model": "haiku", "effort": "medium"},
+    "routine": {"model": "sonnet", "effort": "medium"},
+    "implementation": {"model": "opus", "effort": "medium"},
+    "critical-review": {"model": "opus", "effort": "high"},
+    "escalation": {"model": "fable", "effort": "high"}
+  },
+  "codex": {
+    "mechanical": {"model": "gpt-6-luna", "effort": "high"},
+    "routine": {"model": "gpt-6.1-sol", "effort": "medium"},
+    "implementation": {"model": "gpt-6.1-sol", "effort": "high"},
+    "critical-review": {"model": "gpt-6-astra", "effort": "medium"},
+    "escalation": {"model": "gpt-6-astra", "effort": "high"}
+  }
+}

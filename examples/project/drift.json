@@ -1,0 +1,22 @@
+{
+  "comment": "Documents that restate code. harness_log keeps its defaults (harness/project/HARNESS_LOG.md for any harness path).",
+  "watched": [
+    {"paths": ["app/settings.py"], "doc": "docs/configuration.md",
+     "claim": "the environment variable table"}
+  ],
+  "structural": [
+    {"paths": ["app/migrations/*.sql"], "doc": "docs/data-model.md",
+     "claim": "the tables and columns"}
+  ],
+  "new_packages": [
+    {"paths": ["app/*/*.py"], "doc": "AGENTS.md", "claim": "the repository map"}
+  ],
+  "mirrors": [
+    {"paths": ["app/schemas.py", "web/src/types.ts"], "claim": "the hand-written wire types"}
+  ],
+  "registries": [
+    {"registry": "docs/api.md", "files": ["app/routes/*.py"], "exclude": ["app/routes/test_*.py"],
+     "route": "@router\\.(get|post|put|patch|delete)\\(",
+     "claim": "the endpoint list: every route is documented"}
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "comment": "Fixture project for the core tests. A path takes the tier of the first list it matches: tier3_override, tier0_override, tier3, tier2, tier1, tier0; no match is tier 2. tier0_override is demo data only; other files under deploy/demo are deploy/**.",
+  "tier3_override": [
+    "**/AGENTS.md",
+    "**/CLAUDE.md",
+    "**/Dockerfile",
+    "**/Dockerfile.*",
+    "**/*.Dockerfile",
+    "**/docker-compose*.yaml",
+    "**/docker-compose*.yml"
+  ],
+  "tier0_override": [
+    "deploy/demo/**/*.yaml",
+    "deploy/demo/**/*.md",
+    "deploy/demo/**/*.pdf",
+    "deploy/demo/**/*.png"
+  ],
+  "tier3": [
+    "app/auth/**",
+    "app/billing/**",
+    "app/migrations/**",
+    "app/config.py",
+    "**/*export*",
+    "**/test_invariants*.py",
+    ".github/**",
+    ".gitleaks.toml",
+    "deploy/**",
+    "docs/agents/**",
+    "harness/**",
+    ".claude/**",
+    ".codex/**",
+    ".agents/**"
+  ],
+  "tier2": [
+    "docs/specs/**"
+  ],
+  "tier1": [
+    "**/test_*.py",
+    "**/*_test.go",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/package-lock.json",
+    "**/go.sum"
+  ],
+  "tier0": [
+    "docs/**",
+    "**/*.md"
+  ],
+  "limits": {
+    "tier0_lines": 10,
+    "tier1_lines": 100
+  }
+}

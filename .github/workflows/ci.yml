@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: core (tests, adapters on the example project, scrub)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Unit and integration tests
+        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Render the example project and run the tests vendored
+        run: |
+          work="$(mktemp -d)"
+          git -C "$work" init -q
+          mkdir -p "$work/harness/core"
+          git archive HEAD | tar -x -C "$work/harness/core"
+          cp -R examples/project "$work/harness/project"
+          python3 "$work/harness/core/scripts/render_adapters.py" --root "$work"
+          python3 "$work/harness/core/scripts/render_adapters.py" --root "$work" --check
+          git -C "$work" add -A
+          git -C "$work" -c user.name=ci -c user.email=ci@example.invalid commit -qm vendored
+          python3 -m unittest discover -s "$work/harness/core/tests" -p 'test_*.py'

@@ -1,0 +1,96 @@
+{
+  "comment": "Fixture project for the core tests: the local copy of .github/workflows/ci.yml, pinned by gate.py --pin-ci.",
+  "app": {
+    "paths": [
+      "app/",
+      "docs/agents/",
+      "AGENTS.md",
+      ".github/workflows/"
+    ],
+    "steps": [
+      {
+        "name": "fmt",
+        "cwd": "app",
+        "cmd": ["python3", "tools/fmt.py", "--list"],
+        "expect_empty_stdout": true
+      },
+      {
+        "name": "unit",
+        "cwd": "app",
+        "cmd": ["python3", "-m", "unittest", "discover", "-s", "tests", "--failfast"],
+        "ci_form": [
+          {"cwd": "app", "cmd": ["python3", "-m", "unittest", "discover", "-s", "tests"]}
+        ]
+      },
+      {
+        "name": "codegen",
+        "cwd": "app",
+        "cmd": ["python3", "tools/gen.py", "--check"],
+        "ci_form": [
+          {"cwd": "app", "cmd": ["python3", "tools/gen.py"]},
+          {"cwd": "app", "cmd": ["git", "diff", "--exit-code", "--", "generated"]}
+        ]
+      },
+      {
+        "name": "lint",
+        "cwd": "app",
+        "cmd": ["ruff", "check", "."],
+        "ci_form": [
+          {"uses": "example/lint-action@", "cwd": "app"}
+        ]
+      }
+    ]
+  },
+  "ui": {
+    "paths": [
+      "ui/",
+      "**/*.css",
+      ".github/workflows/"
+    ],
+    "steps": [
+      {"name": "test", "cwd": "ui", "cmd": ["npm", "test"]},
+      {"name": "build", "cwd": "ui", "cmd": ["npm", "run", "build"]}
+    ]
+  },
+  "harness": {
+    "paths": [
+      "harness/",
+      ".claude/",
+      ".codex/",
+      ".agents/",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".github/workflows/"
+    ],
+    "steps": [
+      {
+        "name": "unittest",
+        "cwd": ".",
+        "cmd": ["python3", "-m", "unittest", "discover", "-s", "harness/project/tests", "-p", "test_*.py"]
+      }
+    ]
+  },
+  "drift": {
+    "paths": ["**"],
+    "steps": [
+      {
+        "name": "docs",
+        "cwd": ".",
+        "cmd": ["python3", "harness/core/scripts/check_docs_drift.py", "--base", "{base}"]
+      }
+    ]
+  },
+  "ci_pin": {
+    "setup": [
+      {"cmd": ["if"], "why": "shell plumbing"},
+      {"cmd": ["fi"], "why": "shell plumbing"},
+      {"cmd": ["echo"], "why": "shell plumbing"},
+      {"cmd": ["exit"], "why": "shell plumbing"},
+      {"cwd": "app", "cmd": ["pip", "install"], "why": "dependency install"},
+      {"cwd": "ui", "cmd": ["npm", "ci"], "why": "dependency install"},
+      {"cwd": ".", "cmd": ["docker", "run"], "why": "secret scan in its pinned image; CI only"}
+    ],
+    "setup_actions": ["actions/checkout@", "actions/setup-python@", "actions/setup-node@"],
+    "ci_only_jobs": {"secrets": "the scanner needs Docker and its pinned image"}
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "implementer": {
+    "description": "Writes production code and its tests under the project's invariants: one unit per dispatch — tests, red evidence, frozen tests, code, gates.",
+    "profile": "implementation",
+    "sandbox": "workspace-write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Edit",
+      "Write"
+    ]
+  },
+  "perf-analyst": {
+    "description": "Models and measures what a change costs at runtime — CPU, memory, database, network, bundle, money — under realistic load, and proposes the cheaper shape.",
+    "profile": "critical-review",
+    "sandbox": "read-only",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Write"
+    ]
+  },
+  "qa-verifier": {
+    "description": "Independent verification of a diff: runs every gate for the touched areas, then looks for where a green run could be lying about the spec's claims.",
+    "profile": "routine",
+    "sandbox": "workspace-write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Write"
+    ]
+  },
+  "security-auditor": {
+    "description": "Threat-models a change and hunts for how it lets someone read, change or destroy what they should not, or deny service: whatever the change's assets, entry points and attackers call for.",
+    "profile": "critical-review",
+    "sandbox": "read-only",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Write"
+    ]
+  },
+  "simplifier": {
+    "description": "Simplifies or refactors code for clarity without changing behaviour; the refactor step of Tier 2–3 units and milestones.",
+    "profile": "critical-review",
+    "sandbox": "workspace-write",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Edit",
+      "Write"
+    ]
+  },
+  "ui-design-verifier": {
+    "description": "UX review of user-facing changes: captures its own screenshots of every state the change can show in the running application and judges them against the user's task, the design system and the mockups.",
+    "profile": "routine",
+    "sandbox": "read-only"
+  }
+}

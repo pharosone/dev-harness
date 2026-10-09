@@ -1,0 +1,37 @@
+{
+  "name": "tasklist",
+  "core": {
+    "repo": "https://git.example.com/dev-harness.git",
+    "ref": "v1.0.0",
+    "prefix": "harness/core"
+  },
+  "guard": {
+    "deploy_hosts": ["deploy.tasklist.example"],
+    "deploy_host_files": ["infra/*.hosts"],
+    "prod_compose": ["compose.prod*"],
+    "generated": [
+      {"path": "web/src/api-client/",
+       "hint": "change app/openapi.yaml and run npm run gen in web/ instead of editing it by hand."}
+    ]
+  },
+  "interview": {
+    "extra_rows": [
+      {"item": "Accessibility",
+       "question": "Keyboard path, screen-reader names and contrast for every new control?",
+       "section": "Accessibility",
+       "drafted_by": "a11y-reviewer"}
+    ]
+  },
+  "roles": {
+    "a11y-reviewer": {
+      "description": "Reviews UI changes for keyboard access, screen-reader names, focus order and contrast; drafts the spec's Accessibility section.",
+      "profile": "routine",
+      "tools": ["Read", "Grep", "Glob", "Bash", "Write"],
+      "sandbox": "read-only",
+      "panel": {"min_tier": 2, "paths_exist": ["web/"]}
+    }
+  },
+  "worktree": {
+    "node_dirs": ["web"]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "comment": "A small web app: app/ (the API), web/ (the UI), docs/. A path takes the tier of the first list it matches: tier3_override, tier0_override, tier3, tier2, tier1, tier0; no match is tier 2.",
+  "tier3_override": [
+    "**/AGENTS.md",
+    "**/CLAUDE.md",
+    "**/Dockerfile",
+    "**/compose*.yaml"
+  ],
+  "tier0_override": [
+    "docs/screenshots/**"
+  ],
+  "tier3": [
+    "app/auth/**",
+    "app/migrations/**",
+    "app/settings.py",
+    ".github/**",
+    "infra/**",
+    "harness/**",
+    ".claude/**",
+    ".codex/**",
+    ".agents/**"
+  ],
+  "tier2": [
+    "docs/specs/**"
+  ],
+  "tier1": [
+    "**/test_*.py",
+    "**/*.test.ts",
+    "**/package-lock.json"
+  ],
+  "tier0": [
+    "docs/**",
+    "**/*.md"
+  ],
+  "limits": {
+    "tier0_lines": 10,
+    "tier1_lines": 100
+  }
+}

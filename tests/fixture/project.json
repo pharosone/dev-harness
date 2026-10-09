@@ -1,0 +1,16 @@
+{
+  "name": "fixture",
+  "guard": {
+    "deploy_hosts": ["deploy.example.com"],
+    "deploy_users": ["release"],
+    "deploy_host_files": ["infra/*.hosts", "ops/inventory/"],
+    "prod_compose": ["compose.prod*", "gpu.override*", "auth.override*"],
+    "generated": [
+      {"path": "gen/db/",
+       "hint": "change schema/*.sql and run make gen instead of editing it by hand."}
+    ]
+  },
+  "worktree": {
+    "node_dirs": ["web", "packages/ui"]
+  }
+}

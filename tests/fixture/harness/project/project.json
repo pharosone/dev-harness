@@ -1,0 +1,11 @@
+{
+  "name": "fixture",
+  "roles": {
+    "docs-steward": {
+      "description": "Keeps the fixture project's docs in step with its code; a project role.",
+      "profile": "routine",
+      "tools": ["Read", "Grep", "Glob", "Edit"],
+      "sandbox": "workspace-write"
+    }
+  }
+}

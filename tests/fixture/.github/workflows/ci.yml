@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: dependencies
+        working-directory: app
+        run: pip install -r requirements.txt
+      - name: format
+        working-directory: app
+        run: |
+          unformatted="$(python3 tools/fmt.py --list)"
+          if [ -n "$unformatted" ]; then
+            echo "$unformatted"
+            exit 1
+          fi
+      - name: unit tests
+        working-directory: app
+        run: python3 -m unittest discover -s tests
+      - name: generated code is committed
+        working-directory: app
+        run: |
+          python3 tools/gen.py
+          git diff --exit-code -- generated
+      - uses: example/lint-action@v1
+        with:
+          working-directory: app
+
+  ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+        working-directory: ui
+      - run: npm test
+        working-directory: ui
+      - run: npm run build
+        working-directory: ui
+
+  harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: python3 -m unittest discover -s harness/project/tests -p 'test_*.py'
+      - run: python3 harness/core/scripts/check_docs_drift.py --base "origin/${{ github.base_ref || 'main' }}"
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker run --rm -v "$PWD:/repo" example/scanner:1.0 detect --source /repo

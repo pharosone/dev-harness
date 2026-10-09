@@ -1,0 +1,24 @@
+{
+  "comment": "Fixture project for the core tests. harness_log is left at its defaults (harness/project/HARNESS_LOG.md).",
+  "watched": [
+    {"paths": ["app/config.py"], "doc": "docs/config.md", "claim": "the env table"}
+  ],
+  "structural": [
+    {"paths": ["app/migrations/*.sql"], "doc": "docs/domain.md", "claim": "the domain model (tables, columns)"}
+  ],
+  "new_packages": [
+    {"paths": ["app/*/*.py", "cmd/*/*.go"], "doc": "AGENTS.md", "claim": "the repo map"}
+  ],
+  "mirrors": [
+    {"paths": ["api/dto.go", "ui/types.ts"], "claim": "the hand-written wire mirror"}
+  ],
+  "registries": [
+    {
+      "registry": "api/registry.go",
+      "files": ["api/**/*.go"],
+      "exclude": ["**/*_test.go"],
+      "route": "\\bPath:\\s*\"/|\\.(Get|Post|Put|Patch|Delete|Handle)\\(\\s*\"/|\\.Method\\([^,]+,\\s*\"/",
+      "claim": "the route registry: every route is a listed entry or an excluded one"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "comment": "The local copy of the CI gates in .github/workflows/ci.yml, pinned by `gate.py --pin-ci`. The commands are placeholders that always pass: replace each with the project's own formatter, linter, tests and build, run from the directory CI runs them in.",
+  "app": {
+    "paths": ["app/", "pyproject.toml", ".github/workflows/"],
+    "steps": [
+      {"name": "fmt", "cwd": ".", "cmd": ["python3", "-c", "pass"],
+       "expect_empty_stdout": true},
+      {"name": "test", "cwd": ".", "cmd": ["python3", "-c", "print(1)"]},
+      {"name": "schema", "cwd": ".", "cmd": ["python3", "-c", "print(2)"],
+       "ci_form": [
+         {"cwd": ".", "cmd": ["python3", "-c", "print(20)"]},
+         {"cwd": ".", "cmd": ["git", "diff", "--exit-code"]}
+       ]}
+    ]
+  },
+  "web": {
+    "paths": ["web/", "**/*.css", ".github/workflows/"],
+    "steps": [
+      {"name": "lint", "cwd": ".", "cmd": ["python3", "-c", "print(3)"],
+       "ci_form": [{"cwd": "web", "uses": "example/lint-action@"}]},
+      {"name": "build", "cwd": ".", "cmd": ["python3", "-c", "print(4)"]}
+    ]
+  },
+  "drift": {
+    "paths": ["**"],
+    "steps": [
+      {"name": "docs", "cwd": ".",
+       "cmd": ["python3", "harness/core/scripts/check_docs_drift.py", "--base", "{base}"]}
+    ]
+  },
+  "ci_pin": {
+    "setup": [
+      {"cwd": "web", "cmd": ["npm", "ci"], "why": "dependency install"}
+    ],
+    "setup_actions": ["actions/checkout@", "actions/setup-python@", "actions/setup-node@"],
+    "ci_only_jobs": {"secrets": "the secret scanner runs only in CI"}
+  }
+}
