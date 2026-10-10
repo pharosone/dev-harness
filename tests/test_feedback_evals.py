@@ -27,7 +27,9 @@ class FeedbackEvalTest(unittest.TestCase):
                        'No repeat offer.', 'Skip the feedback question.',
                        "I won't ask again.", 'The declined draft is retained.',
                        'The question is not asked again.', 'This must never be re-offered.',
-                       'No further feedback offers.'):
+                       'No further feedback offers.',
+                       "I don't ask the feedback question again.",
+                       'I don’t re-offer the same complaint.'):
             with self.subTest(answer=answer):
                 self.assertIsNotNone(expression.search(answer))
 
