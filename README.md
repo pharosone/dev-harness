@@ -37,9 +37,9 @@ checkout needs at least one commit and a clean tree.
 
 ```sh
 CORE_URL=https://github.com/pharosone/dev-harness.git
-git clone --depth 1 --branch v1.0.0 "$CORE_URL" /tmp/dev-harness
+git clone --depth 1 --branch v1.4.0 "$CORE_URL" /tmp/dev-harness
 mkdir -p harness && cp -R /tmp/dev-harness/examples/project harness/project   # then edit it
-python3 /tmp/dev-harness/scripts/harness_sync.py install --repo "$CORE_URL" --ref v1.0.0
+python3 /tmp/dev-harness/scripts/harness_sync.py install --repo "$CORE_URL" --ref v1.4.0
 python3 harness/core/scripts/render_adapters.py
 ```
 
@@ -500,5 +500,8 @@ reasons, user corrections and later outcomes. `<run>/backlog.md` tracks Minors.
 `python3 scripts/review_calibration.py report --run <run> --run <older-run>` shows blockers
 per milestone, over-blocked/missed rates and rounds used, with concrete policy suggestions
 above documented thresholds. G4/final reports include summary, unresolved triage needs and
-backlog path. Sanitized corrections can become fixtures; the documented feedback hook retains
-them for an upstream proposal without automatically publishing or changing defaults.
+backlog path. Sanitized corrections and aggregate outcome counts become a harness-only
+Markdown proposal queued with `feedback.py draft --kind friction --from-file <proposal>
+--title 'Calibrate review acceptance from observed outcomes' --run-dir <run>`. Check existing
+drafts and follow the one-time review offer in "Feedback"; upstream submission requires
+explicit user authorization. See the [feedback hook](docs/overlay.md#review-calibration-evidence-and-feedback-hook).

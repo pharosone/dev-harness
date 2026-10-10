@@ -3,7 +3,9 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
-## 1.5.0 — 2026-10-10
+## 1.4.0 — 2026-10-10
+
+### Watch
 
 - Review fixes: `watch.py --ack D` permanently closes accepted/handled terminal lane alerts;
   live alerts cannot be acknowledged. Only Herdr status or an agent working indicator suppresses
@@ -29,7 +31,7 @@ with defaults; a major release may require an overlay change and says which.
   same turn: answer spec-resolved questions, escalate material and permission decisions,
   recover frozen/exited lanes, accept reports, stop repeating product failures through the
   product's `watch.stop_command`, and tell the user what was done. The script is observational.
-## 1.6.0 — 2026-10-10
+### Feedback
 
 - Public harness feedback: `scripts/feedback.py draft/list/offer/decline/send` queues local
   harness-only drafts, remembers offers and declines, previews sanitized titles/bodies,
@@ -55,10 +57,9 @@ with defaults; a major release may require an overlay change and says which.
   tokens without changing ordinary words or harness vocabulary; inspect declined/sent
   drafts before drafting a reworded complaint; bound browser fallback URLs and direct
   long evidence to the full sanitized preview.
-- Six owner-reported examples are synthetic test fixtures, never real issues. Renumber this
-  entry at merge if the parallel release branches require a different version.
+- Six owner-reported examples are synthetic test fixtures, never real issues.
 
-## 1.7.0 — 2026-10-10
+### Skill evals
 
 - Every new or changed core/product skill ships with purpose/failure-based cases and paired
   measured scores, positive new-case Δ, model, cost, date and stored history; existing cases
@@ -68,15 +69,14 @@ with defaults; a major release may require an overlay change and says which.
   case changes, deltas and historical scores; Claude runs isolated paired plugin evals,
   while products can supply a Hermes/Codex runner via validated `project.json → skills`.
 - Two new product-skill acceptance scenarios cover pharos-dev and pharos-discover. Existing
-  coverage gaps remain follow-ups. No required overlay migration. Renumber at merge if
-  parallel release branches require a different version.
+  coverage gaps remain follow-ups. No required overlay migration.
 - Review fixes: gate and hash the complete skill directory and transitive declared inputs;
   record a schema-2 input manifest, reject input changes during evaluation, compare regression
   only for identical cases, and require an explicit run base. External runners receive exact
   registered case paths in an environment manifest. Shared-context changes require purpose
-  coverage and fresh measurements for all seven core skills; their instructions are unchanged.
+  coverage and fresh measurements for all seven core skills; only shared inputs changed for five of the seven skills.
 
-## 1.8.0 — 2026-10-10
+### Review calibration
 
 - Calibrated review acceptance: likelihood × impact matrix, code-read evidence and reachable
   scenarios; pilot/empty-invariant defaults, triage before fix-up and two rounds per milestone.

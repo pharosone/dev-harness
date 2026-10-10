@@ -6,12 +6,16 @@
     "lanes-boundary",
     "tier0-docs",
     "tier3-process",
-    "skill-evals-unit"
+    "skill-evals-unit",
+    "watch-react",
+    "feedback-offer",
+    "review-calibration"
   ],
   "skills/pharos-discover/SKILL.md": [
     "compare-declined",
     "compare-offer",
-    "skill-evals-discovery"
+    "skill-evals-discovery",
+    "feedback-declined"
   ],
   "skills/pharos-investigate/SKILL.md": [
     "deep-mode-offer",

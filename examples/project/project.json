@@ -2,7 +2,7 @@
   "name": "tasklist",
   "core": {
     "repo": "https://git.example.com/dev-harness.git",
-    "ref": "v1.0.0",
+    "ref": "v1.4.0",
     "prefix": "harness/core"
   },
   "guard": {

@@ -345,10 +345,16 @@ outcomes can also become regression fixtures. Use
 `finding` (one canonical finding string) and `review` (`stage` plus `invariants`). Remove secrets,
 personal data and private identifiers from the case; review the generated fixture before
 including it in tests/evals.
-Keep the fixture and `report --json` as an upstream scale-change candidate. If the feedback
-branch is present at merge, pass these sanitized artifacts to its collector; otherwise use
-the documented hook in `docs/overlay.md`. Propose a concrete cell/invariant adjustment with
-before/after fixture decisions; submit upstream only with explicit user authorization.
+Use the sanitized fixture and aggregate `report --json` counts to write
+`<run>/calibration-proposal.md`, with `What happened`, `Expected`, `Repro (minimal, harness-only)`,
+`Evidence` and `Proposal` headings; omit private run paths and raw ledger content. Include a
+concrete cell/invariant adjustment, before/after fixture decisions and observed outcome rates.
+Create its local reviewable draft with `python3 harness/core/scripts/feedback.py draft
+--kind friction --title "Calibrate review acceptance from observed outcomes"
+--from-file <run>/calibration-proposal.md --run-dir <run>`. Check the full feedback queue first
+for the same underlying issue, including declined/sent drafts. Follow Harness feedback below
+for the one-time offer, sanitized preview and explicit user authorization before submission.
+The full handoff is documented in `docs/overlay.md`.
 Show this hook in G4/final reports so later incidents and user reports update the evidence.
 
 ## Handoff
