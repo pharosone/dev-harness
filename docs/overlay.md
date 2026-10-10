@@ -468,15 +468,29 @@ Optional profile overrides, the same shape as `harness/core/adapters/models.json
 deep-merged over the core table (nested objects merge, other values replace), so an overlay
 changes one value or adds a profile without restating the rest. The renderer uses the merged
 table for every agent file; `xreview.py` uses the reviewed checkout's merged table, and
-`compare.py` the compared checkout's, for its competitors, arbiter and critics. `lanes.py` and
-`dashboard.py` do not read `models.json` (`lanes.py` reads `project.json → lanes` and
-`dashboard` only).
+`compare.py` the compared checkout's, for its competitors, arbiter and critics. `balance.py`
+uses the same table for the actual static pick. When shadow is enabled, `lanes.py decide`
+may read it to describe the actual tuple beside its recommendation; `start` always launches
+the explicit model/effort arguments. Dashboards display recorded decisions.
 
 ```json
 {"claude": {"routine": {"effort": "high"}}}
 ```
 
 A profile you add must exist for both runtimes when a role uses it.
+
+## router.json
+
+Optional shadow policy, deep-merged over `harness/core/adapters/router.json`. Default
+`mode: "off"` preserves actual dispatch and emits no router events. `mode: "shadow"` adds
+advisory evidence only; no active mode is accepted. Classifier execution is separately disabled
+by default. The configured default classifier is Haiku 5.5 medium, marked **UNVALIDATED**.
+
+The registry lists all supported model/effort tuples, quality bands, runtime availability,
+frozen trait/cohort maps, source weights and quota/rework policy. Gemini/Grok are planned.
+Unknown resource estimates remain unscored; AA output/decode proxies require explicit opt-in.
+See [shadow routing configuration and commands](router-shadow.md) for manual weights, safe
+classifier capsules, runtime/effort restrictions, formulas and calibration links.
 
 ## rules/
 
