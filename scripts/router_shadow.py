@@ -437,3 +437,38 @@ def dispatch_fields(event: dict | None) -> dict:
     return {key: event.get(key) for key in ("attempt_id", "root_attempt_id", "parent_attempt_id",
             "selected_tuple", "profile", "tier", "policy_hash", "data_hash")} | {
                 "router_decision_id": event["decision_id"]}
+
+
+def completion_fields(state: dict) -> dict:
+    """Link an end without asserting that a requested alias was the served model."""
+    if not state.get("router_decision_id"):
+        return {}
+    models = set()
+    try:
+        with Path(state["log"]).open("rb") as stream:
+            for line in stream:
+                if len(line) > MAX_RESPONSE_BYTES:
+                    continue
+                try:
+                    row = strict_json(line.decode("utf-8"))
+                except (ValueError, UnicodeError):
+                    continue
+                if not isinstance(row, dict):
+                    continue
+                if row.get("type") == "assistant" and isinstance(row.get("message"), dict):
+                    model = row["message"].get("model")
+                    if isinstance(model, str) and re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", model):
+                        models.add(model)
+                if row.get("type") == "result" and isinstance(row.get("modelUsage"), dict):
+                    models.update(name for name in row["modelUsage"]
+                                  if re.fullmatch(r"[A-Za-z0-9_.:-]{1,120}", name))
+    except (OSError, KeyError):
+        pass
+    fields = {key: state.get(key) for key in ("attempt_id", "root_attempt_id", "parent_attempt_id",
+              "selected_tuple", "profile", "tier", "policy_hash", "data_hash", "router_decision_id")}
+    fields["serving_identity"] = {"models_observed": sorted(models),
+        "resolved_model": next(iter(models)) if len(models) == 1 else None,
+        "status": "single_observed" if len(models) == 1 else "mixed" if models else "unverified",
+        "resolved_effort": None, "effort_status": "requested_only",
+        "source": "dispatch_stream", "quota_attribution": "unmeasured"}
+    return fields

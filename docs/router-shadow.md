@@ -177,6 +177,12 @@ or checked against `--root-attempt-id`. Invalid links are skipped, never silentl
 A subagent decision has no dispatch until the orchestrator records one; the explicit
 calibration link command can associate that later dispatch.
 
+Shadow-enabled completion events repeat those links and report serving-model identities when
+the dispatch stream exposes them. Multiple observed models stay mixed; absent identities stay
+unverified. Requested model/effort flags are not proof of the resolved model or actual effort,
+and a requested alias is never relabeled as a measured canonical model. The current stream
+does not establish per-window quota attribution; that remains unmeasured.
+
 Use the [calibration helper](benchmarks/router-calibration.md) to record acceptance, rejection,
 fixups, incidents and review verdict references. Process `done` is never acceptance. Review
 references resolve against the 1.4.0 review ledger; a review reservation is not a verdict.

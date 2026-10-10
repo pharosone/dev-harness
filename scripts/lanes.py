@@ -542,6 +542,12 @@ def finish(state: dict, status: str, usage: dict | None = None,
     """Write the dispatch's one end; an end already written wins and is returned.
     report_source, when given, says where the report came from ("final_message")."""
     fields = {"dispatch": state["dispatch"], "status": status, "usage": usage}
+    if state.get("router_decision_id"):
+        import router_shadow
+        try:
+            fields.update(router_shadow.completion_fields(state))
+        except Exception as exc:
+            print(f"lanes: shadow completion evidence skipped ({type(exc).__name__})", file=sys.stderr)
     if report_source:
         fields["report_source"] = report_source
     record(state, "dispatch.end", fields, event_id=f"{state['dispatch']}.end")

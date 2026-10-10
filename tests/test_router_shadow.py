@@ -156,6 +156,22 @@ class ShadowTest(unittest.TestCase):
         self.assertEqual(fields["selected_tuple"], ACTUAL)
         self.assertNotIn("recommendation", fields)
 
+    def test_completion_identity_is_observed_not_guessed_from_alias(self):
+        path = self.run / "worker.log"
+        state = {"router_decision_id": "decision", "attempt_id": "a", "log": str(path),
+                 "model": "opus", "effort": "high"}
+        unknown = shadow.completion_fields(state)["serving_identity"]
+        self.assertEqual(unknown["status"], "unverified")
+        self.assertIsNone(unknown["resolved_model"])
+        path.write_text(json.dumps({"type": "assistant", "message": {"model": "claude-opus-5-5"}}))
+        known = shadow.completion_fields(state)["serving_identity"]
+        self.assertEqual(known["resolved_model"], "claude-opus-5-5")
+        self.assertIsNone(known["resolved_effort"])
+        with path.open("a") as stream:
+            stream.write("\n" + json.dumps({"type": "result", "modelUsage": {"claude-sonnet-5-5": {}}}))
+        self.assertEqual(shadow.completion_fields(state)["serving_identity"]["status"], "mixed")
+        self.assertEqual(shadow.completion_fields({}), {})
+
     def test_cache_stores_no_task_text_and_invalid_cache_skips(self):
         response = {"result": ANSWER, "resolved_model": CONFIG["model"],
                     "usage": {"input_tokens": 10}, "elapsed_seconds": 1,
