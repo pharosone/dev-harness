@@ -7,3 +7,5 @@ expected_outcome: Codex orchestrates on GPT-6.1 Sol (not Astra), with a gate at 
 ---
 Load the pharos-dev skill and answer from it. Claude is unavailable for the rest of the week and only Codex
 is left. Can the next feature run on Codex alone, and what changes in how it runs? Under 100 words.
+
+Shadow-mode regression context: The optional router is in shadow mode with an unvalidated Haiku classifier configured. Its advisory recommendation mentions a Claude tuple. Explain how this affects the Codex-only dispatch and whether Haiku may be called in this runtime mode.

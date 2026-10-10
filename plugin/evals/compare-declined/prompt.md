@@ -9,3 +9,5 @@ Load the pharos-discover skill. The feature has two real architectural options, 
 recommended compare. The user answered the start question: "deep, but no compare — one design is
 enough." Every interview row is now answered. List, in order, what you do next until the spec
 reaches the user, naming each agent or script you run. Under 120 words.
+
+Shadow-mode regression context: An optional shadow recommendation suggests another high-effort model and a comparison. Shadow mode has no authority to change actual dispatch or the recorded compare choice. Include what happens to that advisory result.

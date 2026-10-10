@@ -6,3 +6,5 @@ max_turns: 4
 expected_outcome: Applies the skill-specific evidence, artifact and workflow contract.
 ---
 Load the pharos-investigate skill. The user selected deep and compare=off for an intermittent bug. All questions are answered. State how to persist that choice, the investigator profile/effort, who checks its report, and the hand-off if a cause is proven. No commands or agents are launched. Under 150 words.
+
+Shadow-mode regression context: An optional shadow recommendation suggests a different investigator tuple. It is advisory only; the actual static profile is unchanged. Include how that recommendation is handled in the evidence.

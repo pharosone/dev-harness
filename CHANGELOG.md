@@ -3,6 +3,22 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.5.0 — Unreleased
+
+- Optional shadow model routing: an overlay-configurable runtime registry expands all
+  supported model/effort tuples inside AA v4.3.2 quality bands. Exact independent task evidence,
+  profile floors, continuous quota shadow prices and expected complete rework cost determine
+  advisory recommendations. Missing resource data remain unscored; AA proxies are explicit.
+- `balance.py pick` and `lanes.py decide/start` retain the actual static choice and append
+  separate recommendations/provenance to `events.jsonl` and both dashboards. Default mode is
+  off; there is no active router mode. Gemini and Grok are planned runtime entries.
+- Optional subscription Haiku 5.5 classification is tool-free, bounded, cached and marked
+  UNVALIDATED; manual weights need no model call. Errors/timeouts skip the shadow path.
+  Classifier experiment C and the lead pilot remain unrun.
+- Calibration hooks link actual attempts, explicit acceptance/fixups, serving observations
+  and authoritative 1.4.0 review results. Done/cancelled statuses are not acceptance labels;
+  aliases, missing quota attribution and unobserved effort remain explicit unknowns.
+
 ## 1.4.0 — 2026-10-10
 
 ### Watch

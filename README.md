@@ -128,7 +128,9 @@ mapping. Record the resolved model and effort.
 Escalate the model when an agent had the context it needed, clearly tried, and was still wrong.
 Raise effort when it skipped steps. `xhigh` is the `deep-reasoning` profile's alone — one pass
 whose errors would multiply downstream, chosen by the user in the `deep` mode question; record
-its spend so the gain can be measured. `max` nowhere by default.
+its spend so the gain can be measured. `max` nowhere in the static dispatch defaults. The
+optional shadow router separately examines all supported efforts inside measured quality
+bands; it does not change these defaults.
 
 ## Benchmark evidence
 
@@ -142,13 +144,37 @@ includes `web_research` for source-backed research and cited fact extraction.
 [Per-model effort curves](docs/benchmarks/effort-curves.md) show quality, token use and
 derived decode time, with unsupported or unmeasured settings kept explicit. These are
 benchmark resource measurements and estimates, not subscription quota or task wall time.
-Gemini and Grok runtime support is marked **planned**. This evidence snapshot does not change
-the profile mapping, vendor selection or lane launch behavior; the model router is **not released**; implementation and the
-classifier experiment await design approval.
+Gemini and Grok runtime support is marked **planned**. The optional shadow router uses this
+snapshot for advisory recommendations; actual profile mapping, vendor selection and lane
+launch behavior remain unchanged. The classifier is **UNVALIDATED**; its accuracy experiment
+and the lead-research pilot have not run.
 
 From this core checkout, validate with `python3 scripts/benchmarks.py validate` and regenerate
 the offline charts with `python3 scripts/benchmarks.py render`. Rendering does not fetch new
 results; refresh the sourced JSON first. Observations older than 60 days produce warnings.
+
+## Shadow model routing — 1.5.0 unreleased
+
+Set `harness/project/router.json` to `{"mode":"shadow"}` to add recommendations to
+`balance.py pick` and `lanes.py decide/start`. Missing configuration or `mode: "off"` retains
+1.4.0 behavior. Actual dispatch always uses the existing static pick or explicit launch tuple.
+Both dashboards show `⚖ shadow: would pick … because …` separately from that actual choice.
+
+The [registry and pure scorer](docs/benchmarks/router-scoring.md) enumerate every supported
+effort, apply AA v4.3.2 reference bands and task-quality floors, and price quota scarcity plus
+full expected rework. Exact independent cohorts are required. Unknown input/quota/wall-time
+costs remain unscored unless explicit bounded estimates or labeled AA proxy scenarios are
+configured. Gemini/Grok remain planned. No active-routing mode is implemented.
+
+Provide manual trait weights or explicitly enable the subscription Haiku 5.5 classifier;
+classification is off by default, tool-free, cached by task/prompt/model/effort and marked
+UNVALIDATED. Failure or timeout records a skip. [Configuration, commands and input
+contract](docs/router-shadow.md) describe runtime restrictions and cost assumptions.
+
+[Calibration hooks](docs/benchmarks/router-calibration.md) link decisions, real dispatches,
+explicit acceptance/fixups and the 1.4.0 review ledger. Process completion is never acceptance;
+requested aliases and effort are separate from observed serving identity. The report exposes
+coverage and unknowns; it does not fit probabilities or quota prices from incomplete evidence.
 
 ## Runtime modes
 
