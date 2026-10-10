@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "version": "1.1",
+  "traits": [
+    {
+      "id": "repo_edit",
+      "description": "Repository-level bug fixes, feature implementation and refactoring."
+    },
+    {
+      "id": "terminal",
+      "description": "Shell, infrastructure, deployment configuration and operating-system tasks."
+    },
+    {
+      "id": "polyglot",
+      "description": "Coordinated edits across multiple programming languages."
+    },
+    {
+      "id": "algorithmic",
+      "description": "Algorithms, data structures, mathematical programming and competitive coding."
+    },
+    {
+      "id": "tool_workflow",
+      "description": "Multi-step agent workflows that coordinate APIs, tools and application state."
+    },
+    {
+      "id": "browser",
+      "description": "Browser interaction, UI verification, computer use and web navigation."
+    },
+    {
+      "id": "review",
+      "description": "Code, security and architecture review; difficult reasoning about correctness."
+    },
+    {
+      "id": "long_context",
+      "description": "Retrieval and synthesis across long documents or large amounts of source context."
+    },
+    {
+      "id": "factual",
+      "description": "Fact verification, grounded research and avoiding unsupported claims."
+    },
+    {
+      "id": "instruction",
+      "description": "Precise instruction following, constrained formats and explicit contracts."
+    },
+    {
+      "id": "web_research",
+      "description": "Multi-step web search, source reading, evidence verification and cited synthesis, including company and public professional lead research."
+    }
+  ]
+}

@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1380" viewBox="0 0 1120 1380" role="img" aria-labelledby="title desc">
+<title id="title">GPT-6 Luna: effort evidence</title>
+<desc id="desc">Four panels: AA Intelligence v4.3.2, weighted tokens/task, derived decode seconds/task, API cost/task. Effort categories are ordinal per model. Missing data is not zero and is not interpolated.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="1380" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="28" y="30" font-size="22" >GPT-6 Luna — effort evidence</text>
+<text x="28" y="54" font-size="13" >AA suite proxies. Decode time excludes first-token delay and overhead. API cost and tokens are not subscription quota.</text>
+<text x="28" y="77" font-size="13" >Each effort is categorical within this model; identical names across models do not imply equal work. Gaps break lines.</text>
+<text x="28" y="110" font-size="17" >AA Intelligence Index v4.3.2 (fixed 0–100)</text>
+<path d="M100 315H1050" stroke="#e5e7eb"/>
+<text x="90" y="319" font-size="11" text-anchor="end">0</text>
+<path d="M100 273H1050" stroke="#e5e7eb"/>
+<text x="90" y="277" font-size="11" text-anchor="end">25</text>
+<path d="M100 231H1050" stroke="#e5e7eb"/>
+<text x="90" y="235" font-size="11" text-anchor="end">50</text>
+<path d="M100 189H1050" stroke="#e5e7eb"/>
+<text x="90" y="193" font-size="11" text-anchor="end">75</text>
+<path d="M100 147H1050" stroke="#e5e7eb"/>
+<text x="90" y="151" font-size="11" text-anchor="end">100</text>
+<text x="650" y="110" font-size="12" fill="#1d4ed8">Index</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;none&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 18.4678465935701, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-non-reasoning&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="150" cy="283.97" r="4" fill="#1d4ed8"/></g>
+<text x="150" y="273.9740177228022" font-size="12" text-anchor="middle">18.5</text>
+<path d="M150 283.97L320 278.84" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 21.5261980080866, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="278.84" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="268.8359873464145" font-size="12" text-anchor="middle">21.5</text>
+<path d="M320 278.84L490 264.73" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 29.9251773515762, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="264.73" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="254.72570204935198" font-size="12" text-anchor="middle">29.9</text>
+<path d="M490 264.73L660 259.68" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 32.9282054150837, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="259.68" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="249.68061490265939" font-size="12" text-anchor="middle">32.9</text>
+<path d="M660 259.68L830 256.94" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 34.5587320217785, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="256.94" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="246.94133020341212" font-size="12" text-anchor="middle">34.6</text>
+<path d="M830 256.94L1000 250.95" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 38.1245186869738, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="250.95" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="240.950808605884" font-size="12" text-anchor="middle">38.1</text>
+<text x="150" y="337" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="320" y="337" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="337" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="337" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="337" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="337" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="410" font-size="17" >Weighted output tokens per suite task</text>
+<path d="M100 615H1050" stroke="#e5e7eb"/>
+<text x="90" y="619" font-size="11" text-anchor="end">0</text>
+<path d="M100 573H1050" stroke="#e5e7eb"/>
+<text x="90" y="577" font-size="11" text-anchor="end">15,000</text>
+<path d="M100 531H1050" stroke="#e5e7eb"/>
+<text x="90" y="535" font-size="11" text-anchor="end">30,000</text>
+<path d="M100 489H1050" stroke="#e5e7eb"/>
+<text x="90" y="493" font-size="11" text-anchor="end">45,000</text>
+<path d="M100 447H1050" stroke="#e5e7eb"/>
+<text x="90" y="451" font-size="11" text-anchor="end">60,000</text>
+<text x="650" y="410" font-size="12" fill="#1d4ed8">Total</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;none&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 3760.5390495238253, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-non-reasoning&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="150" cy="604.47" r="4" fill="#1d4ed8"/></g>
+<path d="M150 604.47L320 609.16" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 2087.2197551648565, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="609.16" r="4" fill="#1d4ed8"/></g>
+<path d="M320 609.16L490 582.92" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 11456.455776112209, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="582.92" r="4" fill="#1d4ed8"/></g>
+<path d="M490 582.92L660 559.83" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 19703.23408227596, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="559.83" r="4" fill="#1d4ed8"/></g>
+<path d="M660 559.83L830 538.04" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 27487.096124945067, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="538.04" r="4" fill="#1d4ed8"/></g>
+<path d="M830 538.04L1000 474.97" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 50011.69043054027, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="474.97" r="4" fill="#1d4ed8"/></g>
+<text x="780" y="410" font-size="12" fill="#7e22ce">Reasoning</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;none&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 0, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-non-reasoning&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="150" cy="615.00" r="4" fill="#7e22ce"/></g>
+<path d="M150 615.00L320 613.56" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 513.9529094338612, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="613.56" r="4" fill="#7e22ce"/></g>
+<path d="M320 613.56L490 597.28" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 6329.116297849525, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="597.28" r="4" fill="#7e22ce"/></g>
+<path d="M490 597.28L660 579.32" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 12744.489871262254, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="579.32" r="4" fill="#7e22ce"/></g>
+<path d="M660 579.32L830 562.48" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 18757.343458035717, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="562.48" r="4" fill="#7e22ce"/></g>
+<path d="M830 562.48L1000 506.11" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 38889.68045928154, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="506.11" r="4" fill="#7e22ce"/></g>
+<text x="910" y="410" font-size="12" fill="#0f766e">Answer</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;none&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 3760.5390495238253, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-non-reasoning&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="150" cy="604.47" r="4" fill="#0f766e"/></g>
+<path d="M150 604.47L320 610.59" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 1573.2668457309953, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="610.59" r="4" fill="#0f766e"/></g>
+<path d="M320 610.59L490 600.64" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 5127.339478262683, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="600.64" r="4" fill="#0f766e"/></g>
+<path d="M490 600.64L660 595.52" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 6958.744211013708, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="595.52" r="4" fill="#0f766e"/></g>
+<path d="M660 595.52L830 590.56" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 8729.75266690935, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="590.56" r="4" fill="#0f766e"/></g>
+<path d="M830 590.56L1000 583.86" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 11122.009971258729, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="583.86" r="4" fill="#0f766e"/></g>
+<text x="150" y="637" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="320" y="637" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="637" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="637" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="637" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="637" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="710" font-size="17" >Derived weighted decode seconds/task — NOT wall-clock task latency</text>
+<path d="M100 915H1050" stroke="#e5e7eb"/>
+<text x="90" y="919" font-size="11" text-anchor="end">0</text>
+<path d="M100 873H1050" stroke="#e5e7eb"/>
+<text x="90" y="877" font-size="11" text-anchor="end">125</text>
+<path d="M100 831H1050" stroke="#e5e7eb"/>
+<text x="90" y="835" font-size="11" text-anchor="end">250</text>
+<path d="M100 789H1050" stroke="#e5e7eb"/>
+<text x="90" y="793" font-size="11" text-anchor="end">375</text>
+<path d="M100 747H1050" stroke="#e5e7eb"/>
+<text x="90" y="751" font-size="11" text-anchor="end">500</text>
+<text x="650" y="710" font-size="12" fill="#1d4ed8">Seconds</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;none&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 31.76758038055048, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-non-reasoning&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="150" cy="904.33" r="4" fill="#1d4ed8"/></g>
+<text x="150" y="894.326092992135" font-size="12" text-anchor="middle">31.8</text>
+<path d="M150 904.33L320 909.57" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 16.152838695027647, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="909.57" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="899.5726461984707" font-size="12" text-anchor="middle">16.2</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 166.04904797657258, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="859.21" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="849.2075198798716" font-size="12" text-anchor="middle">166.0</text>
+<path d="M660 859.21L830 843.24" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 213.57561496214902, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="843.24" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="833.2385933727179" font-size="12" text-anchor="middle">213.6</text>
+<path d="M830 843.24L1000 791.33" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 368.0526486679761, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="791.33" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="781.33431004756" font-size="12" text-anchor="middle">368.1</text>
+<text x="150" y="937" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="320" y="937" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="937" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="955" font-size="10" text-anchor="middle">unmeasured</text>
+<text x="660" y="937" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="937" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="937" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="1010" font-size="17" >Weighted API USD/task — NOT Max/Codex quota charges</text>
+<path d="M100 1215H1050" stroke="#e5e7eb"/>
+<text x="90" y="1219" font-size="11" text-anchor="end">0.00</text>
+<path d="M100 1173H1050" stroke="#e5e7eb"/>
+<text x="90" y="1177" font-size="11" text-anchor="end">0.02</text>
+<path d="M100 1131H1050" stroke="#e5e7eb"/>
+<text x="90" y="1135" font-size="11" text-anchor="end">0.04</text>
+<path d="M100 1089H1050" stroke="#e5e7eb"/>
+<text x="90" y="1093" font-size="11" text-anchor="end">0.06</text>
+<path d="M100 1047H1050" stroke="#e5e7eb"/>
+<text x="90" y="1051" font-size="11" text-anchor="end">0.08</text>
+<text x="650" y="1010" font-size="12" fill="#1d4ed8">USD</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;none&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.011345057120527267, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-non-reasoning&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="150" cy="1191.18" r="4" fill="#1d4ed8"/></g>
+<text x="150" y="1181.1753800468928" font-size="12" text-anchor="middle">0.01</text>
+<path d="M150 1191.18L320 1205.52" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.004516607569410252, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="1205.52" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="1195.5151241042386" font-size="12" text-anchor="middle">0.00</text>
+<path d="M320 1205.52L490 1178.30" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.017476906067835942, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="1178.30" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="1168.2984972575446" font-size="12" text-anchor="middle">0.02</text>
+<path d="M490 1178.30L660 1154.03" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.02903157640372802, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="1154.03" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="1144.0336895521712" font-size="12" text-anchor="middle">0.03</text>
+<path d="M660 1154.03L830 1126.41" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.042183547923951084, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="1126.41" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="1116.4145493597027" font-size="12" text-anchor="middle">0.04</text>
+<path d="M830 1126.41L1000 1072.57" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.06782295669812205, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="1072.57" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="1062.5717909339437" font-size="12" text-anchor="middle">0.07</text>
+<text x="150" y="1237" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="320" y="1237" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="1237" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="1237" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="1237" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="1237" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="1360" font-size="13" >Input/task, subscription quota, lead wall time, failure/rework remain unmeasured. Source suite totals are not divided.</text>
+</g></svg>

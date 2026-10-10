@@ -130,6 +130,26 @@ Raise effort when it skipped steps. `xhigh` is the `deep-reasoning` profile's al
 whose errors would multiply downstream, chosen by the user in the `deep` mode question; record
 its spend so the gain can be measured. `max` nowhere by default.
 
+## Benchmark evidence
+
+Benchmark research for the proposed task router is available in
+[docs/benchmarks](docs/benchmarks/README.md), with provenance in
+[data/benchmarks/SOURCES.md](data/benchmarks/SOURCES.md). It covers the latest retained classes
+of Claude, GPT/Codex, Gemini and Grok, including Arena categories, settings and uncertainty.
+Research coverage includes BrowseComp variants, DRACO, WANDR and SimpleQA-Verified, with
+explicit gaps where current model/scaffold evidence is absent. The versioned task taxonomy
+includes `web_research` for source-backed research and cited fact extraction.
+[Per-model effort curves](docs/benchmarks/effort-curves.md) show quality, token use and
+derived decode time, with unsupported or unmeasured settings kept explicit. These are
+benchmark resource measurements and estimates, not subscription quota or task wall time.
+Gemini and Grok runtime support is marked **planned**. This evidence snapshot does not change
+the profile mapping, vendor selection or lane launch behavior; the model router is **not released**; implementation and the
+classifier experiment await design approval.
+
+From this core checkout, validate with `python3 scripts/benchmarks.py validate` and regenerate
+the offline charts with `python3 scripts/benchmarks.py render`. Rendering does not fetch new
+results; refresh the sourced JSON first. Observations older than 60 days produce warnings.
+
 ## Runtime modes
 
 Record the mode in `run.md`. Switch modes when a vendor is unavailable (limit, outage); the run

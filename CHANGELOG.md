@@ -91,6 +91,21 @@ with defaults; a major release may require an overlay change and says which.
   prior finding ID. Persisted milestones are explicit; failed reviewer attempts release rounds
   for bounded retry (three attempts per input). Explicit round 1 keeps addressed context in round 1.
 
+### Benchmark dataset
+
+- Benchmark dataset (part A): latest retained Claude, GPT/Codex,
+  Gemini and Grok classes, sourced results with effort and scaffold metadata, Arena categories
+  with score intervals and votes, and planned Gemini/Grok runtime availability. A stdlib
+  validator reports stale observations and renders SVG charts and a coverage index.
+- Deep web research evidence adds separately identified browsing, research-report and
+  factuality protocols, preserves sample counts and uncertainty without inventing confidence
+  intervals, and expands the task taxonomy to v1.1 with `web_research`.
+- Per-model effort curves add benchmark-weighted token use and derived decode time, with
+  effort support and missing measurements recorded separately. Quota charges, task elapsed
+  time and failure/rework estimates remain uncalibrated; routing behavior is unchanged.
+- The model router is **not released**: no changes to model selection, lane execution or classifier
+  defaults. Router implementation and classifier evaluation await owner approval.
+
 ## 1.3.0 — 2026-10-10
 
 - `lanes.py`: the herdr agent limit is configurable — `project.json → lanes`

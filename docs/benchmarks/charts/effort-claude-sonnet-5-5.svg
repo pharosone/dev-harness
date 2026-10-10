@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1380" viewBox="0 0 1120 1380" role="img" aria-labelledby="title desc">
+<title id="title">Claude Sonnet 5.5: effort evidence</title>
+<desc id="desc">Four panels: AA Intelligence v4.3.2, weighted tokens/task, derived decode seconds/task, API cost/task. Effort categories are ordinal per model. Missing data is not zero and is not interpolated.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="1380" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="28" y="30" font-size="22" >Claude Sonnet 5.5 — effort evidence</text>
+<text x="28" y="54" font-size="13" >AA suite proxies. Decode time excludes first-token delay and overhead. API cost and tokens are not subscription quota.</text>
+<text x="28" y="77" font-size="13" >Each effort is categorical within this model; identical names across models do not imply equal work. Gaps break lines.</text>
+<text x="28" y="110" font-size="17" >AA Intelligence Index v4.3.2 (fixed 0–100)</text>
+<path d="M100 315H1050" stroke="#e5e7eb"/>
+<text x="90" y="319" font-size="11" text-anchor="end">0</text>
+<path d="M100 273H1050" stroke="#e5e7eb"/>
+<text x="90" y="277" font-size="11" text-anchor="end">25</text>
+<path d="M100 231H1050" stroke="#e5e7eb"/>
+<text x="90" y="235" font-size="11" text-anchor="end">50</text>
+<path d="M100 189H1050" stroke="#e5e7eb"/>
+<text x="90" y="193" font-size="11" text-anchor="end">75</text>
+<path d="M100 147H1050" stroke="#e5e7eb"/>
+<text x="90" y="151" font-size="11" text-anchor="end">100</text>
+<text x="650" y="110" font-size="12" fill="#1d4ed8">Index</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 35.8681594577587, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="254.74" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="244.7414921109654" font-size="12" text-anchor="middle">35.9</text>
+<path d="M320 254.74L490 246.39" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 40.838652287929, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="246.39" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="236.3910641562793" font-size="12" text-anchor="middle">40.8</text>
+<path d="M490 246.39L660 236.45" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 46.7533528066958, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="236.45" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="226.45436728475107" font-size="12" text-anchor="middle">46.8</text>
+<path d="M660 236.45L830 227.82" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 51.8955544183089, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="227.82" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="217.81546857724106" font-size="12" text-anchor="middle">51.9</text>
+<path d="M830 227.82L1000 220.92" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 56.0001286580794, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="220.92" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="210.9197838544266" font-size="12" text-anchor="middle">56.0</text>
+<text x="150" y="337" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="355" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="337" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="337" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="337" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="337" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="337" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="410" font-size="17" >Weighted output tokens per suite task</text>
+<path d="M100 615H1050" stroke="#e5e7eb"/>
+<text x="90" y="619" font-size="11" text-anchor="end">0</text>
+<path d="M100 573H1050" stroke="#e5e7eb"/>
+<text x="90" y="577" font-size="11" text-anchor="end">75,000</text>
+<path d="M100 531H1050" stroke="#e5e7eb"/>
+<text x="90" y="535" font-size="11" text-anchor="end">150,000</text>
+<path d="M100 489H1050" stroke="#e5e7eb"/>
+<text x="90" y="493" font-size="11" text-anchor="end">225,000</text>
+<path d="M100 447H1050" stroke="#e5e7eb"/>
+<text x="90" y="451" font-size="11" text-anchor="end">300,000</text>
+<text x="650" y="410" font-size="12" fill="#1d4ed8">Total</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 14253.222854129013, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="607.02" r="4" fill="#1d4ed8"/></g>
+<path d="M320 607.02L490 603.27" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 20937.627614580473, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="603.27" r="4" fill="#1d4ed8"/></g>
+<path d="M490 603.27L660 594.10" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 37327.39301363091, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="594.10" r="4" fill="#1d4ed8"/></g>
+<path d="M660 594.10L830 573.11" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 74809.64840807533, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="573.11" r="4" fill="#1d4ed8"/></g>
+<path d="M830 573.11L1000 504.44" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 197430.37161011933, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="504.44" r="4" fill="#1d4ed8"/></g>
+<text x="780" y="410" font-size="12" fill="#7e22ce">Reasoning</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 4588.167154662398, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="612.43" r="4" fill="#7e22ce"/></g>
+<path d="M320 612.43L490 610.41" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 8190.173061281517, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="610.41" r="4" fill="#7e22ce"/></g>
+<path d="M490 610.41L660 604.51" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 18725.78874258922, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="604.51" r="4" fill="#7e22ce"/></g>
+<path d="M660 604.51L830 588.15" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 47953.30350339135, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="588.15" r="4" fill="#7e22ce"/></g>
+<path d="M830 588.15L1000 532.89" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 146633.4888002458, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="532.89" r="4" fill="#7e22ce"/></g>
+<text x="910" y="410" font-size="12" fill="#0f766e">Answer</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 9665.055699466615, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="609.59" r="4" fill="#0f766e"/></g>
+<path d="M320 609.59L490 607.86" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 12747.454553298958, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="607.86" r="4" fill="#0f766e"/></g>
+<path d="M490 607.86L660 604.58" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 18601.604271041695, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="604.58" r="4" fill="#0f766e"/></g>
+<path d="M660 604.58L830 599.96" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 26856.34490468398, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="599.96" r="4" fill="#0f766e"/></g>
+<path d="M830 599.96L1000 586.55" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 50796.88280987353, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="586.55" r="4" fill="#0f766e"/></g>
+<text x="150" y="637" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="655" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="637" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="637" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="637" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="637" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="637" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="710" font-size="17" >Derived weighted decode seconds/task — NOT wall-clock task latency</text>
+<path d="M100 915H1050" stroke="#e5e7eb"/>
+<text x="90" y="919" font-size="11" text-anchor="end">0</text>
+<path d="M100 873H1050" stroke="#e5e7eb"/>
+<text x="90" y="877" font-size="11" text-anchor="end">250</text>
+<path d="M100 831H1050" stroke="#e5e7eb"/>
+<text x="90" y="835" font-size="11" text-anchor="end">500</text>
+<path d="M100 789H1050" stroke="#e5e7eb"/>
+<text x="90" y="793" font-size="11" text-anchor="end">750</text>
+<path d="M100 747H1050" stroke="#e5e7eb"/>
+<text x="90" y="751" font-size="11" text-anchor="end">1,000</text>
+<text x="650" y="710" font-size="12" fill="#1d4ed8">Seconds</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 83.28699763572025, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="901.01" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="891.007784397199" font-size="12" text-anchor="middle">83.3</text>
+<path d="M320 901.01L490 894.48" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 122.14551772817208, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="894.48" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="884.4795530216671" font-size="12" text-anchor="middle">122.1</text>
+<path d="M490 894.48L660 879.46" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 211.5711054090314, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="879.46" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="869.4560542912827" font-size="12" text-anchor="middle">211.6</text>
+<path d="M660 879.46L830 842.86" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 429.42654871623614, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="842.86" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="832.8563398156723" font-size="12" text-anchor="middle">429.4</text>
+<path d="M830 842.86L1000 769.72" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 864.7776107762161, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="769.72" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="759.7173613895957" font-size="12" text-anchor="middle">864.8</text>
+<text x="150" y="937" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="955" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="937" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="937" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="937" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="937" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="937" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="1010" font-size="17" >Weighted API USD/task — NOT Max/Codex quota charges</text>
+<path d="M100 1215H1050" stroke="#e5e7eb"/>
+<text x="90" y="1219" font-size="11" text-anchor="end">0.00</text>
+<path d="M100 1173H1050" stroke="#e5e7eb"/>
+<text x="90" y="1177" font-size="11" text-anchor="end">1.75</text>
+<path d="M100 1131H1050" stroke="#e5e7eb"/>
+<text x="90" y="1135" font-size="11" text-anchor="end">3.50</text>
+<path d="M100 1089H1050" stroke="#e5e7eb"/>
+<text x="90" y="1093" font-size="11" text-anchor="end">5.25</text>
+<path d="M100 1047H1050" stroke="#e5e7eb"/>
+<text x="90" y="1051" font-size="11" text-anchor="end">7.00</text>
+<text x="650" y="1010" font-size="12" fill="#1d4ed8">USD</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.3451610270666562, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="1206.72" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="1196.7161353504002" font-size="12" text-anchor="middle">0.35</text>
+<path d="M320 1206.72L490 1203.40" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.48326378260543096, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="1203.40" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="1193.4016692174696" font-size="12" text-anchor="middle">0.48</text>
+<path d="M490 1203.40L660 1193.77" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.8844498581005511, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="1193.77" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="1183.7732034055869" font-size="12" text-anchor="middle">0.88</text>
+<path d="M660 1193.77L830 1166.71" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 2.0120345801545785, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="1166.71" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="1156.71117007629" font-size="12" text-anchor="middle">2.01</text>
+<path d="M830 1166.71L1000 1083.94" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 5.4608525948098325, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="1083.94" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="1073.939537724564" font-size="12" text-anchor="middle">5.46</text>
+<text x="150" y="1237" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="1255" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="1237" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="1237" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="1237" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="1237" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="1237" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="1360" font-size="13" >Input/task, subscription quota, lead wall time, failure/rework remain unmeasured. Source suite totals are not divided.</text>
+</g></svg>

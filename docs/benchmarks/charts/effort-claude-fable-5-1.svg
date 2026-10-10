@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1380" viewBox="0 0 1120 1380" role="img" aria-labelledby="title desc">
+<title id="title">Claude Fable 5.1: effort evidence</title>
+<desc id="desc">Four panels: AA Intelligence v4.3.2, weighted tokens/task, derived decode seconds/task, API cost/task. Effort categories are ordinal per model. Missing data is not zero and is not interpolated.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="1380" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="28" y="30" font-size="22" >Claude Fable 5.1 — effort evidence</text>
+<text x="28" y="54" font-size="13" >AA suite proxies. Decode time excludes first-token delay and overhead. API cost and tokens are not subscription quota.</text>
+<text x="28" y="77" font-size="13" >Each effort is categorical within this model; identical names across models do not imply equal work. Gaps break lines.</text>
+<text x="28" y="110" font-size="17" >AA Intelligence Index v4.3.2 (fixed 0–100)</text>
+<path d="M100 315H1050" stroke="#e5e7eb"/>
+<text x="90" y="319" font-size="11" text-anchor="end">0</text>
+<path d="M100 273H1050" stroke="#e5e7eb"/>
+<text x="90" y="277" font-size="11" text-anchor="end">25</text>
+<path d="M100 231H1050" stroke="#e5e7eb"/>
+<text x="90" y="235" font-size="11" text-anchor="end">50</text>
+<path d="M100 189H1050" stroke="#e5e7eb"/>
+<text x="90" y="193" font-size="11" text-anchor="end">75</text>
+<path d="M100 147H1050" stroke="#e5e7eb"/>
+<text x="90" y="151" font-size="11" text-anchor="end">100</text>
+<text x="650" y="110" font-size="12" fill="#1d4ed8">Index</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 46.8163422014862, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="236.35" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="226.3485451015032" font-size="12" text-anchor="middle">46.8</text>
+<path d="M320 236.35L490 232.81" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 48.9206162609523, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="232.81" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="222.81336468160015" font-size="12" text-anchor="middle">48.9</text>
+<path d="M490 232.81L660 229.07" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 51.1515708852237, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="229.07" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="219.0653609128242" font-size="12" text-anchor="middle">51.2</text>
+<path d="M660 229.07L830 225.62" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 53.2032587538944, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="225.62" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="215.61852529345742" font-size="12" text-anchor="middle">53.2</text>
+<path d="M830 225.62L1000 225.36" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 53.3549259623252, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="225.36" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="215.3637243832937" font-size="12" text-anchor="middle">53.4</text>
+<text x="150" y="337" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="355" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="337" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="337" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="337" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="337" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="337" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="410" font-size="17" >Weighted output tokens per suite task</text>
+<path d="M100 615H1050" stroke="#e5e7eb"/>
+<text x="90" y="619" font-size="11" text-anchor="end">0</text>
+<path d="M100 573H1050" stroke="#e5e7eb"/>
+<text x="90" y="577" font-size="11" text-anchor="end">22,500</text>
+<path d="M100 531H1050" stroke="#e5e7eb"/>
+<text x="90" y="535" font-size="11" text-anchor="end">45,000</text>
+<path d="M100 489H1050" stroke="#e5e7eb"/>
+<text x="90" y="493" font-size="11" text-anchor="end">67,500</text>
+<path d="M100 447H1050" stroke="#e5e7eb"/>
+<text x="90" y="451" font-size="11" text-anchor="end">90,000</text>
+<text x="650" y="410" font-size="12" fill="#1d4ed8">Total</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 21561.84272476887, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="574.75" r="4" fill="#1d4ed8"/></g>
+<path d="M320 574.75L490 562.94" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 27887.637810107575, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="562.94" r="4" fill="#1d4ed8"/></g>
+<path d="M490 562.94L660 543.97" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 38054.279024684845, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="543.97" r="4" fill="#1d4ed8"/></g>
+<path d="M660 543.97L830 502.00" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 60537.61379101984, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="502.00" r="4" fill="#1d4ed8"/></g>
+<path d="M830 502.00L1000 469.19" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 78110.80621282545, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="469.19" r="4" fill="#1d4ed8"/></g>
+<text x="780" y="410" font-size="12" fill="#7e22ce">Reasoning</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 8289.274270012003, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="599.53" r="4" fill="#7e22ce"/></g>
+<path d="M320 599.53L490 592.45" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 12081.522329392306, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="592.45" r="4" fill="#7e22ce"/></g>
+<path d="M490 592.45L660 580.24" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 18622.54895818041, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="580.24" r="4" fill="#7e22ce"/></g>
+<path d="M660 580.24L830 551.41" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 34067.40516593828, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="551.41" r="4" fill="#7e22ce"/></g>
+<path d="M830 551.41L1000 526.82" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 47239.81546124743, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="526.82" r="4" fill="#7e22ce"/></g>
+<text x="910" y="410" font-size="12" fill="#0f766e">Answer</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 13272.568454756867, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="590.22" r="4" fill="#0f766e"/></g>
+<path d="M320 590.22L490 585.50" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 15806.115480715269, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="585.50" r="4" fill="#0f766e"/></g>
+<path d="M490 585.50L660 578.73" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 19431.730066504435, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="578.73" r="4" fill="#0f766e"/></g>
+<path d="M660 578.73L830 565.59" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 26470.208625081556, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="565.59" r="4" fill="#0f766e"/></g>
+<path d="M830 565.59L1000 557.37" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 30870.99075157802, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="557.37" r="4" fill="#0f766e"/></g>
+<text x="150" y="637" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="655" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="637" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="637" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="637" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="637" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="637" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="710" font-size="17" >Derived weighted decode seconds/task — NOT wall-clock task latency</text>
+<path d="M100 915H1050" stroke="#e5e7eb"/>
+<text x="90" y="919" font-size="11" text-anchor="end">0</text>
+<path d="M100 873H1050" stroke="#e5e7eb"/>
+<text x="90" y="877" font-size="11" text-anchor="end">225</text>
+<path d="M100 831H1050" stroke="#e5e7eb"/>
+<text x="90" y="835" font-size="11" text-anchor="end">450</text>
+<path d="M100 789H1050" stroke="#e5e7eb"/>
+<text x="90" y="793" font-size="11" text-anchor="end">675</text>
+<path d="M100 747H1050" stroke="#e5e7eb"/>
+<text x="90" y="751" font-size="11" text-anchor="end">900</text>
+<text x="650" y="710" font-size="12" fill="#1d4ed8">Seconds</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 247.16145271326047, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="868.86" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="858.8631954935247" font-size="12" text-anchor="middle">247.2</text>
+<path d="M320 868.86L490 858.49" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 302.7214197236015, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="858.49" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="848.4920016515944" font-size="12" text-anchor="middle">302.7</text>
+<path d="M490 858.49L660 839.38" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 405.1105299283191, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="839.38" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="829.3793677467138" font-size="12" text-anchor="middle">405.1</text>
+<path d="M660 839.38L830 804.14" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 593.9040739038531, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="804.14" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="794.1379062046141" font-size="12" text-anchor="middle">593.9</text>
+<path d="M830 804.14L1000 783.47" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 704.6211654226779, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="783.47" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="773.4707157877667" font-size="12" text-anchor="middle">704.6</text>
+<text x="150" y="937" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="955" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="937" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="937" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="937" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="937" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="937" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="1010" font-size="17" >Weighted API USD/task — NOT Max/Codex quota charges</text>
+<path d="M100 1215H1050" stroke="#e5e7eb"/>
+<text x="90" y="1219" font-size="11" text-anchor="end">0.00</text>
+<path d="M100 1173H1050" stroke="#e5e7eb"/>
+<text x="90" y="1177" font-size="11" text-anchor="end">2.25</text>
+<path d="M100 1131H1050" stroke="#e5e7eb"/>
+<text x="90" y="1135" font-size="11" text-anchor="end">4.50</text>
+<path d="M100 1089H1050" stroke="#e5e7eb"/>
+<text x="90" y="1093" font-size="11" text-anchor="end">6.75</text>
+<path d="M100 1047H1050" stroke="#e5e7eb"/>
+<text x="90" y="1051" font-size="11" text-anchor="end">9.00</text>
+<text x="650" y="1010" font-size="12" fill="#1d4ed8">USD</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 2.371025320183763, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="1170.74" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="1160.740860689903" font-size="12" text-anchor="middle">2.37</text>
+<path d="M320 1170.74L490 1159.32" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 2.982597436096585, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="1159.32" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="1149.3248478595303" font-size="12" text-anchor="middle">2.98</text>
+<path d="M490 1159.32L660 1141.97" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 3.912526554325558, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="1141.97" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="1131.9661709859229" font-size="12" text-anchor="middle">3.91</text>
+<path d="M660 1141.97L830 1103.40" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 5.978304247388257, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="1103.40" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="1093.404987382086" font-size="12" text-anchor="middle">5.98</text>
+<path d="M830 1103.40L1000 1072.58" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 7.629706364004841, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="1072.58" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="1062.5788145385764" font-size="12" text-anchor="middle">7.63</text>
+<text x="150" y="1237" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="1255" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="1237" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="1237" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="1237" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="1237" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="1237" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="1360" font-size="13" >Input/task, subscription quota, lead wall time, failure/rework remain unmeasured. Source suite totals are not divided.</text>
+</g></svg>

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="481" viewBox="0 0 1120 481" role="img" aria-labelledby="title desc">
+<title id="title">BrowseComp Extended / Mercor 100-task set</title>
+<desc id="desc">Every sourced observation, grouped by cohort and reasoning effort. Solid independent, hatched vendor-hosted; black lines are score confidence intervals.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="481" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="24" y="30" font-size="20" >BrowseComp Extended / Mercor 100-task set</text>
+<text x="24" y="54" font-size="13" >Raw percent; higher is better. Efforts and scaffolds are separate.</text>
+<text x="24" y="77" font-size="13" >Solid: independent. Hatched: self-reported/vendor-hosted. CI: source score interval. No rank intervals.</text>
+<text x="24" y="104" font-size="12" >max | browsecomp-mercor-extended-100-snapshot-2026-10-10</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 73, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Sonnet 5.5; effort=max; held-out 100 set, repeats unverified&quot;, &quot;harness&quot;: null, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/mercor-extended/ots-held-out-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 338, &quot;reported_error_pp&quot;: 8.1, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="144" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="129" width="394.20" height="21" fill="#1d4ed8"/>
+<text x="980" y="144" font-size="13" >73.00 ±8.1*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;value&quot;: 67.7, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model GPT-6.1 Sol; effort=max; held-out 100 set, repeats unverified&quot;, &quot;harness&quot;: null, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/mercor-extended/ots-held-out-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 400, &quot;reported_error_pp&quot;: 8.1, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="178" font-size="13" >gpt-6.1-sol</text>
+<rect x="430.00" y="163" width="365.58" height="21" fill="#1d4ed8"/>
+<text x="980" y="178" font-size="13" >67.70 ±8.1*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 63.3, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Fable 5.1; effort=max; held-out 100 set, repeats unverified&quot;, &quot;harness&quot;: null, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/mercor-extended/ots-held-out-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 377, &quot;reported_error_pp&quot;: 8.5, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="212" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="197" width="341.82" height="21" fill="#1d4ed8"/>
+<text x="980" y="212" font-size="13" >63.30 ±8.5*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 60.5, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Opus 5.5; effort=max; held-out 100 set, repeats unverified&quot;, &quot;harness&quot;: null, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/mercor-extended/ots-held-out-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 400, &quot;reported_error_pp&quot;: 8.4, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="246" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="231" width="326.70" height="21" fill="#1d4ed8"/>
+<text x="980" y="246" font-size="13" >60.50 ±8.4*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 47.2, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model GPT-6 Luna; effort=max; held-out 100 set, repeats unverified&quot;, &quot;harness&quot;: null, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/mercor-extended/ots-held-out-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 400, &quot;reported_error_pp&quot;: 8.9, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="280" font-size="13" >gpt-6-luna</text>
+<rect x="430.00" y="265" width="254.88" height="21" fill="#1d4ed8"/>
+<text x="980" y="280" font-size="13" >47.20 ±8.9*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-haiku-5-5&quot;, &quot;value&quot;: 27.5, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Haiku 5.5; effort=max; held-out 100 set, repeats unverified&quot;, &quot;harness&quot;: null, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/mercor-extended/ots-held-out-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 396, &quot;reported_error_pp&quot;: 7.2, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="314" font-size="13" >claude-haiku-5-5</text>
+<rect x="430.00" y="299" width="148.50" height="21" fill="#1d4ed8"/>
+<text x="980" y="314" font-size="13" >27.50 ±7.2*</text>
+</g>
+<text x="24" y="352" font-size="12" >xhigh | browsecomp-mercor-extended-100-snapshot-2026-10-10</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;value&quot;: 39.5, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Grok 4.7; effort=xhigh; held-out 100 set, repeats unverified&quot;, &quot;harness&quot;: null, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/mercor-extended/ots-held-out-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 398, &quot;reported_error_pp&quot;: 8, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="392" font-size="13" >grok-4.7</text>
+<rect x="430.00" y="377" width="213.30" height="21" fill="#1d4ed8"/>
+<text x="980" y="392" font-size="13" >39.50 ±8.0*</text>
+</g>
+<text x="430" y="459" font-size="13" >0</text>
+<text x="970" y="459" font-size="13" >100</text>
+<text x="24" y="437" font-size="12" >* Published ±error; confidence level/estimator unverified. n_samples is not successes.</text>
+</g></svg>

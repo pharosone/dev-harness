@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="301" viewBox="0 0 1120 301" role="img" aria-labelledby="title desc">
+<title id="title">HLE / Anthropic with tools</title>
+<desc id="desc">Every sourced observation, grouped by cohort and reasoning effort. Solid independent, hatched vendor-hosted; black lines are score confidence intervals.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="301" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="24" y="30" font-size="20" >HLE / Anthropic with tools</text>
+<text x="24" y="54" font-size="13" >Raw percent; higher is better. Efforts and scaffolds are separate.</text>
+<text x="24" y="77" font-size="13" >Solid: independent. Hatched: self-reported/vendor-hosted. CI: source score interval. No rank intervals.</text>
+<text x="24" y="104" font-size="12" >effort unspecified | hle-anthropic-tools</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 67.7, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;Release table; effort not stated&quot;, &quot;harness&quot;: null, &quot;date&quot;: &quot;2026-09-28&quot;, &quot;url&quot;: &quot;https://www.anthropic.com/claude-sonnet-5-5&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="144" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="129" width="365.58" height="21" fill="url(#hatch)"/>
+<text x="980" y="144" font-size="13" >67.70</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 64.5, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;with tools; effort not stated&quot;, &quot;harness&quot;: null, &quot;date&quot;: &quot;2026-10-07&quot;, &quot;url&quot;: &quot;https://www.anthropic.com/claude-haiku-5-5&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="178" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="163" width="348.30" height="21" fill="url(#hatch)"/>
+<text x="980" y="178" font-size="13" >64.50</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-haiku-5-5&quot;, &quot;value&quot;: 57.4, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;with tools; effort not stated&quot;, &quot;harness&quot;: null, &quot;date&quot;: &quot;2026-10-07&quot;, &quot;url&quot;: &quot;https://www.anthropic.com/claude-haiku-5-5&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="212" font-size="13" >claude-haiku-5-5</text>
+<rect x="430.00" y="197" width="309.96" height="21" fill="url(#hatch)"/>
+<text x="980" y="212" font-size="13" >57.40</text>
+</g>
+<text x="430" y="279" font-size="13" >0</text>
+<text x="970" y="279" font-size="13" >100</text>
+</g></svg>

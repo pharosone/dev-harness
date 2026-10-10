@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="885" viewBox="0 0 1120 885" role="img" aria-labelledby="title desc">
+<title id="title">WANDR / Anthropic frozen index, Opus-4.6 grader</title>
+<desc id="desc">Every sourced observation, grouped by cohort and reasoning effort. Solid independent, hatched vendor-hosted; black lines are score confidence intervals.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="885" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="24" y="30" font-size="20" >WANDR / Anthropic frozen index, Opus-4.6 grader</text>
+<text x="24" y="54" font-size="13" >Raw percent; higher is better. Efforts and scaffolds are separate.</text>
+<text x="24" y="77" font-size="13" >Solid: independent. Hatched: self-reported/vendor-hosted. CI: source score interval. No rank intervals.</text>
+<text x="24" y="104" font-size="12" >high | wandr-anthropic-frozen-opus46-grader-2026-09</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 67.3, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;high effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-22&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="144" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="129" width="363.42" height="21" fill="url(#hatch)"/>
+<text x="980" y="144" font-size="13" >67.30</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 66.7, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;high effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-22&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="178" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="163" width="360.18" height="21" fill="url(#hatch)"/>
+<text x="980" y="178" font-size="13" >66.70</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 56.3, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;high effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-28&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/870c8f525702625d2c62fc6dd04c857e3250bec1/Claude%20Sonnet%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="212" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="197" width="304.02" height="21" fill="url(#hatch)"/>
+<text x="980" y="212" font-size="13" >56.30</text>
+</g>
+<text x="24" y="250" font-size="12" >low | wandr-anthropic-frozen-opus46-grader-2026-09</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 63.3, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;low effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-22&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="290" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="275" width="341.82" height="21" fill="url(#hatch)"/>
+<text x="980" y="290" font-size="13" >63.30</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 31.2, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;low effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-22&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="324" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="309" width="168.48" height="21" fill="url(#hatch)"/>
+<text x="980" y="324" font-size="13" >31.20</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 10.0, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;low effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-28&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/870c8f525702625d2c62fc6dd04c857e3250bec1/Claude%20Sonnet%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="358" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="343" width="54.00" height="21" fill="url(#hatch)"/>
+<text x="980" y="358" font-size="13" >10.00</text>
+</g>
+<text x="24" y="396" font-size="12" >max | wandr-anthropic-frozen-opus46-grader-2026-09</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 72.3, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;max effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-22&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="436" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="421" width="390.42" height="21" fill="url(#hatch)"/>
+<text x="980" y="436" font-size="13" >72.30</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 70.0, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;max effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-28&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/870c8f525702625d2c62fc6dd04c857e3250bec1/Claude%20Sonnet%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="470" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="455" width="378.00" height="21" fill="url(#hatch)"/>
+<text x="980" y="470" font-size="13" >70.00</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 68.7, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;max effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-22&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="504" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="489" width="370.98" height="21" fill="url(#hatch)"/>
+<text x="980" y="504" font-size="13" >68.70</text>
+</g>
+<text x="24" y="542" font-size="12" >medium | wandr-anthropic-frozen-opus46-grader-2026-09</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 64.5, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;medium effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-22&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="582" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="567" width="348.30" height="21" fill="url(#hatch)"/>
+<text x="980" y="582" font-size="13" >64.50</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 62.8, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;medium effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-22&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="616" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="601" width="339.12" height="21" fill="url(#hatch)"/>
+<text x="980" y="616" font-size="13" >62.80</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 29.9, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;medium effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-28&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/870c8f525702625d2c62fc6dd04c857e3250bec1/Claude%20Sonnet%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="650" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="635" width="161.46" height="21" fill="url(#hatch)"/>
+<text x="980" y="650" font-size="13" >29.90</text>
+</g>
+<text x="24" y="688" font-size="12" >xhigh | wandr-anthropic-frozen-opus46-grader-2026-09</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 71.3, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;xhigh effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-22&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="728" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="713" width="385.02" height="21" fill="url(#hatch)"/>
+<text x="980" y="728" font-size="13" >71.30</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 67.7, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;xhigh effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-22&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="762" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="747" width="365.58" height="21" fill="url(#hatch)"/>
+<text x="980" y="762" font-size="13" >67.70</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 66.6, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;xhigh effort; single agent; 980K token task budget&quot;, &quot;harness&quot;: &quot;Anthropic agent; FROZEN search/fetch index; programmatic tool calling/code execution&quot;, &quot;date&quot;: &quot;2026-09-28&quot;, &quot;url&quot;: &quot;https://www-cdn.anthropic.com/870c8f525702625d2c62fc6dd04c857e3250bec1/Claude%20Sonnet%205.5%20System%20Card.pdf&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="796" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="781" width="359.64" height="21" fill="url(#hatch)"/>
+<text x="980" y="796" font-size="13" >66.60</text>
+</g>
+<text x="430" y="863" font-size="13" >0</text>
+<text x="970" y="863" font-size="13" >100</text>
+</g></svg>

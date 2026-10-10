@@ -1,0 +1,218 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1779" viewBox="0 0 1120 1779" role="img" aria-labelledby="title desc">
+<title id="title">AA Intelligence Index v4.3.2</title>
+<desc id="desc">Every sourced observation, grouped by cohort and reasoning effort. Solid independent, hatched vendor-hosted; black lines are score confidence intervals.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="1779" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="24" y="30" font-size="20" >AA Intelligence Index v4.3.2</text>
+<text x="24" y="54" font-size="13" >Raw index; higher is better. Efforts and scaffolds are separate.</text>
+<text x="24" y="77" font-size="13" >Solid: independent. Hatched: self-reported/vendor-hosted. CI: source score interval. No rank intervals.</text>
+<text x="24" y="104" font-size="12" >high | aa-intelligence-v4.3.2-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 53.5831959822067, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Opus 5.5 (High, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-opus-5-5-high&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="144" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="129" width="289.35" height="21" fill="#1d4ed8"/>
+<text x="980" y="144" font-size="13" >53.58</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gemini-4-argon&quot;, &quot;value&quot;: 52.5605655745982, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Gemini 4 Argon (High)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gemini-4-argon&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="178" font-size="13" >gemini-4-argon</text>
+<rect x="430.00" y="163" width="283.83" height="21" fill="#1d4ed8"/>
+<text x="980" y="178" font-size="13" >52.56</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 51.1515708852237, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Fable 5.1 (High, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-high&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="212" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="197" width="276.22" height="21" fill="#1d4ed8"/>
+<text x="980" y="212" font-size="13" >51.15</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 50.9191471636152, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Astra (High)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-astra-high&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="246" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="231" width="274.96" height="21" fill="#1d4ed8"/>
+<text x="980" y="246" font-size="13" >50.92</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;value&quot;: 50.2377777519769, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6.1 Sol (High)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-high&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="280" font-size="13" >gpt-6.1-sol</text>
+<rect x="430.00" y="265" width="271.28" height="21" fill="#1d4ed8"/>
+<text x="980" y="280" font-size="13" >50.24</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 46.7533528066958, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Sonnet 5.5 (High, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-high&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="314" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="299" width="252.47" height="21" fill="#1d4ed8"/>
+<text x="980" y="314" font-size="13" >46.75</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;value&quot;: 46.3321770885625, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Grok 4.7 (High)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-high&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="348" font-size="13" >grok-4.7</text>
+<rect x="430.00" y="333" width="250.19" height="21" fill="#1d4ed8"/>
+<text x="980" y="348" font-size="13" >46.33</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-haiku-5-5&quot;, &quot;value&quot;: 37.8240211671094, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Haiku 5.5 (High)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-haiku-5-5-high&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="382" font-size="13" >claude-haiku-5-5</text>
+<rect x="430.00" y="367" width="204.25" height="21" fill="#1d4ed8"/>
+<text x="980" y="382" font-size="13" >37.82</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 32.9282054150837, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Luna (High)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-high&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="416" font-size="13" >gpt-6-luna</text>
+<rect x="430.00" y="401" width="177.81" height="21" fill="#1d4ed8"/>
+<text x="980" y="416" font-size="13" >32.93</text>
+</g>
+<text x="24" y="454" font-size="12" >low | aa-intelligence-v4.3.2-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 46.8163422014862, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Fable 5.1 (Low, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-low&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="494" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="479" width="252.81" height="21" fill="#1d4ed8"/>
+<text x="980" y="494" font-size="13" >46.82</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 45.7819243120341, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Astra (Low)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-astra-low&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="528" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="513" width="247.22" height="21" fill="#1d4ed8"/>
+<text x="980" y="528" font-size="13" >45.78</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 42.3077781466168, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Opus 5.5 (Low, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-opus-5-5-low&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="562" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="547" width="228.46" height="21" fill="#1d4ed8"/>
+<text x="980" y="562" font-size="13" >42.31</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;value&quot;: 42.2166560223448, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Grok 4.7 (Low)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-low&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="596" font-size="13" >grok-4.7</text>
+<rect x="430.00" y="581" width="227.97" height="21" fill="#1d4ed8"/>
+<text x="980" y="596" font-size="13" >42.22</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;value&quot;: 42.0835618555848, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6.1 Sol (Low)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-low&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="630" font-size="13" >gpt-6.1-sol</text>
+<rect x="430.00" y="615" width="227.25" height="21" fill="#1d4ed8"/>
+<text x="980" y="630" font-size="13" >42.08</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 35.8681594577587, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Sonnet 5.5 (Low, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-low&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="664" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="649" width="193.69" height="21" fill="#1d4ed8"/>
+<text x="980" y="664" font-size="13" >35.87</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-haiku-5-5&quot;, &quot;value&quot;: 29.4523685891139, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Haiku 5.5 (Low)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-haiku-5-5-low&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="698" font-size="13" >claude-haiku-5-5</text>
+<rect x="430.00" y="683" width="159.04" height="21" fill="#1d4ed8"/>
+<text x="980" y="698" font-size="13" >29.45</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 21.5261980080866, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Luna (Low)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-low&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="732" font-size="13" >gpt-6-luna</text>
+<rect x="430.00" y="717" width="116.24" height="21" fill="#1d4ed8"/>
+<text x="980" y="732" font-size="13" >21.53</text>
+</g>
+<text x="24" y="770" font-size="12" >max | aa-intelligence-v4.3.2-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 57.6223698102963, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Opus 5.5 (Max, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-opus-5-5&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="810" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="795" width="311.16" height="21" fill="#1d4ed8"/>
+<text x="980" y="810" font-size="13" >57.62</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 56.0001286580794, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Sonnet 5.5 (Max, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="844" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="829" width="302.40" height="21" fill="#1d4ed8"/>
+<text x="980" y="844" font-size="13" >56.00</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 53.3549259623252, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Fable 5.1 (Max, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="878" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="863" width="288.12" height="21" fill="#1d4ed8"/>
+<text x="980" y="878" font-size="13" >53.35</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 52.673669395513, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Astra (Max)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-astra&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="912" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="897" width="284.44" height="21" fill="#1d4ed8"/>
+<text x="980" y="912" font-size="13" >52.67</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;value&quot;: 51.8332597011541, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6.1 Sol (Max)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="946" font-size="13" >gpt-6.1-sol</text>
+<rect x="430.00" y="931" width="279.90" height="21" fill="#1d4ed8"/>
+<text x="980" y="946" font-size="13" >51.83</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-haiku-5-5&quot;, &quot;value&quot;: 43.3950199670746, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Haiku 5.5 (Max)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-haiku-5-5&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="980" font-size="13" >claude-haiku-5-5</text>
+<rect x="430.00" y="965" width="234.33" height="21" fill="#1d4ed8"/>
+<text x="980" y="980" font-size="13" >43.40</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 38.1245186869738, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Luna (Max)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1014" font-size="13" >gpt-6-luna</text>
+<rect x="430.00" y="999" width="205.87" height="21" fill="#1d4ed8"/>
+<text x="980" y="1014" font-size="13" >38.12</text>
+</g>
+<text x="24" y="1052" font-size="12" >medium | aa-intelligence-v4.3.2-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 51.2434931792768, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Opus 5.5 (Medium, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-opus-5-5-medium&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1092" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="1077" width="276.71" height="21" fill="#1d4ed8"/>
+<text x="980" y="1092" font-size="13" >51.24</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 49.5704363034369, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Astra (Medium)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-astra-medium&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1126" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="1111" width="267.68" height="21" fill="#1d4ed8"/>
+<text x="980" y="1126" font-size="13" >49.57</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 48.9206162609523, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Fable 5.1 (Medium, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-medium&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1160" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="1145" width="264.17" height="21" fill="#1d4ed8"/>
+<text x="980" y="1160" font-size="13" >48.92</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;value&quot;: 47.7833271274065, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6.1 Sol (Medium)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-medium&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1194" font-size="13" >gpt-6.1-sol</text>
+<rect x="430.00" y="1179" width="258.03" height="21" fill="#1d4ed8"/>
+<text x="980" y="1194" font-size="13" >47.78</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 40.838652287929, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Sonnet 5.5 (Medium, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-medium&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1228" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="1213" width="220.53" height="21" fill="#1d4ed8"/>
+<text x="980" y="1228" font-size="13" >40.84</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-haiku-5-5&quot;, &quot;value&quot;: 34.4646519474657, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Haiku 5.5 (Medium)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-haiku-5-5-medium&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1262" font-size="13" >claude-haiku-5-5</text>
+<rect x="430.00" y="1247" width="186.11" height="21" fill="#1d4ed8"/>
+<text x="980" y="1262" font-size="13" >34.46</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 29.9251773515762, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Luna (Medium)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-medium&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1296" font-size="13" >gpt-6-luna</text>
+<rect x="430.00" y="1281" width="161.60" height="21" fill="#1d4ed8"/>
+<text x="980" y="1296" font-size="13" >29.93</text>
+</g>
+<text x="24" y="1334" font-size="12" >none | aa-intelligence-v4.3.2-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 18.4678465935701, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Luna (Non-reasoning)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-non-reasoning&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1374" font-size="13" >gpt-6-luna</text>
+<rect x="430.00" y="1359" width="99.73" height="21" fill="#1d4ed8"/>
+<text x="980" y="1374" font-size="13" >18.47</text>
+</g>
+<text x="24" y="1412" font-size="12" >xhigh | aa-intelligence-v4.3.2-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 55.9873505840139, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Opus 5.5 (Xhigh, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-opus-5-5-xhigh&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1452" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="1437" width="302.33" height="21" fill="#1d4ed8"/>
+<text x="980" y="1452" font-size="13" >55.99</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 53.2032587538944, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Fable 5.1 (Xhigh, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-xhigh&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1486" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="1471" width="287.30" height="21" fill="#1d4ed8"/>
+<text x="980" y="1486" font-size="13" >53.20</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 52.3863277108782, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Astra (Xhigh)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-astra-xhigh&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1520" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="1505" width="282.89" height="21" fill="#1d4ed8"/>
+<text x="980" y="1520" font-size="13" >52.39</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 51.8955544183089, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Sonnet 5.5 (Xhigh, Default Fallback)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-sonnet-5-5-xhigh&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1554" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="1539" width="280.24" height="21" fill="#1d4ed8"/>
+<text x="980" y="1554" font-size="13" >51.90</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;value&quot;: 51.0377679093761, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6.1 Sol (Xhigh)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-xhigh&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1588" font-size="13" >gpt-6.1-sol</text>
+<rect x="430.00" y="1573" width="275.60" height="21" fill="#1d4ed8"/>
+<text x="980" y="1588" font-size="13" >51.04</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;value&quot;: 46.4465506302286, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Grok 4.7 (Xhigh)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1622" font-size="13" >grok-4.7</text>
+<rect x="430.00" y="1607" width="250.81" height="21" fill="#1d4ed8"/>
+<text x="980" y="1622" font-size="13" >46.45</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-haiku-5-5&quot;, &quot;value&quot;: 41.2489304677024, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;Claude Haiku 5.5 (Xhigh)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-haiku-5-5-xhigh&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1656" font-size="13" >claude-haiku-5-5</text>
+<rect x="430.00" y="1641" width="222.74" height="21" fill="#1d4ed8"/>
+<text x="980" y="1656" font-size="13" >41.25</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 34.5587320217785, &quot;unit&quot;: &quot;index&quot;, &quot;setting&quot;: &quot;GPT-6 Luna (Xhigh)&quot;, &quot;harness&quot;: &quot;Artificial Analysis benchmark-specific evaluation&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-luna-xhigh&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="1690" font-size="13" >gpt-6-luna</text>
+<rect x="430.00" y="1675" width="186.62" height="21" fill="#1d4ed8"/>
+<text x="980" y="1690" font-size="13" >34.56</text>
+</g>
+<text x="430" y="1757" font-size="13" >0</text>
+<text x="970" y="1757" font-size="13" >100</text>
+</g></svg>
