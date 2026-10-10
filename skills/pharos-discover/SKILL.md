@@ -194,3 +194,28 @@ requirements themselves, with the capability needed to finish it.
 | "A project row is technical, I'll decide" | A project asks a row on every feature because its answer affects users' rights or data; use established decisions or ask. |
 | "We need approval again because the runtime changed" | Authorization persists across runtimes and sessions. |
 | "The skill itself is the approval" | Record actual user authorization; a timeout is not an answer. |
+
+## Harness feedback
+
+Offer feedback when a harness script errors or contradicts its docs; a harness rule forces a
+workaround or manual step; a session-built tool belongs in the harness; the user corrects a
+profile, tier or gate decision; or the user complains about the harness process. Check the
+queue first: `python3 harness/core/scripts/feedback.py list --run-dir <run> --offerable`
+(or omit `--run-dir` when there is no run). Draft each distinct issue once with `draft --kind
+bug|friction|feature --title "<drafted title>" [--from-file <harness-only evidence>]` using the
+same queue selector. At a natural pause after the unit, gate or turn, use `offer <slug>` to
+record and ask exactly: **Offer harness feedback “<drafted title>” for your review?** Never
+interrupt a running decision. The user decides; reuse their answer. A refusal is `decline
+<slug>` in that queue, so it is never offered again; `offer` remembers earlier offers too.
+
+The repository `pharosone/dev-harness` is public. Include only minimal harness reproductions
+and sanitized evidence; no product data. `send <slug>` previews the final sanitized text and
+checks duplicates before creating anything. The user must see that text before approval;
+`--yes` is only for their explicit go for that exact text, never an agent's default. If local
+vendored-core edits implement the fix, offer the printed `harness_sync.py propose
+--feedback-file <draft>` command instead; it prepares a PR with the reviewed draft attached.
+Review its code and body before the user authorizes publishing. `--issue` explicitly chooses
+an issue instead. Missing `gh`/auth prints a prefilled browser URL; it stays unsent until
+publication is verified. At a gate and run end, show `feedback.py list --run-dir <run>
+--summary` in one line: **“2 harness feedback drafts waiting: <title>; <title>”**. Declined and
+sent drafts remain recorded, without counting as waiting.

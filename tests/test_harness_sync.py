@@ -48,7 +48,7 @@ if "--body-file" in argv:
         body = stream.read()
 with open(os.environ["FAKE_GH_LOG"], "a", encoding="utf-8") as stream:
     stream.write(json.dumps({"argv": argv, "body": body}) + "\\n")
-print("https://example.invalid/acme/dev-harness/pull/1")
+print(os.environ.get("FAKE_GH_URL", "https://example.invalid/acme/dev-harness/pull/1"))
 """
 
 SKILL_V1 = "line one\nline two\nline three\n"
@@ -457,6 +457,45 @@ class PullTest(SyncTestCase):
         self.assertEqual(self.git(self.product, "ls-remote", "origin"), origin_before)
         self.assertEqual(list((self.temp / "tmp").iterdir()), [],
                          "a published proposal leaves no work directory behind")
+
+    def test_feedback_attachment_links_draft_and_scrubs_pr_body(self):
+        self.edit_core()
+        config = self.config()
+        config["name"] = "Private Product"
+        config["feedback"] = {"redact": ["Customer Jones"]}
+        (self.product / "harness/project/project.json").write_text(json.dumps(config))
+        draft = self.product / ".harness/feedback/demo.md"
+        draft.parent.mkdir(parents=True)
+        draft.write_text('<!-- harness-feedback {"kind":"bug","status":"draft","offered":true} -->\n\n'
+                         '# Fix demo skill\n\n## What happened\nPrivate Product Customer Jones user@example.invalid\n')
+        output = self.ok(self.sync("propose", "--branch", "fix-demo", "--title", "Private Product fix",
+                                   "--feedback-file", str(draft)))
+        argv = shlex.split(self.printed(output, "gh pr create"))
+        body = Path(argv[argv.index("--body-file") + 1]).read_text()
+        self.assertIn("[Reviewed feedback draft](#harness-feedback-draft)", body)
+        self.assertIn("## Harness feedback draft", body)
+        for private in ("Private Product", "Customer Jones", "user@example.invalid", str(draft)):
+            self.assertNotIn(private, body)
+        self.assertNotIn("Private Product", argv[argv.index("--title") + 1])
+        self.assertEqual(self.upstream_branches(), "refs/heads/main")
+
+    def test_feedback_publication_records_the_pr_in_the_queue(self):
+        self.edit_core()
+        draft = self.product / ".harness/feedback/demo.md"
+        draft.parent.mkdir(parents=True)
+        draft.write_text('<!-- harness-feedback {"kind":"bug","status":"draft","offered":true} -->\n\n'
+                         '# Fix demo skill\n\n## What happened\nSynthetic harness behavior.\n')
+        env = self.fake_gh_env()
+        env["FAKE_GH_URL"] = "https://github.com/pharosone/dev-harness/pull/123"
+        self.ok(self.sync("propose", "--branch", "fix-demo", "--feedback-file", str(draft),
+                          "--yes", env=env))
+        marker = draft.read_text().splitlines()[0]
+        meta = json.loads(marker.removeprefix("<!-- harness-feedback ").removesuffix(" -->"))
+        self.assertEqual(meta["status"], "sent")
+        self.assertEqual(meta["url"], env["FAKE_GH_URL"])
+        self.assertTrue(meta["offered"])
+        self.assertIn("## What happened", draft.read_text())
+        self.assertEqual(len(self.gh_calls()), 1)
 
     def test_default_title_is_the_latest_core_commit_subject(self):
         self.edit_core()

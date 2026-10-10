@@ -3,6 +3,26 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.6.0 — 2026-10-10
+
+- Public harness feedback: `scripts/feedback.py draft/list/offer/decline/send` queues local
+  harness-only drafts, remembers offers and declines, previews sanitized titles/bodies,
+  checks open/closed issue duplicates and creates an issue only with user approval. Missing
+  `gh`/auth prints a prefilled URL without marking the draft sent.
+- Mandatory redaction reuses the dashboard/xreview secret patterns, scrubs product/overlay
+  names, non-core absolute paths, emails, IPs and private URLs, and refuses unresolved secret
+  patterns. Optional `project.json → feedback.redact` adds literal private terms; no required
+  overlay change.
+- Local vendored-core edits offer `harness_sync.py propose --feedback-file <draft>` instead;
+  the small optional attachment extension links the reviewed draft in the PR body and
+  sanitizes the PR title/body, and records the URL after authorized publication. Preparing
+  feedback never publishes code.
+- `pharos-dev`, `pharos-discover` and both runtime adapters offer feedback once per distinct
+  harness failure, workaround, session tool, user-corrected decision or process complaint at
+  a natural pause. `pharos-dev` lists waiting drafts at every taste gate and run end.
+- Six owner-reported examples are synthetic test fixtures, never real issues. Renumber this
+  entry at merge if the parallel release branches require a different version.
+
 ## 1.3.0 — 2026-10-10
 
 - `lanes.py`: the herdr agent limit is configurable — `project.json → lanes`

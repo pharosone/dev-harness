@@ -64,3 +64,20 @@ read it again.
 
 Verified references (2026-10-09): learn.chatgpt.com/docs — skills, agent-configuration/subagents,
 hooks, non-interactive-mode, config-file/config-reference.
+
+## Harness feedback
+
+Offer once per distinct script error/docs contradiction, rule workaround/manual step,
+session tool the harness should own, user-corrected profile/tier/gate decision, or process
+complaint. At a natural pause after the unit/gate/turn, check `feedback.py list --offerable`,
+create a harness-only draft, and use `offer <slug>` to ask exactly: **Offer harness feedback
+“<drafted title>” for your review?** Never interrupt a running decision. The user decides;
+`decline <slug>` records a refusal and prevents repeated offers. Use the same `--task` or
+`--run-dir` queue for every command (omit both when there is no run).
+
+The upstream is public: no product data. `send` previews sanitized text and checks duplicates;
+`--yes` requires the user's explicit go for that text. Core fixes offer `harness_sync.py
+propose --feedback-file <draft>` instead; review code and body before publication. Missing
+`gh`/auth prints a prefilled URL and stays unsent. At each taste gate and run end, show
+`feedback.py list --summary`: “2 harness feedback drafts waiting: …”. Full procedure and
+privacy rules: README “Feedback”.

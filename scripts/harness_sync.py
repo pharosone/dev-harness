@@ -13,8 +13,8 @@ Run inside the product checkout:
   pull [REF]                                 `git subtree pull` (default: latest tag) in a
                                              scratch worktree, render and run the harness tests
                                              there; the branch fast-forwards only when green
-  propose --branch NAME [--title T] [--yes]  the core's edits since the last sync as a branch
-                                             of the core repository and a pull request
+  propose --branch NAME [--title T] [--feedback-file F] [--yes]
+                                             the core edits as a branch and pull request
 
 Exit codes: 0 done or clean; 1 needs your action (edits inside the core, a conflicted or red
 update); 2 refused or failed (dirty tree, no pin, Git or network error).
@@ -535,6 +535,16 @@ def cmd_propose(root: Path, args: argparse.Namespace) -> int:
             *[f"- {status} {path}" for status, path in files],
             "",
         ])
+        if args.feedback_file:
+            # A feedback attachment is local evidence, never a link to a product path.
+            import feedback
+            try:
+                draft_meta, draft = feedback.read(Path(args.feedback_file))
+                body += "\n[Reviewed feedback draft](#harness-feedback-draft)\n\n## Harness feedback draft\n\n" + draft
+                body = feedback.sanitize(body, root)
+                title = feedback.sanitize(title, root)
+            except feedback.FeedbackError as exc:
+                raise SyncError(str(exc)) from None
         body_file.write_text(body, encoding="utf-8")
         (work / "COMMIT_MSG").write_text(f"{title}\n\n{body}", encoding="utf-8")
         git(clone, *identity(root), "commit", "--quiet", "--no-verify",
@@ -549,6 +559,8 @@ def cmd_propose(root: Path, args: argparse.Namespace) -> int:
     print(f"Prepared branch {branch} of {pin['repo']} on {pin['ref']}: "
           f"{len(files)} file(s), {len(commits)} commit(s) squashed into one.")
     print(f"Clone: {clone}")
+    if args.feedback_file:
+        print(f"Reviewed PR title: {title}\n\n{body}", flush=True)
     if not args.yes:
         print("Nothing was published. Review the branch, then run:")
         print(f"  {shlex.join(push)}")
@@ -566,6 +578,13 @@ def cmd_propose(root: Path, args: argparse.Namespace) -> int:
                         f"{tail(result.stdout + result.stderr)}")
     print(f"Pushed {branch} to {pin['repo']} and opened the pull request:")
     print(result.stdout.strip())
+    if args.feedback_file:
+        url = result.stdout.strip()
+        if not re.fullmatch(r"https://github\.com/pharosone/dev-harness/pull/\d+", url):
+            raise SyncError("PR opened but its URL was unexpected; verify it before updating the feedback draft")
+        feedback.write(Path(args.feedback_file),
+                       {**draft_meta, "status": "sent", "offered": True, "url": url},
+                       feedback.sanitize(draft, root))
     shutil.rmtree(work, ignore_errors=True)
     return 0
 
@@ -589,6 +608,7 @@ def parser() -> argparse.ArgumentParser:
     propose = commands.add_parser("propose", help="the core's local edits as a PR upstream")
     propose.add_argument("--branch", required=True)
     propose.add_argument("--title")
+    propose.add_argument("--feedback-file", help="attach a reviewed feedback draft; sanitize PR text")
     propose.add_argument("--base", default="main", help="PR base branch (default: main)")
     propose.add_argument("--gh-repo", help="OWNER/NAME for gh (default: from the core URL)")
     propose.add_argument("--yes", action="store_true", help="push the branch and open the PR")

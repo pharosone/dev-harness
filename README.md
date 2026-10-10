@@ -196,6 +196,54 @@ and `compare.py`. `run.md` stays
 the narrative; `dashboard.py` renders both, and a run without the log renders from its files
 with every missing fact shown as unknown.
 
+## Feedback
+
+Users and their agents improve the public harness through reviewed issues or PRs. Offer once
+per distinct issue at a natural pause (unit, gate or turn end): a script error or contradiction
+of its docs; a rule requiring a workaround/manual step; a session tool the harness should own;
+a user correction to a profile/tier/gate choice; or a complaint about the harness process.
+Never interrupt a running decision. Ask exactly: **Offer harness feedback “<drafted title>”
+for your review?** The user decides; a declined offer is recorded and never repeated.
+
+```sh
+python3 harness/core/scripts/feedback.py draft --kind bug --title "<title>" --from-file <harness-only.md> --task <task>
+python3 harness/core/scripts/feedback.py list --task <task> --offerable
+python3 harness/core/scripts/feedback.py offer <slug> --task <task>
+python3 harness/core/scripts/feedback.py decline <slug> --task <task>
+python3 harness/core/scripts/feedback.py send <slug> --task <task>
+```
+
+Drafts live in `<run>/feedback/<slug>.md`. Use `--task` for the primary checkout's durable run,
+`--run-dir` for an existing run directory (including an overlay-owned one), or omit both for
+`<checkout>/.harness/feedback`. A repeated title retains the existing draft and its state.
+`list` shows draft, declined, or sent with its URL; `offer` records the one-time question.
+At each taste gate and run end, `pharos-dev` shows `list --summary` using the same queue:
+“2 harness feedback drafts waiting: <title>; <title>”.
+
+`send` sanitizes both title and body, shows the exact final text, checks possible duplicates
+with `gh issue list --search` (open and closed), and creates an issue in the `core.repo` pin,
+which must resolve to `pharosone/dev-harness`. Any potential duplicate blocks creation for
+review. Approval is for the displayed text; agents use `--yes` only after the user's explicit
+go. Without `gh` or authentication, a prefilled `issues/new` URL is printed and the draft stays
+unsent. A send error retains the draft; check upstream before retrying an ambiguous failure.
+
+With local edits in the vendored core, `send` offers `harness_sync.py propose --feedback-file
+<draft>` instead of creating an issue. That option attaches a link and the reviewed draft to
+the PR body and sanitizes its title/body; preparation publishes nothing. Review the diff as
+well as the body before authorizing publication: the feedback sanitizer does not scrub code.
+Successful publication through `propose --feedback-file --yes` records the PR URL and marks
+the draft sent. Use `send --issue` to explicitly choose an issue instead.
+
+**No product data:** use a synthetic, minimal harness reproduction. The mandatory sanitizer
+removes product/overlay names, absolute paths outside the core, emails, IPs, known keys/tokens,
+and extra literal terms in `project.json → feedback.redact` ([overlay](docs/overlay.md#feedback)).
+Only HTTPS links to this core or the explicit public documentation allowlist survive; query
+strings/fragments are removed. Current docs allowlist: `docs.python.org`, `docs.github.com`,
+`learn.chatgpt.com/docs`, `platform.openai.com/docs`, `code.claude.com/docs`,
+`docs.anthropic.com`, `herdr.dev`. Remaining known secret patterns refuse sending. Read the
+final text: arbitrary business facts are not recognizable by pattern matching. Drafts are
+local review material, never automatically published.
+
 ## Scripts
 
 Run as `python3 harness/core/scripts/<script>` (standard library only); each module docstring
@@ -221,6 +269,7 @@ documents its CLI and overlay keys.
 | `arch_check.py [--base REF \| --all]` | the declared architecture holds (`architecture.json`): layer dependencies, files outside every layer, misplaced kinds, names; off without the file; exit 0/1/2 |
 | `runtime_hook.py` | the Stop hook adapter for the drift check |
 | `render_adapters.py [--check] [--root REPO]` | render the native adapters from core + overlay |
+| `feedback.py draft/list/offer/decline/send` | sanitized public harness feedback queue, one-time offers, duplicate check and reviewed issue/PR handoff |
 | `harness_sync.py install/status/pull/propose` | vendor, check, update and upstream the core |
 | `project.py` | where the core and the overlay live; how scripts read the overlay |
 
