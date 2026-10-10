@@ -14,6 +14,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import router_shadow as shadow
 import lanes
+import project
 import task_state
 
 
@@ -68,6 +69,10 @@ class ShadowTest(unittest.TestCase):
         with patch.object(shadow, "classify", side_effect=AssertionError("paid call")):
             self.assertIsNone(self.evaluate(brief="missing-file"))
         self.assertEqual(list(self.run.iterdir()), [])
+
+    def test_launcher_decision_outside_checkout_keeps_old_contract(self):
+        with patch.object(project, "repo_root", side_effect=project.OverlayError("outside git")):
+            self.assertIsNone(lanes.shadow_for_args(argparse.Namespace(), "lanes.decide"))
 
     def test_manual_weights_keep_actual_and_append_full_provenance(self):
         self.configure()

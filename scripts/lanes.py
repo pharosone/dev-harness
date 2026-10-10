@@ -1204,7 +1204,10 @@ def shadow_for_args(args, origin: str, *, primary: Path | None = None,
     """Optional advisory data. Old commands without shadow configuration are unchanged."""
     import router_shadow
     try:
-        root = project.repo_root(Path.cwd())
+        try:
+            root = project.repo_root(Path.cwd())
+        except project.OverlayError:
+            return None  # Generic launcher decisions outside a checkout keep their old contract.
         try:
             configured_mode = router_shadow.mode(root)
         except Exception:
