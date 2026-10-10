@@ -154,8 +154,9 @@ what, so the dashboard and a resuming runtime see it without a living session.
   (report and usage) and `cancel`. `start` exit 3: dispatch it as a subagent; exit 4
   (`queued`, at the herdr agent limit: three by default, `project.json → lanes`): start it
   again after a lane ends. `wait` exit 5: the
-  lane is `blocked` — read its dialog and apply «Act on watch output»: answer only
-  spec-resolved questions; show material decisions and trust/permission reviews to the user.
+  lane is `blocked` — never answer trust/permission reviews yourself. Read its dialog and
+  apply «Act on watch output»: answer only spec-resolved questions; show material decisions
+  and trust/permission reviews to the user.
 - **Panes:** the run's own panes stay open after the work;
   panes the run did not create are never closed or reused, and `cancel` refuses a pane that
   is no longer the run's. With the dashboard open, a lane pane whose agent has exited is
