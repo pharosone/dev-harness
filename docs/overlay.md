@@ -519,3 +519,10 @@ Keep result history tracked so regressions can be measured against the gate's ba
 
 In Codex-only mode, `skill_evals.py run --runtime codex` explicitly uses `eval_command` for
 core skills too, with their core-registered cases. No vendor fallback is implicit.
+
+The runner receives `HARNESS_SKILL_EVAL_MANIFEST`, an environment variable pointing to a JSON
+file with the checkout-relative skill key, content hash, `cases` (`name` plus absolute `path`),
+and `input_files` (canonical labels to absolute paths). Use those registered paths directly,
+including for vendored core cases. `run --base` is required. The hash covers the complete skill
+directory and transitive declared references; `<skill dir>/eval-inputs.json` declares dynamic
+references as skill-relative paths/globs. See README "Skill evals" for the schema-2 contract.

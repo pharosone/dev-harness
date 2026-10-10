@@ -238,8 +238,8 @@ python3 harness/core/scripts/check_docs_drift.py --base origin/main
 python3 harness/core/scripts/harness_sync.py status --strict
 # this repository (CI also renders examples/project in a scratch repository and checks it)
 python3 -m unittest discover -s tests -p 'test_*.py'
-python3 scripts/skill_evals.py run --skill pharos-dev --model sonnet --max-cost-usd 2 --run-dir .harness/skill-evals
-python3 scripts/skill_evals.py run --skill pharos-discover --model sonnet --max-cost-usd 2 --run-dir .harness/skill-evals
+python3 scripts/skill_evals.py run --skill pharos-dev --model sonnet --max-cost-usd 2 --run-dir .harness/skill-evals --base origin/main
+python3 scripts/skill_evals.py run --skill pharos-discover --model sonnet --max-cost-usd 2 --run-dir .harness/skill-evals --base origin/main
 python3 scripts/skill_evals.py check --base origin/main
 python3 scripts/skill_evals.py report
 ```
@@ -291,9 +291,9 @@ Missing historical scores are reported as a coverage gap; they are not invented.
 
 `check --base REF` compares REF to committed, staged, unstaged and untracked files. For each
 added/changed skill it requires an added/changed registered case and evidence matching the
-current SHA-256 of both skill instructions and every case file. It validates new-case Δ
+current SHA-256 of the whole skill directory, declared references and every case file. It validates new-case Δ
 and existing-case regressions against the latest accepted history at REF. It makes no model calls.
-Case-only edits also require refreshed evidence. Deleted skills need no eval. Registry-only edits do not count as a new scenario or grader.
+Case-only edits also require refreshed evidence. Reference-only changes also require a changed case and fresh evidence for each dependent skill. Deleted skills need no eval. Registry-only edits do not count as a new scenario or grader.
 Exit codes: 0 clean, 1 unmet acceptance, 2 configuration/invalid evidence. Review histories
 as evidence: the gate checks the writer's recorded measurements, not their authenticity.
 
@@ -331,3 +331,23 @@ no-skill arms and apply the same graders. The default built-in harness runner re
 `--runtime codex` explicitly selects the configured paired runner and never silently substitutes
 a different vendor. In Claude-only mode use the built-in
 runner unchanged. On a model release, rerun the affected suites and record the model.
+
+The skill content hash covers every directory file (assets and scripts too), symlink targets,
+and transitive local references declared as literal file paths or Markdown links in `.md`/`.txt`
+inputs. `harness/core/` paths resolve against the actual core; `harness/project/` paths use the
+active overlay. Both runtime adapters are inputs when a core skill declares the active adapter.
+Declare dynamically selected files or script imports in `<skill dir>/eval-inputs.json`, a JSON
+list of skill-relative paths/globs, for example `["../../shared/*.md"]`. Directories recurse.
+The manifest itself is hashed. Paths must stay in the checkout; `.env` inputs are refused.
+Only `.git` metadata and `__pycache__` are excluded. Deleted references remain hash inputs;
+addition/deletion and changes during a run invalidate evidence. Schema 2 records `input_hashes`
+alongside the composite `content_hash`; legacy SKILL.md-only evidence is stale and must rerun.
+Product overlays therefore affect freshness when a skill declares them; an evaluation in the
+bare core does not claim evidence for a different overlay. `run` requires an explicit `--base`.
+
+Changed case content requires positive Δ; score tolerance compares identical case content.
+An initial/new case cannot acquire an accepted history with Δ ≤ 0 even after it was committed.
+External runners also receive `HARNESS_SKILL_EVAL_MANIFEST` in their environment: the path to
+a JSON manifest containing `skill`, `content_hash`, the registered `cases` (`name` and absolute
+`path`), and `input_files` (canonical labels to absolute paths). Use these case paths directly
+instead of duplicating registry/core-vendoring resolution. Existing runner argv stays compatible.

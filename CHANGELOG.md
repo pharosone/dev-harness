@@ -15,6 +15,11 @@ with defaults; a major release may require an overlay change and says which.
 - Two new product-skill acceptance scenarios cover pharos-dev and pharos-discover. Existing
   coverage gaps remain follow-ups. No required overlay migration. Renumber at merge if
   parallel release branches require a different version.
+- Review fixes: gate and hash the complete skill directory and transitive declared inputs;
+  record a schema-2 input manifest, reject input changes during evaluation, compare regression
+  only for identical cases, and require an explicit run base. External runners receive exact
+  registered case paths in an environment manifest. Shared-context changes require purpose
+  coverage and fresh measurements for all seven core skills; their instructions are unchanged.
 
 ## 1.3.0 — 2026-10-10
 

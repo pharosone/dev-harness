@@ -82,5 +82,5 @@ Evidence goes to `<run>/evals/<skill>.json` and the skill's eval history; quote 
 
 Codex-only evals: configure `project.json → skills.eval_command` as a paired Codex runner,
 then use `skill_evals.py run --runtime codex --skill <SKILL.md> --model <actual model>
---run-dir <run>`. This routes both core and product skills through that runner and retains
+--run-dir <run> --base <unit base>`. This routes both core and product skills through that runner and retains
 the same cheap gate, hashes, case acceptance and history format. Missing runner is an error.

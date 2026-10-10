@@ -14,6 +14,19 @@
     "skill-evals-discovery"
   ],
   "skills/pharos-investigate/SKILL.md": [
-    "deep-mode-offer"
+    "deep-mode-offer",
+    "investigate-declined-comparison"
+  ],
+  "skills/submit-pr/SKILL.md": [
+    "submit-pr-evidence"
+  ],
+  "skills/address-gh-review/SKILL.md": [
+    "address-gh-round"
+  ],
+  "skills/manual-test-plan/SKILL.md": [
+    "manual-test-scope"
+  ],
+  "skills/design-review/SKILL.md": [
+    "design-review-shape"
   ]
 }

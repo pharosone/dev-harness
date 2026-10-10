@@ -54,6 +54,7 @@ value={'partial':os.environ.get('PARTIAL')=='1','costUsd':float(os.environ.get('
  'cases':[{'name':n,'arms':{'with':[{'score':with_score,'error':None}],
                           'without':[{'score':without_score,'error':None}]}} for n in cases]}
 if os.environ.get('MISSING_ARM'): value['cases'][0]['arms'].pop('without')
+if os.environ.get('MUTATE'): Path(os.environ['MUTATE']).write_text('changed during evaluation')
 out.write_text(json.dumps(value))
 sys.exit(int(os.environ.get('EXIT','0')))
 ''')
@@ -74,6 +75,8 @@ sys.exit(int(os.environ.get('EXIT','0')))
         path.chmod(0o755)
 
     def cli(self, *args):
+        if args[0] == 'run' and '--base' not in args:
+            args = (*args, '--base', self.base)
         output = io.StringIO()
         with patch.object(ev.project, 'repo_root', return_value=self.root), \
                 contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
@@ -111,6 +114,120 @@ sys.exit(int(os.environ.get('EXIT','0')))
         self.change()
         self.assertEqual(self.cli('check', '--base', self.base)[0], 1)
 
+    def test_directory_reference_only_change_trips_gate_and_stales_hash(self):
+        reference = self.put('skills/example/references/qa-gotchas.md', 'old boundary checks')
+        self.assertEqual(self.run_eval()[0], 0)
+        original = ev.read(self.root/'run/evals/example.json')['content_hash']
+        self.git('add', str(reference.relative_to(self.root)), 'plugin/evals/history')
+        self.git('commit', '-qm', 'accepted skill bundle')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+        reference.write_text('new boundary checks')
+        code, output = self.cli('check', '--base', self.base)
+        self.assertEqual(code, 1, output)
+        self.assertIn('no added/changed eval case', output)
+        self.assertIn('no fresh result', output)
+        self.assertIn('STALE', self.cli('report')[1])
+        self.put('plugin/evals/case/prompt.md', 'updated boundary scenario')
+        self.assertEqual(self.run_eval()[0], 0)
+        self.assertNotEqual(ev.read(self.root/'run/evals/example.json')['content_hash'], original)
+        self.assertEqual(self.cli('check', '--base', self.base)[0], 0)
+
+    def test_declared_external_and_transitive_references_are_inputs(self):
+        self.put(self.skill, 'Read [shared rules](../../shared/rules.md).')
+        reference = self.put('shared/rules.md', 'Read `nested/checks.txt`.')
+        nested = self.put('shared/nested/checks.txt', 'old checks')
+        self.assertEqual(self.run_eval()[0], 0)
+        self.git('add', self.skill, 'shared', 'plugin/evals/history')
+        self.git('commit', '-qm', 'accepted external dependencies')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+        for path in (reference, nested):
+            path.write_text(path.read_text() + '\nchanged')
+            code, output = self.cli('check', '--base', self.base)
+            self.assertEqual(code, 1, output)
+            self.assertIn('no fresh result', output)
+            self.assertIn('STALE', self.cli('report')[1])
+            self.assertEqual(self.run_eval()[0], 0)
+
+    def test_directory_input_addition_and_deletion_invalidate_evidence(self):
+        self.assertEqual(self.run_eval()[0], 0)
+        added = self.put('skills/example/scripts/helper.py', 'print("new behaviour")')
+        self.assertEqual(self.cli('check', '--base', self.base)[0], 1)
+        self.assertIn('STALE', self.cli('report')[1])
+        self.assertEqual(self.run_eval()[0], 0)
+        added.unlink()
+        self.assertIn('STALE', self.cli('report')[1])
+
+    def test_deleted_external_reference_still_triggers_gate(self):
+        self.put(self.skill, 'Read [shared](../../shared/rules.md).')
+        reference = self.put('shared/rules.md', 'checks')
+        self.assertEqual(self.run_eval()[0], 0)
+        self.git('add', self.skill, 'shared', 'plugin/evals/history')
+        self.git('commit', '-qm', 'accepted reference')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+        reference.unlink()
+        code, output = self.cli('check', '--base', self.base)
+        self.assertEqual(code, 1, output)
+        self.assertIn('no fresh result', output)
+        self.assertIn('STALE', self.cli('report')[1])
+
+    def test_explicit_dynamic_glob_and_binary_inputs_are_hashed(self):
+        self.put('skills/example/eval-inputs.json', '["../../shared/*.toml"]')
+        reference = self.put('shared/settings.toml', 'tone = "formal"')
+        self.assertEqual(self.run_eval()[0], 0)
+        reference.write_text('tone = "friendly"')
+        self.assertIn('STALE', self.cli('report')[1])
+        self.assertEqual(self.run_eval()[0], 0)
+        asset = self.root/'skills/example/logo.bin'
+        asset.write_bytes(b'\x00\xff')
+        self.assertIn('STALE', self.cli('report')[1])
+
+    def test_reference_mutation_during_run_cannot_write_fresh_evidence(self):
+        reference = self.put('skills/example/references/check.md', 'original')
+        code, output = self.run_eval(MUTATE=str(reference))
+        self.assertEqual(code, 2, output)
+        self.assertIn('changed during the run', output)
+        settings, skills = self.settings()
+        self.assertFalse(ev.histories(self.skill, skills[self.skill]))
+
+    def test_symlink_targets_and_directory_links_are_inputs(self):
+        first = self.put('shared/first/check.md', 'same content')
+        self.put('shared/second/check.md', 'same content')
+        link = self.root/'skills/example/reference'
+        link.symlink_to(first.parent, target_is_directory=True)
+        self.assertEqual(self.run_eval()[0], 0)
+        link.unlink()
+        link.symlink_to(self.root/'shared/second', target_is_directory=True)
+        self.assertIn('STALE', self.cli('report')[1])
+        self.assertEqual(self.run_eval()[0], 0)
+        (self.root/'shared/second/check.md').write_text('changed')
+        self.assertIn('STALE', self.cli('report')[1])
+
+    def test_reference_cycle_and_examples_do_not_expand_outside_checkout(self):
+        self.put(self.skill, 'Read [rules](../../shared/rules.md).')
+        self.put('shared/rules.md', 'Read [skill](../skills/example/SKILL.md).\n'
+                 'Example JSON: `["../../elsewhere/*.md"]`.\n'
+                 '```json\n["../../../outside.txt"]\n```')
+        self.assertEqual(self.run_eval()[0], 0)
+        self.assertIn('fresh', self.cli('report')[1])
+
+    def test_unsafe_directory_symlink_is_rejected_without_reading_target(self):
+        (self.root/'skills/example/outside').symlink_to(self.root.parent, target_is_directory=True)
+        code, output = self.run_eval()
+        self.assertEqual(code, 2, output)
+        self.assertIn('symlink outside checkout', output)
+
+    def test_reference_case_aliases_hash_and_watch_actual_file_spelling(self):
+        self.put(self.skill, 'Read [rules](../../Shared/Rules.md).')
+        reference = self.put('shared/rules.md', 'original rules')
+        self.assertEqual(self.run_eval()[0], 0)
+        result = ev.read(self.root/'run/evals/example.json')
+        self.assertIn('core:shared/rules.md', result['input_hashes'])
+        self.assertNotIn('core:Shared/Rules.md', result['input_hashes'])
+        reference.write_text('new rules')
+        code, output = self.cli('check', '--base', self.base)
+        self.assertEqual(code, 1, output)
+        self.assertIn('no fresh result', output)
+
     def test_paired_run_and_gate_pass_with_fresh_hashes(self):
         self.change()
         code, output = self.run_eval()
@@ -119,7 +236,9 @@ sys.exit(int(os.environ.get('EXIT','0')))
         self.assertEqual(result['cases'][0]['delta'], .75)
         self.assertEqual(result['model'], 'fake-model')
         self.assertEqual(result['cost_usd'], .1)
-        self.assertEqual(result['content_hash'], ev.digest(self.root/self.skill))
+        settings, skills = self.settings()
+        self.assertEqual(result['content_hash'], ev.content_hash(skills[self.skill]))
+        self.assertIn('core:skills/example/SKILL.md', result['input_hashes'])
         self.assertTrue(result['run_date'])
         self.assertEqual(self.cli('check', '--base', self.base)[0], 0)
         args = ev.read(self.root/'trace.json')
@@ -151,7 +270,10 @@ sys.exit(int(os.environ.get('EXIT','0')))
         self.git('add', 'plugin/evals/history')
         self.git('commit', '-qm', 'prior measured result')
         self.base = self.git('rev-parse', 'HEAD').strip()
-        self.change()
+        self.put(self.skill, 'changed instructions')
+        self.put('plugin/evals/extra/prompt.md', 'additional acceptance scenario')
+        self.put('plugin/evals/extra/graders/score.md', 'grader')
+        self.put('plugin/evals/cases.json', json.dumps({self.skill:['case','extra']}))
         self.assertEqual(self.run_eval(WITH='0.95')[0], 0)
         self.assertEqual(self.cli('check', '--base', self.base)[0], 0)
         self.assertEqual(self.run_eval(WITH='0.90')[0], 1)  # baseline at REF remains 1.00
@@ -180,7 +302,7 @@ sys.exit(int(os.environ.get('EXIT','0')))
 
     def test_committed_failed_attempt_does_not_ratchet_baseline(self):
         self.assertEqual(self.run_eval()[0], 0)
-        self.change()
+        self.put(self.skill, 'changed instructions')
         self.assertEqual(self.run_eval(WITH='0.8')[0], 1)
         self.git('add', 'plugin/evals/history')
         self.git('commit', '-qm', 'history with failed attempt')
@@ -192,9 +314,34 @@ sys.exit(int(os.environ.get('EXIT','0')))
 
     def test_failed_attempt_cannot_ratchet_regression_baseline(self):
         self.assertEqual(self.run_eval()[0], 0)
+        self.put(self.skill, 'changed instructions')
+        self.assertEqual(self.run_eval(WITH='0.8')[0], 1)
+        self.assertEqual(self.run_eval(WITH='0.8')[0], 1)
+
+    def test_stricter_changed_case_is_not_a_regression_of_old_case(self):
+        self.assertEqual(self.run_eval()[0], 0)
+        self.git('add', 'plugin/evals/history')
+        self.git('commit', '-qm', 'accepted original case')
+        self.base = self.git('rev-parse', 'HEAD').strip()
         self.change()
-        self.assertEqual(self.run_eval(WITH='0.8')[0], 1)
-        self.assertEqual(self.run_eval(WITH='0.8')[0], 1)
+        self.assertEqual(self.run_eval(WITH='0.9', WITHOUT='0.3')[0], 0)
+        self.assertEqual(self.cli('check', '--base', self.base)[0], 0)
+
+    def test_committed_new_case_with_zero_delta_is_not_accepted(self):
+        self.change()
+        self.git('add', self.skill, 'plugin/evals/case')
+        self.git('commit', '-qm', 'committed case without evidence')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+        code, output = self.run_eval(WITH='1', WITHOUT='1')
+        self.assertEqual(code, 1, output)
+        self.assertIn('Δ must be > 0', output)
+        settings, skills = self.settings()
+        self.assertTrue(ev.latest(self.skill, skills[self.skill])['acceptance_findings'])
+
+    def test_run_requires_explicit_unit_base(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as exc:
+            ev.main(['run', '--skill', 'example'])
+        self.assertEqual(exc.exception.code, 2)
 
     def test_custom_tolerance(self):
         self.put('harness/project/project.json', json.dumps({'skills': {'tolerance': .1}}))
@@ -209,6 +356,18 @@ sys.exit(int(os.environ.get('EXIT','0')))
         self.put('plugin/evals/new-case/graders/score.md', 'grader')
         self.put('plugin/evals/cases.json', json.dumps({self.skill:['case'], new:['new-case']}))
         self.assertEqual(self.cli('run','--skill','new')[0], 0)
+        self.assertEqual(self.cli('check','--base',self.base)[0], 0)
+
+    def test_new_case_repeated_in_same_unit_needs_delta_not_prior_attempt_score(self):
+        new = 'skills/new/SKILL.md'
+        self.put(new, 'new skill')
+        self.put('plugin/evals/new-case/prompt.md', 'new scenario')
+        self.put('plugin/evals/new-case/graders/score.md', 'grader')
+        self.put('plugin/evals/cases.json', json.dumps({self.skill:['case'], new:['new-case']}))
+        self.assertEqual(self.cli('run','--skill','new')[0], 0)
+        with patch.dict(os.environ, {'WITH':'0.8', 'WITHOUT':'0.3'}):
+            code, output = self.cli('run','--skill','new')
+        self.assertEqual(code, 0, output)
         self.assertEqual(self.cli('check','--base',self.base)[0], 0)
 
     def test_committed_and_staged_changes_are_checked(self):
@@ -265,6 +424,9 @@ import json,sys,os
 from pathlib import Path
 args=sys.argv[1:]
 Path(os.environ['TRACE']).write_text(json.dumps(args))
+manifest=json.loads(Path(os.environ['HARNESS_SKILL_EVAL_MANIFEST']).read_text())
+assert manifest['skill']==args[args.index('--skill')+1]
+assert manifest['cases']==[{'name':'tone','path':str(Path.cwd()/'evals/skills/tone')}]
 Path(args[args.index('--out')+1]).write_text(json.dumps({'model':'hermes-actual','cost_usd':.05,
  'cases':[{'name':'tone','score_with':1,'score_without':.4}]}))
 ''')
@@ -285,6 +447,26 @@ Path(args[args.index('--out')+1]).write_text(json.dumps({'model':'codex-actual',
         self.assertEqual(code, 0, output)
         self.assertIn('codex-request', ev.read(self.root/'trace.json'))
         self.assertEqual(self.cli('check','--base',self.base)[0], 0)
+
+    def test_codex_runner_manifest_resolves_vendored_core_case_paths(self):
+        core = self.root/'harness/core'
+        core.mkdir(parents=True)
+        for name in ('skills', 'plugin'):
+            shutil.move(str(self.root/name), str(core/name))
+        self.put('harness/project/project.json', json.dumps({'skills':{'eval_command':'codex-paired'}}))
+        self.fake('codex-paired', '''
+import json,sys,os
+from pathlib import Path
+args=sys.argv[1:]
+manifest=json.loads(Path(os.environ['HARNESS_SKILL_EVAL_MANIFEST']).read_text())
+assert manifest['skill']=='harness/core/skills/example/SKILL.md'
+assert manifest['cases']==[{'name':'case','path':str(Path.cwd()/'harness/core/plugin/evals/case')}]
+Path(args[args.index('--out')+1]).write_text(json.dumps({'model':'codex-actual','cost_usd':.04,
+ 'cases':[{'name':'case','score_with':1,'score_without':.3}]}))
+''')
+        with patch.object(ev.project, 'CORE', core):
+            code, output = self.cli('run','--skill','example','--runtime','codex')
+            self.assertEqual(code, 0, output)
 
     def test_product_runner_and_glob_path(self):
         skill = self.product()
