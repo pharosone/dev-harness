@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="481" viewBox="0 0 1120 481" role="img" aria-labelledby="title desc">
+<title id="title">Arena Image To Webdev</title>
+<desc id="desc">Every sourced observation, grouped by cohort and reasoning effort. Solid independent, hatched vendor-hosted; black lines are score confidence intervals.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="481" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="24" y="30" font-size="20" >Arena Image To Webdev</text>
+<text x="24" y="54" font-size="13" >Raw Elo; higher is better. Efforts and scaffolds are separate.</text>
+<text x="24" y="77" font-size="13" >Solid: independent. Hatched: self-reported/vendor-hosted. CI: source score interval. No rank intervals.</text>
+<text x="24" y="104" font-size="12" >max | leaderboard-sets/public/leaderboards/image_to_webdev-overall-raw/leaderboard-snapshots/latest</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 1748.5106138462124, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=overall; style_control=None; source_model=claude-opus-5.5-max&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/code/image-to-webdev&quot;, &quot;vote_count&quot;: 493, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1718.3485818285048, &quot;upper&quot;: 1778.6726458639196}}</title>
+<text x="24" y="144" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="129" width="377.68" height="21" fill="#1d4ed8"/>
+<path d="M801.16 139H814.19M801.16 134V144M814.19 134V144" stroke="#111827" stroke-width="2"/>
+<text x="980" y="144" font-size="13" >1748.51</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 1731.3945950062785, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=overall; style_control=None; source_model=gpt-6-astra-max&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/code/image-to-webdev&quot;, &quot;vote_count&quot;: 2739, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1718.098490986687, &quot;upper&quot;: 1744.6906990258694}}</title>
+<text x="24" y="178" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="163" width="373.98" height="21" fill="#1d4ed8"/>
+<path d="M801.11 173H806.85M801.11 168V178M806.85 168V178" stroke="#111827" stroke-width="2"/>
+<text x="980" y="178" font-size="13" >1731.39</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 1719.7510952321622, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=overall; style_control=None; source_model=claude-fable-5.1-max&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/code/image-to-webdev&quot;, &quot;vote_count&quot;: 2470, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1706.1087433785774, &quot;upper&quot;: 1733.3934470857466}}</title>
+<text x="24" y="212" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="197" width="371.47" height="21" fill="#1d4ed8"/>
+<path d="M798.52 207H804.41M798.52 202V212M804.41 202V212" stroke="#111827" stroke-width="2"/>
+<text x="980" y="212" font-size="13" >1719.75</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;value&quot;: 1703.4643962182554, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=overall; style_control=None; source_model=gpt-6.1-sol-max&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/code/image-to-webdev&quot;, &quot;vote_count&quot;: 1430, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1686.4099082306307, &quot;upper&quot;: 1720.51888420588}}</title>
+<text x="24" y="246" font-size="13" >gpt-6.1-sol</text>
+<rect x="430.00" y="231" width="367.95" height="21" fill="#1d4ed8"/>
+<path d="M794.26 241H801.63M794.26 236V246M801.63 236V246" stroke="#111827" stroke-width="2"/>
+<text x="980" y="246" font-size="13" >1703.46</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 1570.160993942166, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=overall; style_control=None; source_model=gpt-6-luna-max&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/code/image-to-webdev&quot;, &quot;vote_count&quot;: 3000, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1558.459259494702, &quot;upper&quot;: 1581.8627283896303}}</title>
+<text x="24" y="280" font-size="13" >gpt-6-luna</text>
+<rect x="430.00" y="265" width="339.15" height="21" fill="#1d4ed8"/>
+<path d="M766.63 275H771.68M766.63 270V280M771.68 270V280" stroke="#111827" stroke-width="2"/>
+<text x="980" y="280" font-size="13" >1570.16</text>
+</g>
+<text x="24" y="318" font-size="12" >xhigh | leaderboard-sets/public/leaderboards/image_to_webdev-overall-raw/leaderboard-snapshots/latest</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 1740.047478213904, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=overall; style_control=None; source_model=claude-sonnet-5.5-xhigh&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/code/image-to-webdev&quot;, &quot;vote_count&quot;: 1074, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1720.1471810977619, &quot;upper&quot;: 1759.9477753300462}}</title>
+<text x="24" y="358" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="343" width="375.85" height="21" fill="#1d4ed8"/>
+<path d="M801.55 353H810.15M801.55 348V358M810.15 348V358" stroke="#111827" stroke-width="2"/>
+<text x="980" y="358" font-size="13" >1740.05</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;value&quot;: 1577.336260584801, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=overall; style_control=None; source_model=grok-4.7-xhigh&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/code/image-to-webdev&quot;, &quot;vote_count&quot;: 796, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1556.1651755193911, &quot;upper&quot;: 1598.5073456502114}}</title>
+<text x="24" y="392" font-size="13" >grok-4.7</text>
+<rect x="430.00" y="377" width="340.70" height="21" fill="#1d4ed8"/>
+<path d="M766.13 387H775.28M766.13 382V392M775.28 382V392" stroke="#111827" stroke-width="2"/>
+<text x="980" y="392" font-size="13" >1577.34</text>
+</g>
+<text x="430" y="459" font-size="13" >0</text>
+<text x="970" y="459" font-size="13" >2500</text>
+</g></svg>

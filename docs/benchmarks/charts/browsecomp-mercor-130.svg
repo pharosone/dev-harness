@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="593" viewBox="0 0 1120 593" role="img" aria-labelledby="title desc">
+<title id="title">BrowseComp / Mercor 130-question subset</title>
+<desc id="desc">Every sourced observation, grouped by cohort and reasoning effort. Solid independent, hatched vendor-hosted; black lines are score confidence intervals.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="593" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="24" y="30" font-size="20" >BrowseComp / Mercor 130-question subset</text>
+<text x="24" y="54" font-size="13" >Raw percent; higher is better. Efforts and scaffolds are separate.</text>
+<text x="24" y="77" font-size="13" >Solid: independent. Hatched: self-reported/vendor-hosted. CI: source score interval. No rank intervals.</text>
+<text x="24" y="104" font-size="12" >high | browsecomp-mercor-130-snapshot-2026-10-10</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 78.3, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Fable 5.1; effort=high; public 130 subset, 4 runs&quot;, &quot;harness&quot;: &quot;Web research agent&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/oss-benchmarks/oss-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 520, &quot;reported_error_pp&quot;: 6.1, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="144" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="129" width="422.82" height="21" fill="#1d4ed8"/>
+<text x="980" y="144" font-size="13" >78.30 ±6.1*</text>
+</g>
+<text x="24" y="182" font-size="12" >max | browsecomp-mercor-130-snapshot-2026-10-10</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;value&quot;: 95.4, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model GPT-6.1 Sol; effort=max; public 130 subset, 4 runs&quot;, &quot;harness&quot;: &quot;Web research agent&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/oss-benchmarks/oss-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 496, &quot;reported_error_pp&quot;: 3.1, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="222" font-size="13" >gpt-6.1-sol</text>
+<rect x="430.00" y="207" width="515.16" height="21" fill="#1d4ed8"/>
+<text x="980" y="222" font-size="13" >95.40 ±3.1*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 88.5, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Opus 5.5; effort=max; public 130 subset, 4 runs&quot;, &quot;harness&quot;: &quot;Web research agent&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/oss-benchmarks/oss-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 517, &quot;reported_error_pp&quot;: 5, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="256" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="241" width="477.90" height="21" fill="#1d4ed8"/>
+<text x="980" y="256" font-size="13" >88.50 ±5.0*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 86.6, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Sonnet 5.5; effort=max; public 130 subset, 4 runs&quot;, &quot;harness&quot;: &quot;Web research agent&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/oss-benchmarks/oss-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 504, &quot;reported_error_pp&quot;: 5, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="290" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="275" width="467.64" height="21" fill="#1d4ed8"/>
+<text x="980" y="290" font-size="13" >86.60 ±5.0*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 85.2, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Fable 5.1; effort=max; public 130 subset, 4 runs&quot;, &quot;harness&quot;: &quot;Web research agent&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/oss-benchmarks/oss-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 493, &quot;reported_error_pp&quot;: 5.3, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="324" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="309" width="460.08" height="21" fill="#1d4ed8"/>
+<text x="980" y="324" font-size="13" >85.20 ±5.3*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 83.3, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model GPT-6 Luna; effort=max; public 130 subset, 4 runs&quot;, &quot;harness&quot;: &quot;Web research agent&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/oss-benchmarks/oss-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 520, &quot;reported_error_pp&quot;: 5.4, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="358" font-size="13" >gpt-6-luna</text>
+<rect x="430.00" y="343" width="449.82" height="21" fill="#1d4ed8"/>
+<text x="980" y="358" font-size="13" >83.30 ±5.4*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-haiku-5-5&quot;, &quot;value&quot;: 56.3, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Haiku 5.5; effort=max; public 130 subset, 4 runs&quot;, &quot;harness&quot;: &quot;Web research agent&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/oss-benchmarks/oss-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 520, &quot;reported_error_pp&quot;: 7.1, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="392" font-size="13" >claude-haiku-5-5</text>
+<rect x="430.00" y="377" width="304.02" height="21" fill="#1d4ed8"/>
+<text x="980" y="392" font-size="13" >56.30 ±7.1*</text>
+</g>
+<text x="24" y="430" font-size="12" >xhigh | browsecomp-mercor-130-snapshot-2026-10-10</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 94.2, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model GPT-6 Astra; effort=xhigh; public 130 subset, 4 runs&quot;, &quot;harness&quot;: &quot;Web research agent&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/oss-benchmarks/oss-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 520, &quot;reported_error_pp&quot;: 3.2, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="470" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="455" width="508.68" height="21" fill="#1d4ed8"/>
+<text x="980" y="470" font-size="13" >94.20 ±3.2*</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;value&quot;: 75.8, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;source model Grok 4.7; effort=xhigh; public 130 subset, 4 runs&quot;, &quot;harness&quot;: &quot;Web research agent&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://www.mercor.com/apex/oss-benchmarks/oss-browsecomp-leaderboard/&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: 518, &quot;reported_error_pp&quot;: 6.3, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="504" font-size="13" >grok-4.7</text>
+<rect x="430.00" y="489" width="409.32" height="21" fill="#1d4ed8"/>
+<text x="980" y="504" font-size="13" >75.80 ±6.3*</text>
+</g>
+<text x="430" y="571" font-size="13" >0</text>
+<text x="970" y="571" font-size="13" >100</text>
+<text x="24" y="549" font-size="12" >* Published ±error; confidence level/estimator unverified. n_samples is not successes.</text>
+</g></svg>

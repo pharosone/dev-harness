@@ -1,0 +1,62 @@
+[
+  {
+    "kind": "feature",
+    "title": "Persist lane watching in the harness",
+    "happened": "Lane watching was implemented in session scratch scripts and lost at handoff.",
+    "expected": "The harness owns durable lane watching and reports state changes across sessions.",
+    "repro": "Start a synthetic lane, monitor it with a scratch loop, then resume in a fresh session. The loop is absent from the harness CLI.",
+    "script": "lanes.py",
+    "output": "Owner-reported observation; no raw output retained.",
+    "proposal": "Provide a harness watch command that records lane progress and surfaces blocked states. Check the watch branch before sending."
+  },
+  {
+    "kind": "friction",
+    "title": "Resolve worker models from harness profiles at dispatch",
+    "happened": "An orchestrator chose a worker model from session memory instead of the harness profile; the user corrected it.",
+    "expected": "Every dispatch resolves its model and effort from the merged harness profile table.",
+    "repro": "Override a profile in a synthetic overlay and dispatch using a remembered model. Compare the dispatch with the overlay value.",
+    "script": "balance.py / lanes.py",
+    "output": "Owner-reported correction; no raw output retained.",
+    "proposal": "Resolve and validate the profile at the launch boundary. Check the model-router branch before sending."
+  },
+  {
+    "kind": "bug",
+    "title": "Recognize Codex question dialogs as blocked lanes",
+    "happened": "A Codex lane displaying a question dialog was not recognized as blocked.",
+    "expected": "The lane is shown as blocked and the question is surfaced to the user.",
+    "repro": "Use a synthetic Codex detection snapshot containing: ? 1 question ⇧← to answer. Query lane status.",
+    "script": "lanes.py",
+    "output": "? 1 question ⇧← to answer",
+    "proposal": "Recognize the question dialog in blocked-state detection and add a snapshot regression case."
+  },
+  {
+    "kind": "friction",
+    "title": "Explain unavailable test services before gate failure cascades",
+    "happened": "A gate reported over 700 failures because the test database was unavailable, without identifying the shared cause.",
+    "expected": "The gate identifies an unavailable test prerequisite and gives a harness-level recovery hint.",
+    "repro": "Configure a synthetic gate requiring a test database. Stop that synthetic service and run the gate.",
+    "script": "gate.py",
+    "output": "Owner-reported failure cascade; no product test output retained.",
+    "proposal": "Support optional overlay prerequisite checks and summarize a failed prerequisite before running dependent suites."
+  },
+  {
+    "kind": "friction",
+    "title": "Archive frozen manifests for authorized test amendments",
+    "happened": "freeze refused to replace an existing manifest; each user-authorized test amendment needed a manual archive step.",
+    "expected": "An explicit amendment records user authorization and archives the earlier manifest before freezing the amended tests.",
+    "repro": "Freeze a synthetic failing test manifest. Amend the test with user approval and run freeze for the same unit.",
+    "script": "task_state.py freeze",
+    "output": "Owner-reported refusal; no raw output retained.",
+    "proposal": "Add an explicit amendment command or option that preserves prior evidence and records the authorization."
+  },
+  {
+    "kind": "friction",
+    "title": "Keep unrelated agents outside a run lane limit",
+    "happened": "The default lane limit of three counted unrelated agents, preventing a run from opening its own lane.",
+    "expected": "A run can select a limit scoped to its own agents without interfering with unrelated sessions.",
+    "repro": "With three unrelated synthetic agents present, start a new run lane under workspace counting and compare with count: run.",
+    "script": "lanes.py start",
+    "output": "Owner-reported limit behavior; no raw output retained.",
+    "proposal": "Version 1.3.0 already supports project.json → lanes.count: run. Review the default and discoverability; avoid filing a duplicate fix."
+  }
+]

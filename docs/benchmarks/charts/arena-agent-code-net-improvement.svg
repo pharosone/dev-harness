@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="559" viewBox="0 0 1120 559" role="img" aria-labelledby="title desc">
+<title id="title">Agent Arena Code net improvement</title>
+<desc id="desc">Every sourced observation, grouped by cohort and reasoning effort. Solid independent, hatched vendor-hosted; black lines are score confidence intervals.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="559" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="24" y="30" font-size="20" >Agent Arena Code net improvement</text>
+<text x="24" y="54" font-size="13" >Raw percentage_points; higher is better. Efforts and scaffolds are separate.</text>
+<text x="24" y="77" font-size="13" >Solid: independent. Hatched: self-reported/vendor-hosted. CI: source score interval. No rank intervals.</text>
+<path d="M700.00 95V517" stroke="#6b7280" stroke-dasharray="3 3"/>
+<text x="24" y="104" font-size="12" >high | agent-arena-code-2026-10-08</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 17.028874223591355, &quot;unit&quot;: &quot;percentage_points&quot;, &quot;setting&quot;: &quot;category=Code; source_model=Claude Opus 5.5 (High)&quot;, &quot;harness&quot;: &quot;Agent Arena coding-agent tool stack; causal assignment baseline&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/agent/code&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: 2367, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 13.949099390278441, &quot;upper&quot;: 20.10864905690427}}</title>
+<text x="24" y="144" font-size="13" >claude-opus-5-5</text>
+<rect x="700.00" y="129" width="45.98" height="21" fill="#1d4ed8"/>
+<path d="M737.66 139H754.29M737.66 134V144M754.29 134V144" stroke="#111827" stroke-width="2"/>
+<text x="980" y="144" font-size="13" >17.03</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gemini-4-argon&quot;, &quot;value&quot;: 7.13998501728971, &quot;unit&quot;: &quot;percentage_points&quot;, &quot;setting&quot;: &quot;category=Code; source_model=Gemini 4 Argon (High)&quot;, &quot;harness&quot;: &quot;Agent Arena coding-agent tool stack; causal assignment baseline&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/agent/code&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: 5791, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 3.4425094811017303, &quot;upper&quot;: 10.83746055347769}}</title>
+<text x="24" y="178" font-size="13" >gemini-4-argon</text>
+<rect x="700.00" y="163" width="19.28" height="21" fill="#1d4ed8"/>
+<path d="M709.29 173H729.26M709.29 168V178M729.26 168V178" stroke="#111827" stroke-width="2"/>
+<text x="980" y="178" font-size="13" >7.14</text>
+</g>
+<text x="24" y="216" font-size="12" >max | agent-arena-code-2026-10-08</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;value&quot;: 14.771574394571138, &quot;unit&quot;: &quot;percentage_points&quot;, &quot;setting&quot;: &quot;category=Code; source_model=GPT 6.1 Sol (Max)&quot;, &quot;harness&quot;: &quot;Agent Arena coding-agent tool stack; causal assignment baseline&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/agent/code&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: 2711, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 10.036427881408502, &quot;upper&quot;: 19.506720907733772}}</title>
+<text x="24" y="256" font-size="13" >gpt-6.1-sol</text>
+<rect x="700.00" y="241" width="39.88" height="21" fill="#1d4ed8"/>
+<path d="M727.10 251H752.67M727.10 246V256M752.67 246V256" stroke="#111827" stroke-width="2"/>
+<text x="980" y="256" font-size="13" >14.77</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 14.2213701423012, &quot;unit&quot;: &quot;percentage_points&quot;, &quot;setting&quot;: &quot;category=Code; source_model=Claude Fable 5.1 (Max)&quot;, &quot;harness&quot;: &quot;Agent Arena coding-agent tool stack; causal assignment baseline&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/agent/code&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: 4806, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 10.971829060199083, &quot;upper&quot;: 17.470911224403316}}</title>
+<text x="24" y="290" font-size="13" >claude-fable-5-1</text>
+<rect x="700.00" y="275" width="38.40" height="21" fill="#1d4ed8"/>
+<path d="M729.62 285H747.17M729.62 280V290M747.17 280V290" stroke="#111827" stroke-width="2"/>
+<text x="980" y="290" font-size="13" >14.22</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 13.502628856769276, &quot;unit&quot;: &quot;percentage_points&quot;, &quot;setting&quot;: &quot;category=Code; source_model=GPT 6 Astra (Max)&quot;, &quot;harness&quot;: &quot;Agent Arena coding-agent tool stack; causal assignment baseline&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/agent/code&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: 3945, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 9.848891717815718, &quot;upper&quot;: 17.156365995722833}}</title>
+<text x="24" y="324" font-size="13" >gpt-6-astra</text>
+<rect x="700.00" y="309" width="36.46" height="21" fill="#1d4ed8"/>
+<path d="M726.59 319H746.32M726.59 314V324M746.32 314V324" stroke="#111827" stroke-width="2"/>
+<text x="980" y="324" font-size="13" >13.50</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 12.233430495806106, &quot;unit&quot;: &quot;percentage_points&quot;, &quot;setting&quot;: &quot;category=Code; source_model=Claude Sonnet 5.5 (Max)&quot;, &quot;harness&quot;: &quot;Agent Arena coding-agent tool stack; causal assignment baseline&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/agent/code&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: 2105, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 7.69370898708765, &quot;upper&quot;: 16.77315200452456}}</title>
+<text x="24" y="358" font-size="13" >claude-sonnet-5-5</text>
+<rect x="700.00" y="343" width="33.03" height="21" fill="#1d4ed8"/>
+<path d="M720.77 353H745.29M720.77 348V358M745.29 348V358" stroke="#111827" stroke-width="2"/>
+<text x="980" y="358" font-size="13" >12.23</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 2.76856633299197, &quot;unit&quot;: &quot;percentage_points&quot;, &quot;setting&quot;: &quot;category=Code; source_model=GPT 6 Luna (Max)&quot;, &quot;harness&quot;: &quot;Agent Arena coding-agent tool stack; causal assignment baseline&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/agent/code&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: 37322, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1.8419919877683357, &quot;upper&quot;: 3.695140678215604}}</title>
+<text x="24" y="392" font-size="13" >gpt-6-luna</text>
+<rect x="700.00" y="377" width="7.48" height="21" fill="#1d4ed8"/>
+<path d="M704.97 387H709.98M704.97 382V392M709.98 382V392" stroke="#111827" stroke-width="2"/>
+<text x="980" y="392" font-size="13" >2.77</text>
+</g>
+<text x="24" y="430" font-size="12" >xhigh | agent-arena-code-2026-10-08</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;value&quot;: 4.4627720515938085, &quot;unit&quot;: &quot;percentage_points&quot;, &quot;setting&quot;: &quot;category=Code; source_model=Grok 4.7 (xHigh)&quot;, &quot;harness&quot;: &quot;Agent Arena coding-agent tool stack; causal assignment baseline&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/agent/code&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: 5119, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1.9266335757988795, &quot;upper&quot;: 6.9989105273887375}}</title>
+<text x="24" y="470" font-size="13" >grok-4.7</text>
+<rect x="700.00" y="455" width="12.05" height="21" fill="#1d4ed8"/>
+<path d="M705.20 465H718.90M705.20 460V470M718.90 460V470" stroke="#111827" stroke-width="2"/>
+<text x="980" y="470" font-size="13" >4.46</text>
+</g>
+<text x="430" y="537" font-size="13" >-100</text>
+<text x="970" y="537" font-size="13" >100</text>
+<text x="700.0" y="537" font-size="13" >0</text>
+</g></svg>

@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1380" viewBox="0 0 1120 1380" role="img" aria-labelledby="title desc">
+<title id="title">GPT-6.1 Sol: effort evidence</title>
+<desc id="desc">Four panels: AA Intelligence v4.3.2, weighted tokens/task, derived decode seconds/task, API cost/task. Effort categories are ordinal per model. Missing data is not zero and is not interpolated.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="1380" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="28" y="30" font-size="22" >GPT-6.1 Sol — effort evidence</text>
+<text x="28" y="54" font-size="13" >AA suite proxies. Decode time excludes first-token delay and overhead. API cost and tokens are not subscription quota.</text>
+<text x="28" y="77" font-size="13" >Each effort is categorical within this model; identical names across models do not imply equal work. Gaps break lines.</text>
+<text x="28" y="110" font-size="17" >AA Intelligence Index v4.3.2 (fixed 0–100)</text>
+<path d="M100 315H1050" stroke="#e5e7eb"/>
+<text x="90" y="319" font-size="11" text-anchor="end">0</text>
+<path d="M100 273H1050" stroke="#e5e7eb"/>
+<text x="90" y="277" font-size="11" text-anchor="end">25</text>
+<path d="M100 231H1050" stroke="#e5e7eb"/>
+<text x="90" y="235" font-size="11" text-anchor="end">50</text>
+<path d="M100 189H1050" stroke="#e5e7eb"/>
+<text x="90" y="193" font-size="11" text-anchor="end">75</text>
+<path d="M100 147H1050" stroke="#e5e7eb"/>
+<text x="90" y="151" font-size="11" text-anchor="end">100</text>
+<text x="650" y="110" font-size="12" fill="#1d4ed8">Index</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 42.0835618555848, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="244.30" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="234.29961608261755" font-size="12" text-anchor="middle">42.1</text>
+<path d="M320 244.30L490 234.72" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 47.7833271274065, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="234.72" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="224.7240104259571" font-size="12" text-anchor="middle">47.8</text>
+<path d="M490 234.72L660 230.60" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 50.2377777519769, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="230.60" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="220.6005333766788" font-size="12" text-anchor="middle">50.2</text>
+<path d="M660 230.60L830 229.26" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 51.0377679093761, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="229.26" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="219.25654991224815" font-size="12" text-anchor="middle">51.0</text>
+<path d="M830 229.26L1000 227.92" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 51.8332597011541, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="227.92" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="217.92012370206112" font-size="12" text-anchor="middle">51.8</text>
+<text x="150" y="337" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="355" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="337" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="337" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="337" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="337" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="337" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="410" font-size="17" >Weighted output tokens per suite task</text>
+<path d="M100 615H1050" stroke="#e5e7eb"/>
+<text x="90" y="619" font-size="11" text-anchor="end">0</text>
+<path d="M100 573H1050" stroke="#e5e7eb"/>
+<text x="90" y="577" font-size="11" text-anchor="end">12,500</text>
+<path d="M100 531H1050" stroke="#e5e7eb"/>
+<text x="90" y="535" font-size="11" text-anchor="end">25,000</text>
+<path d="M100 489H1050" stroke="#e5e7eb"/>
+<text x="90" y="493" font-size="11" text-anchor="end">37,500</text>
+<path d="M100 447H1050" stroke="#e5e7eb"/>
+<text x="90" y="451" font-size="11" text-anchor="end">50,000</text>
+<text x="650" y="410" font-size="12" fill="#1d4ed8">Total</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 3976.700974677209, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="601.64" r="4" fill="#1d4ed8"/></g>
+<path d="M320 601.64L490 587.89" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 8069.842557491671, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="587.89" r="4" fill="#1d4ed8"/></g>
+<path d="M490 587.89L660 570.68" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 13191.870219821281, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="570.68" r="4" fill="#1d4ed8"/></g>
+<path d="M660 570.68L830 555.80" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 17618.833790384873, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="555.80" r="4" fill="#1d4ed8"/></g>
+<path d="M830 555.80L1000 486.89" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 38128.428914433774, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="486.89" r="4" fill="#1d4ed8"/></g>
+<text x="780" y="410" font-size="12" fill="#7e22ce">Reasoning</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 1157.745645693312, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="611.11" r="4" fill="#7e22ce"/></g>
+<path d="M320 611.11L490 605.27" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 2894.894080277142, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="605.27" r="4" fill="#7e22ce"/></g>
+<path d="M490 605.27L660 595.77" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 5723.233188942028, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="595.77" r="4" fill="#7e22ce"/></g>
+<path d="M660 595.77L830 584.49" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 9080.0312918106, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="584.49" r="4" fill="#7e22ce"/></g>
+<path d="M830 584.49L1000 530.36" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 25189.980723580382, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="530.36" r="4" fill="#7e22ce"/></g>
+<text x="910" y="410" font-size="12" fill="#0f766e">Answer</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 2818.9553289838973, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="605.53" r="4" fill="#0f766e"/></g>
+<path d="M320 605.53L490 597.61" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 5174.948477214529, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="597.61" r="4" fill="#0f766e"/></g>
+<path d="M490 597.61L660 589.91" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 7468.637030879253, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="589.91" r="4" fill="#0f766e"/></g>
+<path d="M660 589.91L830 586.31" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 8538.802498574274, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="586.31" r="4" fill="#0f766e"/></g>
+<path d="M830 586.31L1000 571.53" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 12938.448190853393, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="571.53" r="4" fill="#0f766e"/></g>
+<text x="150" y="637" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="655" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="637" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="637" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="637" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="637" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="637" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="710" font-size="17" >Derived weighted decode seconds/task — NOT wall-clock task latency</text>
+<path d="M100 915H1050" stroke="#e5e7eb"/>
+<text x="90" y="919" font-size="11" text-anchor="end">0</text>
+<path d="M100 873H1050" stroke="#e5e7eb"/>
+<text x="90" y="877" font-size="11" text-anchor="end">200</text>
+<path d="M100 831H1050" stroke="#e5e7eb"/>
+<text x="90" y="835" font-size="11" text-anchor="end">400</text>
+<path d="M100 789H1050" stroke="#e5e7eb"/>
+<text x="90" y="793" font-size="11" text-anchor="end">600</text>
+<path d="M100 747H1050" stroke="#e5e7eb"/>
+<text x="90" y="751" font-size="11" text-anchor="end">800</text>
+<text x="650" y="710" font-size="12" fill="#1d4ed8">Seconds</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 78.04666367967292, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="898.61" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="888.6102006272687" font-size="12" text-anchor="middle">78.0</text>
+<path d="M320 898.61L490 882.18" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 156.27188238216155, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="882.18" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="872.1829046997461" font-size="12" text-anchor="middle">156.3</text>
+<path d="M490 882.18L660 862.13" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 251.75143727468026, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="862.13" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="852.1321981723172" font-size="12" text-anchor="middle">251.8</text>
+<path d="M660 862.13L830 847.82" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 319.9193523921857, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="847.82" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="837.8169359976409" font-size="12" text-anchor="middle">319.9</text>
+<path d="M830 847.82L1000 779.94" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 643.1261994930903, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="779.94" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="769.943498106451" font-size="12" text-anchor="middle">643.1</text>
+<text x="150" y="937" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="955" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="937" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="937" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="937" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="937" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="937" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="1010" font-size="17" >Weighted API USD/task — NOT Max/Codex quota charges</text>
+<path d="M100 1215H1050" stroke="#e5e7eb"/>
+<text x="90" y="1219" font-size="11" text-anchor="end">0.00</text>
+<path d="M100 1173H1050" stroke="#e5e7eb"/>
+<text x="90" y="1177" font-size="11" text-anchor="end">0.23</text>
+<path d="M100 1131H1050" stroke="#e5e7eb"/>
+<text x="90" y="1135" font-size="11" text-anchor="end">0.45</text>
+<path d="M100 1089H1050" stroke="#e5e7eb"/>
+<text x="90" y="1093" font-size="11" text-anchor="end">0.68</text>
+<path d="M100 1047H1050" stroke="#e5e7eb"/>
+<text x="90" y="1051" font-size="11" text-anchor="end">0.90</text>
+<text x="650" y="1010" font-size="12" fill="#1d4ed8">USD</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.13075190869859377, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="1190.59" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="1180.592977042929" font-size="12" text-anchor="middle">0.13</text>
+<path d="M320 1190.59L490 1175.11" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;medium&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.21370088267875537, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-medium&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="490" cy="1175.11" r="4" fill="#1d4ed8"/></g>
+<text x="490" y="1165.1091685666324" font-size="12" text-anchor="middle">0.21</text>
+<path d="M490 1175.11L660 1155.43" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.31914442375664703, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="1155.43" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="1145.4263742320925" font-size="12" text-anchor="middle">0.32</text>
+<path d="M660 1155.43L830 1141.67" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.39286117158850653, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol-xhigh&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="1141.67" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="1131.6659146368122" font-size="12" text-anchor="middle">0.39</text>
+<path d="M830 1141.67L1000 1079.82" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;effort&quot;: &quot;max&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 0.7241670655535033, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-1-sol&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="1000" cy="1079.82" r="4" fill="#1d4ed8"/></g>
+<text x="1000" y="1069.822147763346" font-size="12" text-anchor="middle">0.72</text>
+<text x="150" y="1237" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="1255" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="1237" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="1237" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="660" y="1237" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="1237" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="1237" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="28" y="1360" font-size="13" >Input/task, subscription quota, lead wall time, failure/rework remain unmeasured. Source suite totals are not divided.</text>
+</g></svg>

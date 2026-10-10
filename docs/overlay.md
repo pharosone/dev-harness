@@ -14,7 +14,7 @@ dialect (`tripwire.py`): `*` and `?` stay inside one directory, `**` crosses dir
 
 | File | Read by | Without it |
 |---|---|---|
-| `project.json` | `guard.py`, `harness_sync.py`, `worktree.py`, `render_adapters.py`, `balance.py`, `lanes.py`, `dashboard_herdr.py`, the skills | core guard rules only; no pin (`harness_sync.py` refuses); no project roles or interview rows |
+| `project.json` | `guard.py`, `harness_sync.py`, `worktree.py`, `render_adapters.py`, `balance.py`, `lanes.py`, `dashboard_herdr.py`, `watch.py`, `feedback.py`, the skills | core guard rules only; no pin (`harness_sync.py` refuses); no project roles or interview rows |
 | `tiers.json` | `tier.py` (and `xreview.py` through it) | every changed path is tier 2 (`no tiers.json`) |
 | `gates.json` | `gate.py` | `gate.py` exits 2: nothing to run is never reported as a pass |
 | `drift.json` | `check_docs_drift.py`, the Stop hook (`runtime_hook.py`) | only the harness-log rule, with its defaults |
@@ -29,7 +29,7 @@ dialect (`tripwire.py`): `*` and `?` stay inside one directory, `**` crosses dir
 | `tests/` | `harness_sync.py pull`; your `gates.json` | no project harness tests |
 
 An overlay file that exists but cannot be used (bad JSON, wrong type, unknown key, invalid entry)
-is an error for `tier.py`, `gate.py`, `check_docs_drift.py`, `arch_check.py` and `lanes.py` (exit 2) and for the renderer
+is an error for `tier.py`, `gate.py`, `check_docs_drift.py`, `arch_check.py`, `watch.py` and `lanes.py` (exit 2) and for the renderer
 (exit 1), never a clean result. The guard is the exception: it prints a note to stderr, skips the
 bad part and keeps every core rule, because a broken guard must not lock a session.
 
@@ -40,7 +40,7 @@ One JSON object. Each script reads only its own section; other top-level keys ar
 ```json
 {
   "name": "tasklist",
-  "core": {"repo": "https://git.example.com/dev-harness.git", "ref": "v1.0.0", "prefix": "harness/core"},
+  "core": {"repo": "https://git.example.com/dev-harness.git", "ref": "v1.4.0", "prefix": "harness/core"},
   "guard": {"deploy_hosts": ["deploy.tasklist.example"], "prod_compose": ["compose.prod*"]},
   "interview": {"extra_rows": [{"item": "Accessibility", "question": "…", "section": "Accessibility",
                                 "drafted_by": "a11y-reviewer"}]},
@@ -59,7 +59,11 @@ it configures the guard itself.
 
 ### name
 
-String, optional, informational. No core script reads it.
+String, optional. `feedback.py` redacts it from public feedback, along with the product checkout
+name, case-insensitively as whole words or token parts separated by `-`, `_`, `.`, `/`
+or digits. Ordinary words stay intact (`app` does not match `application`). Names shared with
+harness scripts or commands preserve those harness terms; `feedback.redact` remains available
+for explicit literal private terms.
 
 ### core — the pin
 
@@ -73,6 +77,23 @@ Written by `harness_sync.py install`; `pull` updates `ref` once the subtree merg
 
 Values reach Git as arguments and may not start with `-`. `status --strict` (the project's CI
 check) fails while the tree at `prefix` differs from the tree of `ref`.
+
+### feedback
+
+Optional, read by `feedback.py` and feedback-attached `harness_sync.py propose`. The only key
+is `redact`: a list of nonempty literal strings, default `[]`. These terms are removed
+case-insensitively from titles and bodies in addition to the mandatory product name, path,
+email, IP, URL and secret redaction. Add customer names, person names and private identifiers.
+Unknown keys or invalid entries refuse feedback rather than silently dropping privacy rules.
+
+```json
+"feedback": {"redact": ["Example Customer", "Example Person", "private-account-id"]}
+```
+
+This list never leaves the checkout. Run evidence and drafts stay local in `<run>/feedback`
+(`feedback.py --task` or `--run-dir`), else `.harness/feedback`. The sanitizer cannot identify
+arbitrary product facts: use only synthetic harness evidence and review the displayed final
+text before authorizing an issue or PR. See [Feedback](../README.md#feedback).
 
 ### guard
 
@@ -169,6 +190,80 @@ Optional; any other key, an empty label or command, or another zone is exit 2.
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `panes` | [{`label`, `command`, `zone`}] | none | `label` (string): the pane's title; `command` (string): run in the pane through `herdr pane run`, e.g. a product's live status loop or a log tail; `zone`: `status` (left column, below the status view), `events` (left column, below the events view) or `side` (top of the right column, above the lanes; the default) |
+
+### watch — lane and product observations
+
+Read by `watch.py --task T [--once] [--every S] [--quiet-repeat S] [--ack D]`. Unknown keys in `watch`
+or a check, wrong types and invalid values exit 2. Other top-level project keys are ignored.
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `checks` | [check] | `[]` | product commands; each prints zero or more anomaly lines, empty stdout and exit 0 is quiet |
+| `checks[].name` | string, required | — | unique single word using letters, digits, `_`, `.`, `-`; starts with a letter or digit |
+| `checks[].command` | nonempty string, required | — | shell command run in the product checkout; 60-second timeout kills its process group, with at most 2 seconds for stdout draining and bounded reaping; nonzero/timeout emits `CHECK <name> failed` |
+| `checks[].every` | finite number > 0 | `120` | seconds between executions, persisted across `--once` and re-arming; cached anomalies stay open between executions |
+| `frozen_minutes` | finite number > 0 | `15` | unchanged visible screen while the lane is not working; missing screen evidence is not a freeze |
+| `stop_command` | nonempty string | absent | the product's own command to stop live work on repeating failures; the orchestrator runs it from the product checkout; the watcher never runs it |
+
+An Outbound-style product supplies its own checks, including worker halt, retry loops and
+stale heartbeat detection. Keep commands and anomaly output free of secrets; the output becomes
+durable run evidence. Check scripts must print current anomalies on every invocation, allowing
+the harness to suppress repeats and detect recovery; they should not deduplicate internally.
+
+```json
+{"watch": {
+  "checks": [{"name": "pilot-worker", "command": "python3 scripts/pilot_health.py", "every": 120}],
+  "frozen_minutes": 15,
+  "stop_command": "python3 scripts/pilot_worker.py stop"
+}}
+```
+
+These example commands belong to the product; replace them with its real health and stop
+commands. Watch output is `CHECK pilot-worker <anomaly>` and `CHECK pilot-worker failed` on
+nonzero exit. Lane observations include Codex question dialogs, trust/hook reviews, Claude
+permission prompts, Herdr blocked state, frozen screens, exits and completed/missing reports.
+No Herdr: only persisted dispatch facts and headless process state are available for lanes;
+product checks still execute. The watcher does not call lane status (which can submit a brief
+or end a dispatch), answer dialogs, close panes or stop the product.
+
+Every new or repeated condition is a `watch` event with `line`, `condition`, `key`, `repeat`
+and either `dispatch`/`work` or `check`. State at `<run>/lanes/_watch.json` persists open
+conditions and cadence. Default poll: 30 s; default quiet repeat: 600 s. A cleared condition
+re-arms; frozen durations share one key so a changing minute count does not defeat suppression.
+The dashboards show the events and `Watch: ✅ quiet` / `Watch: 🚨 N open` (or `not armed`).
+HTML shows only the latest 50 watch events; all events remain in `events.jsonl`. A changing
+frozen duration does not regenerate the page until an emission or an open-condition change.
+
+After accepting a report, or handling/recovering an ended-no-report lane, acknowledge that
+dispatch with `python3 harness/core/scripts/watch.py --task T --ack D`. This is part of lane
+acceptance/recovery: it permanently closes its terminal conditions and writes `watch.ack`.
+Acknowledgment is idempotent and cannot hide input/frozen alerts. New work uses a new dispatch
+id. Poll errors are logged to stderr and `watch.error` and the continuous watcher retries;
+`--once` returns 1 on a poll failure. Startup/configuration errors still exit 2. Lane files
+briefly unreadable during writes retain prior alerts while other lanes/checks are observed.
+New pane starts set `launch_pending` and `launch_pid`; an absent/unrecognized agent while the
+launcher is alive does not prove exit, even if registration takes longer than five minutes.
+The flag clears after startup completes, allowing immediate detection of later exits. A dead
+launcher is an exit; old states without a launcher PID get five minutes of registration grace.
+
+For changing counts or timestamps, emit one JSON object per anomaly instead of plain text:
+
+```json
+{"key": "worker-retry-loop", "message": "retry loop: 37 attempts"}
+```
+
+Only `key` identifies this condition; changing `message` retains repeat suppression. The
+message appears as `CHECK <name> retry loop: 37 attempts`. A quiet check clears the condition
+and re-arms it. Plain lines remain supported and their complete text is their identity;
+checks with changing numbers should use stable keys. Keep both keys and messages free of secrets.
+
+Claude Code arms Monitor at run start and re-arms on expiry; Codex reads a background watch's
+output or polls `--once` each turn and before going idle. Each line gets an action in the same
+turn: read the actual dialog; answer questions you can decide from the spec and earlier authorizations;
+never answer trust/permission reviews; escalate material decisions to the user. Nudge/cancel a
+frozen lane, inspect an exit/missing report, accept a report, or stop repeating live product
+failures through `stop_command`. The absence of a stop command requires escalation for the
+product's stop procedure. Report actions in 2–3 lines; no output needs no message.
 
 ## tiers.json
 
@@ -462,9 +557,11 @@ class GatesTest(unittest.TestCase):
 | `rules/` | none | the whole set |
 | `models.json` | `adapters/models.json` | deep-merged |
 | `tiers.json`, `gates.json`, `worktree.node_dirs` | none | the whole table |
+| `feedback.redact` in `project.json` | mandatory privacy patterns | added literal terms; nothing removes built-in redaction |
 | `balance` in `project.json` | `min_share` 0.3, `stop_at` 0.85, `hysteresis` 0.15, `min_elapsed` 0.25 | each key given replaces its default |
 | `lanes` in `project.json` | `herdr_max_agents` 3, `count` `workspace` | each key given replaces its default |
 | `dashboard.panes` in `project.json` | the status and events views | added to their zones, in order |
+| `watch` in `project.json` | no product checks; freeze after 15 minutes | each key given replaces its default; stop command is for the orchestrator |
 | `architecture.json` | none | the whole declaration; without it `arch_check.py` is off |
 | `architecture.md` | none | the whole map, read as context; the core adds nothing to it |
 | `drift.json` | the harness-log rule | `harness_log.path` / `paths` replace its defaults; the other rules are the project's |
@@ -489,3 +586,219 @@ a `Source:` line. Personal hooks, settings keys and untracked personal agents an
 a non-link where a skill link goes is refused. Generated files and links the sources no longer
 produce are removed. The renderer refuses to run with the core outside the checkout or on the
 core repository itself.
+
+## Skill eval runner configuration
+
+Optional `project.json → skills`, read by `skill_evals.py`. Unknown keys, invalid types,
+absolute/traversing paths and non-finite or out-of-range tolerance are exit 2.
+
+```json
+{"skills": {"dirs": ["skills/**", "hermes/**/skills/**"],
+            "eval_dirs": ["evals/skills/"],
+            "eval_command": "python3 tools/skill_eval_runner.py",
+            "tolerance": 0.05}}
+```
+
+`dirs` selects checkout-relative product skill directories/globs holding `SKILL.md` (default
+`[]`). Harness skills are always included. `eval_dirs` contains checkout-relative directories
+(default `[]`); each `cases.json` maps skill paths to case directories, for example
+`{"hermes/agents/skills/voice/SKILL.md": ["voice-tone"]}`. A skill's cases live in one eval
+directory. `eval_command` is a command string split into argv without a shell; it receives
+`--skill`, `--out` and requested `--model`/`--max-cost-usd`. It must run both arms and output
+scores, actual model and total cost according to README "Skill evals". No command is the
+default: product `run` errors rather than pretending it evaluated a skill. `tolerance` is a
+finite number in 0..1, default 0.05, the largest allowed existing-case score drop.
+
+The cheap product gate step is
+`{"name": "skill-evals", "cwd": ".", "cmd": ["python3", "harness/core/scripts/skill_evals.py", "check", "--base", "{base}"]}`.
+Include it in an area with `"paths": ["**"]` and pin the same command in product CI.
+Keep result history tracked so regressions can be measured against the gate's base ref.
+
+In Codex-only mode, `skill_evals.py run --runtime codex` explicitly uses `eval_command` for
+core skills too, with their core-registered cases. No vendor fallback is implicit.
+
+The runner receives `HARNESS_SKILL_EVAL_MANIFEST`, an environment variable pointing to a JSON
+file with the checkout-relative skill key, content hash, `cases` (`name` plus absolute `path`),
+and `input_files` (canonical labels to absolute paths). Use those registered paths directly,
+including for vendored core cases. `run --base` is required. The hash covers the complete skill
+directory and transitive declared references; `<skill dir>/eval-inputs.json` declares dynamic
+references as skill-relative paths/globs. See README "Skill evals" for the schema-2 contract.
+
+## review — calibrated acceptance (`project.json`)
+
+Read from `project.json` by `xreview.py` and QA/panel ingestion with `review_calibration.py record`.
+Unknown keys, an invalid stage or malformed invariants cause exit 2 before review starts.
+Other project sections are ignored.
+
+```json
+"review": {
+  "stage": "pilot",
+  "invariants": ["no outbound action without approval", "no public leak"]
+}
+```
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `stage` | `"pilot"` or `"production"` | `"pilot"` | production blocks verified severe × edge findings |
+| `invariants` | array of non-empty single-line strings | `[]` | product properties that must always hold; severe × edge blocks in pilot only when a finding names an exact matching invariant |
+
+The stage and invariants enter the review context. Every finding has six em-dash-separated fields:
+
+```text
+- [Critical|Major|Minor] path:line — defect — likelihood/impact — reachable path — failure scenario — evidence: path:line
+```
+
+Evidence must cite code read in the review. Runtime parsing normalizes backticks/bold and line
+ranges, retaining the original text. Optional trailing fields are `— workaround: none` or a
+specific usable workaround, `— invariant: <exact overlay invariant text>`, and
+`— id: <prior stable ledger finding ID>` to reference that same prior finding.
+Explicit malformed/partial findings remain **verbatim** in `<report>.calibration.md` and the
+run ledger. Missing fields or memory-only claims remain Minor until verified; that downgrade
+never approves a reviewer's block. Exit 4 requires triage when a blocking claim is incomplete
+or a known same-site finding has uncertain prior identity. It is distinct from exit 1 for a
+verified computed blocker. Fully verified matrix backlogs can override a reviewer's block to pass.
+Only exit 0 approves; exit 2/3 (refusal, failed reviewer, timeout or missing verdict) do not.
+Use `workaround: none` to establish that a plausible functional failure has no workaround.
+An absent workaround statement does not establish that it cannot be worked around.
+`invariant: no public leak` must name an actual overlay invariant; an invented invariant
+cannot elevate a pilot edge case.
+
+| Impact / likelihood | will | plausible | edge |
+|---|---|---|---|
+| severe | block | block | block with an overlay invariant or production stage; otherwise backlog |
+| functional | block | block only with no workaround | backlog |
+| cosmetic | backlog | backlog | backlog |
+
+`will` means the main path will fail within days under normal operation; `plausible` means
+an occasionally used documented path; `edge` requires a rare combination, launch race,
+unusual environment or operator mistake. Severe covers unauthorized/wrong-recipient
+outbound actions, burned limits/credits or ban risk, leaked secrets/personal data, data loss,
+and silently disabled guards/checks. Functional is a recoverable feature failure or visible
+wrong result. Cosmetic affects presentation. Verified severe blockers are Critical;
+functional blockers are Major; all backlog findings are Minor.
+
+## Review calibration evidence and feedback hook
+
+Persisted xreview calls (`--run-dir <run>` or `--ledger <run>/xreview.jsonl`) require explicit
+`--milestone M1`; no generic milestone default can merge unrelated reviews. Standalone reviews
+may use the report stem as an informational fallback, without persistent round enforcement.
+The two ledgers serve different purposes: `xreview.jsonl` caps vendor review usage, while
+`review-ledger.jsonl` retains acceptance evidence and logical round state.
+
+`--round` defaults to unspecified. When omitted it resolves to 2 with `--addressed`, otherwise 1.
+An explicit round always wins: `--addressed <previous-report>` implies 2 **only** without one.
+`--round 1 --addressed` imports earlier external findings as context, not prior blockers for
+round-2 suppression. For example:
+
+```sh
+python3 harness/core/scripts/xreview.py --base <base> --writer claude --run-dir <run> \
+  --milestone M1 --round 1 --addressed external-review.md --out <run>/reports/M1-xreview.md
+python3 harness/core/scripts/review_calibration.py record --run <run> \
+  --report <run>/reports/security.md --milestone M1 --round 1 --addressed external-review.md
+```
+
+The record CLI has the same round/addressed semantics; it reads the current product overlay,
+or `--root <checkout>`. Ingest QA/panel findings before triage. Distinct report paths for split
+areas or lenses may share a round; they do not add rounds. At most two logical rounds per
+milestone: round 2 checks fixes/new code and previous blockers only, and a new blocker needs
+severe impact **and** a blocking matrix cell. Returning to round 1 after round 2 is refused.
+
+A failed/timeout reviewer attempt releases its reservation for bounded retry: at most **three
+attempts for the same review input**, including retries with different `--out` paths. Running
+or completed reviews cannot duplicate. Round reporting counts active/completed logical rounds;
+failed attempts do not consume a successful round. Changing an output path cannot reset the
+retry budget or evade the completed-review restriction. Without a run directory the prompt
+still constrains scope, but review state cannot persist between invocations.
+
+Round-2 matching uses source path + reachable caller + failure scenario against prior ledger
+findings and their recorded triage, not a defect-title match alone. Source/evidence line moves
+are normalized. Optional `id` can reference a prior stable ledger finding; use it only for that
+same finding. A known same-site finding with uncertain identity needs triage (exit 4), never
+silent treatment as a new functional backlog. Do not drop an unchanged prior blocker just
+because its title or line number changed.
+
+Every finding record retains stable identity, raw reviewer text/rating, parsed fields,
+matrix verdict/reason, overlay snapshot and review round, including explicit malformed/partial
+findings. Append-only triage and outcome events retain corrections; reports use the latest
+observation of each finding per milestone. The sidecar retains verbatim unresolved claims as
+well as the computed decision: a missing field or identity uncertainty is a triage need,
+not a successful empty review.
+
+Resolve triage needs and check every blocker's scenario against code before fix-up
+(at most five minutes each):
+
+```sh
+python3 harness/core/scripts/review_calibration.py triage --run <run> --id ID \
+  --decision backlog --likelihood edge --evidence src/worker.py:42 \
+  --reason 'Code confirms only a startup race; functional × edge is backlog'
+python3 harness/core/scripts/review_calibration.py outcome --run <run> --id ID \
+  --outcome failure --source user-report --reason 'Later report reproduced the startup failure'
+python3 harness/core/scripts/review_calibration.py outcome --run <run> --id BLOCKER_ID \
+  --user-override backlog --source user-report --reason 'Owner accepts the recoverable failure'
+python3 harness/core/scripts/review_calibration.py report --run <run> --run <older-run>
+```
+
+Triage can fill missing fields with `--reachable-path`, `--scenario`, `--location`,
+`--defect` and `--evidence`, as well as corrected ratings/workaround/invariant.
+Triage must agree with the recomputed matrix; a user override is recorded separately and
+never hidden as a matrix result. Sources are `fix-up`, `incident`, `user-report`, or `review`;
+outcomes are `failure`, `harmless`, or `confirmed`. Backlog that later fails is **missed**.
+A blocker overridden to backlog or shown harmless is **over-blocked**. An overridden
+blocker that later fails can have both flags: each represents different evidence. Override
+alone does not invent a later outcome. Link an outcome to its finding ID whenever a later
+fix-up, incident or user report provides evidence; unresolved items stay unresolved.
+
+Reports show blockers per milestone, active/completed logical rounds used and rates per
+run/across runs, with observed outcome counts; failed attempts do not add a successful round.
+Over-block rate is over-blocked / all computed-or-triaged
+blockers; missed rate is missed / all accepted backlog items, including override-to-backlog.
+Zero denominators yield 0. Unknown outcomes remain in the denominator and observation
+counts make that limitation visible. By default, suggestions start above 25% over-blocked
+or 10% missed, with at least three observed outcomes in the relevant group. Override with
+`--over-block-threshold`, `--missed-threshold`, `--min-outcomes`; `--json` provides data.
+Suggestions name the affected cell or propose an invariant; they never edit defaults.
+
+Minors go to `<run>/backlog.md`. The script maintains a marked section while preserving
+owner notes. The orchestrator fixes Minors costing at most 15 minutes in the same fix-up;
+remaining items and the backlog path appear in G4 and the final report along with the
+calibration summary and unresolved triage needs, including verbatim malformed/partial claims.
+A missing/corrupt ledger report is an error, not a zero-error success.
+
+A correction becomes a fixture with an explicitly sanitized JSON file containing only
+`name`, a canonical `finding` string, and `review` (`stage`, `invariants`):
+
+```sh
+python3 harness/core/scripts/review_calibration.py fixture --run <run> --id ID \
+  --case sanitized-case.json --out <run>/calibration-fixtures.json
+```
+
+The exported case adds the corrected expected decision and generic `user-correction`
+provenance. Raw ledger content is never copied. Private paths, recipients, URLs and common
+credential prefixes in submitted cases are refused; synthetic relative paths and invented
+product names belong in fixtures. To reference a prior blocker in round 2, retain its reachable
+caller and failure scenario or supply its stable ledger `id`; the title alone cannot establish
+identity, and source/evidence line shifts do not make it a new finding.
+A corrected expectation may deliberately disagree with
+the current matrix: that is evidence for a proposed default change, not automatic approval.
+
+**Feedback hook:** `feedback.py draft` accepts `--kind`, `--title`, `--from-file`, and
+`--run-dir`. It expects a harness-only Markdown proposal, rather than a raw ledger or
+fixture array. Check the full `feedback.py list --run-dir <run>` first for the same issue,
+including declined/sent drafts; follow the one-time offer and publication procedure in
+README "Feedback". Build `<run>/calibration-proposal.md`
+from the sanitized fixture and aggregate counts (omit private run paths), using these
+headings: `What happened`, `Expected`, `Repro (minimal, harness-only)`, `Evidence`, `Proposal`.
+The evidence includes the current matrix decision, corrected expectation, outcome rates
+and a synthetic reproducer. Create a local reviewable draft:
+
+```sh
+python3 harness/core/scripts/feedback.py draft --kind friction \
+  --title 'Calibrate review acceptance from observed outcomes' \
+  --from-file <run>/calibration-proposal.md --run-dir <run>
+```
+
+Retain the sanitized fixture array and proposal alongside the queued draft. An upstream
+proposal should include a cell/invariant change,
+before/after fixture decisions and the rate evidence. Export does not send or publish
+anything. The user approves any upstream submission. Run the fixture tests and skill evals
+before adopting a new shared default, and retain the old evidence for comparison.

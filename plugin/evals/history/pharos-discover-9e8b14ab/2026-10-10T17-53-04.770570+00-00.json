@@ -1,0 +1,39 @@
+{
+  "acceptance_findings": [],
+  "case_hashes": {
+    "compare-declined": "a0e4217c90844701a2abf14a0d3faa840d1229c34b3adaff81ea98d7c8bc46f3",
+    "compare-offer": "74c56f6da50d54114dd6c2f0dc85b9c1afe9ea4c7d30cc32f5c77ed86efd569d",
+    "skill-evals-discovery": "55fa9e7580a64326f44a7a7751e1b72da7acffe8d5ab43471f7a3c0b7336b8bb"
+  },
+  "cases": [
+    {
+      "delta": 0.3333333333333333,
+      "name": "compare-declined",
+      "score_with": 0.6666666666666666,
+      "score_without": 0.3333333333333333
+    },
+    {
+      "delta": 0.75,
+      "name": "compare-offer",
+      "score_with": 1.0,
+      "score_without": 0.25
+    },
+    {
+      "delta": 1.0,
+      "name": "skill-evals-discovery",
+      "score_with": 1.0,
+      "score_without": 0.0
+    }
+  ],
+  "content_hash": "5c76bc88d6dff37a08b891d6e8647c50caf5a3894ba7eb3a6c82561456a38f1a",
+  "cost_usd": 0.2306993,
+  "model": "sonnet",
+  "run_date": "2026-10-10T17:53:04.770570+00:00",
+  "runner": {
+    "ablation": "with-without",
+    "name": "claude plugin eval",
+    "version": "2.1.296"
+  },
+  "schema_version": 1,
+  "skill": "skills/pharos-discover/SKILL.md"
+}

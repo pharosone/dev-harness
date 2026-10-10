@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="715" viewBox="0 0 1120 715" role="img" aria-labelledby="title desc">
+<title id="title">Terminal-Bench 2.1 / AA</title>
+<desc id="desc">Every sourced observation, grouped by cohort and reasoning effort. Solid independent, hatched vendor-hosted; black lines are score confidence intervals.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="715" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="24" y="30" font-size="20" >Terminal-Bench 2.1 / AA</text>
+<text x="24" y="54" font-size="13" >Raw percent; higher is better. Efforts and scaffolds are separate.</text>
+<text x="24" y="77" font-size="13" >Solid: independent. Hatched: self-reported/vendor-hosted. CI: source score interval. No rank intervals.</text>
+<text x="24" y="104" font-size="12" >high | terminal-bench-2.1-aa-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 89.8876404494382, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;Claude Fable 5.1 (High, Default Fallback)&quot;, &quot;harness&quot;: &quot;Terminus 2 / E2B&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-high&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="144" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="129" width="485.39" height="21" fill="#1d4ed8"/>
+<text x="980" y="144" font-size="13" >89.89</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 89.8876404494382, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;GPT-6 Astra (High)&quot;, &quot;harness&quot;: &quot;Terminus 2 / E2B&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-astra-high&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="178" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="163" width="485.39" height="21" fill="#1d4ed8"/>
+<text x="980" y="178" font-size="13" >89.89</text>
+</g>
+<text x="24" y="216" font-size="12" >low | terminal-bench-2.1-aa-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 88.0149812734082, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;GPT-6 Astra (Low)&quot;, &quot;harness&quot;: &quot;Terminus 2 / E2B&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-astra-low&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="256" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="241" width="475.28" height="21" fill="#1d4ed8"/>
+<text x="980" y="256" font-size="13" >88.01</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 85.0187265917603, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;Claude Fable 5.1 (Low, Default Fallback)&quot;, &quot;harness&quot;: &quot;Terminus 2 / E2B&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-low&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="290" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="275" width="459.10" height="21" fill="#1d4ed8"/>
+<text x="980" y="290" font-size="13" >85.02</text>
+</g>
+<text x="24" y="328" font-size="12" >max | terminal-bench-2.1-aa-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 91.3857677902622, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;Claude Fable 5.1 (Max, Default Fallback)&quot;, &quot;harness&quot;: &quot;Terminus 2 / E2B&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="368" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="353" width="493.48" height="21" fill="#1d4ed8"/>
+<text x="980" y="368" font-size="13" >91.39</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 88.38951310861421, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;GPT-6 Astra (Max)&quot;, &quot;harness&quot;: &quot;Terminus 2 / E2B&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-astra&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="402" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="387" width="477.30" height="21" fill="#1d4ed8"/>
+<text x="980" y="402" font-size="13" >88.39</text>
+</g>
+<text x="24" y="440" font-size="12" >medium | terminal-bench-2.1-aa-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 89.5131086142322, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;GPT-6 Astra (Medium)&quot;, &quot;harness&quot;: &quot;Terminus 2 / E2B&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-astra-medium&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="480" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="465" width="483.37" height="21" fill="#1d4ed8"/>
+<text x="980" y="480" font-size="13" >89.51</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 88.0149812734082, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;Claude Fable 5.1 (Medium, Default Fallback)&quot;, &quot;harness&quot;: &quot;Terminus 2 / E2B&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-medium&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="514" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="499" width="475.28" height="21" fill="#1d4ed8"/>
+<text x="980" y="514" font-size="13" >88.01</text>
+</g>
+<text x="24" y="552" font-size="12" >xhigh | terminal-bench-2.1-aa-aa-protocol-2026-10</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 91.01123595505621, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;Claude Fable 5.1 (Xhigh, Default Fallback)&quot;, &quot;harness&quot;: &quot;Terminus 2 / E2B&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/claude-fable-5-1-xhigh&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="592" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="577" width="491.46" height="21" fill="#1d4ed8"/>
+<text x="980" y="592" font-size="13" >91.01</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 89.1385767790262, &quot;unit&quot;: &quot;percent&quot;, &quot;setting&quot;: &quot;GPT-6 Astra (Xhigh)&quot;, &quot;harness&quot;: &quot;Terminus 2 / E2B&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://artificialanalysis.ai/models/gpt-6-astra-xhigh&quot;, &quot;vote_count&quot;: null, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: null}</title>
+<text x="24" y="626" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="611" width="481.35" height="21" fill="#1d4ed8"/>
+<text x="980" y="626" font-size="13" >89.14</text>
+</g>
+<text x="430" y="693" font-size="13" >0</text>
+<text x="970" y="693" font-size="13" >100</text>
+</g></svg>

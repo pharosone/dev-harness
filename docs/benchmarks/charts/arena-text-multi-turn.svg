@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="559" viewBox="0 0 1120 559" role="img" aria-labelledby="title desc">
+<title id="title">Arena Text Multi Turn</title>
+<desc id="desc">Every sourced observation, grouped by cohort and reasoning effort. Solid independent, hatched vendor-hosted; black lines are score confidence intervals.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="559" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="24" y="30" font-size="20" >Arena Text Multi Turn</text>
+<text x="24" y="54" font-size="13" >Raw Elo; higher is better. Efforts and scaffolds are separate.</text>
+<text x="24" y="77" font-size="13" >Solid: independent. Hatched: self-reported/vendor-hosted. CI: source score interval. No rank intervals.</text>
+<text x="24" y="104" font-size="12" >high | leaderboard-sets/public/leaderboards/text-multi_turn-style_control/leaderboard-snapshots/latest</text>
+<g><title>{&quot;model_id&quot;: &quot;gemini-4-argon&quot;, &quot;value&quot;: 1553.3003326398712, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=multi-turn; style_control=enabled; source_model=gemini-4-argon-high&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/chat/text/multi-turn&quot;, &quot;vote_count&quot;: 670, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1529.8203293122635, &quot;upper&quot;: 1576.7803359674788}}</title>
+<text x="24" y="144" font-size="13" >gemini-4-argon</text>
+<rect x="430.00" y="129" width="335.51" height="21" fill="#1d4ed8"/>
+<path d="M760.44 139H770.58M760.44 134V144M770.58 134V144" stroke="#111827" stroke-width="2"/>
+<text x="980" y="144" font-size="13" >1553.30</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-opus-5-5&quot;, &quot;value&quot;: 1498.2141742504261, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=multi-turn; style_control=enabled; source_model=claude-opus-5.5-high&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/chat/text/multi-turn&quot;, &quot;vote_count&quot;: 804, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1477.2200249195434, &quot;upper&quot;: 1519.2083235813086}}</title>
+<text x="24" y="178" font-size="13" >claude-opus-5-5</text>
+<rect x="430.00" y="163" width="323.61" height="21" fill="#1d4ed8"/>
+<path d="M749.08 173H758.15M749.08 168V178M758.15 168V178" stroke="#111827" stroke-width="2"/>
+<text x="980" y="178" font-size="13" >1498.21</text>
+</g>
+<text x="24" y="216" font-size="12" >max | leaderboard-sets/public/leaderboards/text-multi_turn-style_control/leaderboard-snapshots/latest</text>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6.1-sol&quot;, &quot;value&quot;: 1486.89338834795, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=multi-turn; style_control=enabled; source_model=gpt-6.1-sol-max&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/chat/text/multi-turn&quot;, &quot;vote_count&quot;: 600, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1462.7875498652697, &quot;upper&quot;: 1510.99922683063}}</title>
+<text x="24" y="256" font-size="13" >gpt-6.1-sol</text>
+<rect x="430.00" y="241" width="321.17" height="21" fill="#1d4ed8"/>
+<path d="M745.96 251H756.38M745.96 246V256M756.38 246V256" stroke="#111827" stroke-width="2"/>
+<text x="980" y="256" font-size="13" >1486.89</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;claude-fable-5-1&quot;, &quot;value&quot;: 1484.9180930396024, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=multi-turn; style_control=enabled; source_model=claude-fable-5.1-max&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/chat/text/multi-turn&quot;, &quot;vote_count&quot;: 1717, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1470.329739885164, &quot;upper&quot;: 1499.506446194041}}</title>
+<text x="24" y="290" font-size="13" >claude-fable-5-1</text>
+<rect x="430.00" y="275" width="320.74" height="21" fill="#1d4ed8"/>
+<path d="M747.59 285H753.89M747.59 280V290M753.89 280V290" stroke="#111827" stroke-width="2"/>
+<text x="980" y="290" font-size="13" >1484.92</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-astra&quot;, &quot;value&quot;: 1484.3102519407385, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=multi-turn; style_control=enabled; source_model=gpt-6-astra-max&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/chat/text/multi-turn&quot;, &quot;vote_count&quot;: 1443, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1468.578429831814, &quot;upper&quot;: 1500.042074049663}}</title>
+<text x="24" y="324" font-size="13" >gpt-6-astra</text>
+<rect x="430.00" y="309" width="320.61" height="21" fill="#1d4ed8"/>
+<path d="M747.21 319H754.01M747.21 314V324M754.01 314V324" stroke="#111827" stroke-width="2"/>
+<text x="980" y="324" font-size="13" >1484.31</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;gpt-6-luna&quot;, &quot;value&quot;: 1443.6086983270798, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=multi-turn; style_control=enabled; source_model=gpt-6-luna-max&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/chat/text/multi-turn&quot;, &quot;vote_count&quot;: 4124, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1433.5743199028411, &quot;upper&quot;: 1453.6430767513184}}</title>
+<text x="24" y="358" font-size="13" >gpt-6-luna</text>
+<rect x="430.00" y="343" width="311.82" height="21" fill="#1d4ed8"/>
+<path d="M739.65 353H743.99M739.65 348V358M743.99 348V358" stroke="#111827" stroke-width="2"/>
+<text x="980" y="358" font-size="13" >1443.61</text>
+</g>
+<text x="24" y="396" font-size="12" >xhigh | leaderboard-sets/public/leaderboards/text-multi_turn-style_control/leaderboard-snapshots/latest</text>
+<g><title>{&quot;model_id&quot;: &quot;claude-sonnet-5-5&quot;, &quot;value&quot;: 1484.102443787837, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=multi-turn; style_control=enabled; source_model=claude-sonnet-5.5-xhigh&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/chat/text/multi-turn&quot;, &quot;vote_count&quot;: 699, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1462.2739874866365, &quot;upper&quot;: 1505.9309000890376}}</title>
+<text x="24" y="436" font-size="13" >claude-sonnet-5-5</text>
+<rect x="430.00" y="421" width="320.57" height="21" fill="#1d4ed8"/>
+<path d="M745.85 431H755.28M745.85 426V436M755.28 426V436" stroke="#111827" stroke-width="2"/>
+<text x="980" y="436" font-size="13" >1484.10</text>
+</g>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;value&quot;: 1429.8748683490398, &quot;unit&quot;: &quot;Elo&quot;, &quot;setting&quot;: &quot;category=multi-turn; style_control=enabled; source_model=grok-4.7-xhigh&quot;, &quot;harness&quot;: &quot;Arena human pairwise evaluation; scaffold not disclosed&quot;, &quot;date&quot;: &quot;2026-10-10&quot;, &quot;url&quot;: &quot;https://arena.ai/leaderboard/chat/text/multi-turn&quot;, &quot;vote_count&quot;: 1292, &quot;session_count&quot;: null, &quot;n_samples&quot;: null, &quot;reported_error_pp&quot;: null, &quot;standard_error&quot;: null, &quot;confidence_interval&quot;: {&quot;lower&quot;: 1413.1406330777288, &quot;upper&quot;: 1446.609103620351}}</title>
+<text x="24" y="470" font-size="13" >grok-4.7</text>
+<rect x="430.00" y="455" width="308.85" height="21" fill="#1d4ed8"/>
+<path d="M735.24 465H742.47M735.24 460V470M742.47 460V470" stroke="#111827" stroke-width="2"/>
+<text x="980" y="470" font-size="13" >1429.87</text>
+</g>
+<text x="430" y="537" font-size="13" >0</text>
+<text x="970" y="537" font-size="13" >2500</text>
+</g></svg>

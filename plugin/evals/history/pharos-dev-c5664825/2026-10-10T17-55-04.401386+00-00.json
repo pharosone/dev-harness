@@ -1,0 +1,67 @@
+{
+  "acceptance_findings": [],
+  "case_hashes": {
+    "codex-only": "f972d77bc3743287d0c8dee3b631ac40b3c188b760152632bf6318ea3ddcb353",
+    "codex-worker": "cc35dfdb58516a0745746a070668e2b1db629bbb57297869f47fd37810789ef2",
+    "gate-wait": "d653e8aed0f46b024036ee9abc31778eb10f006903b256d32d9d6aeaaada7236",
+    "lanes-boundary": "df4a15091c7c247a0db561d2abeae9ef0a709ebbf65e1e585ef56f4a8b84a579",
+    "skill-evals-unit": "b4ecd480336dfcbc2ebf261a89891d4f3f27f0168b517d1a262a6594281564f3",
+    "tier0-docs": "f96a2e8d8571486e5d8fd00f1a2b56ec5e20ace4e6de0685cfda26ea1d3d2148",
+    "tier3-process": "3f8f4a1d27c006044324c6d131a119b321384611f7fdb7184f8568fb943715dc"
+  },
+  "cases": [
+    {
+      "delta": 0.6666666666666667,
+      "name": "codex-only",
+      "score_with": 1.0,
+      "score_without": 0.3333333333333333
+    },
+    {
+      "delta": 1.0,
+      "name": "codex-worker",
+      "score_with": 1.0,
+      "score_without": 0.0
+    },
+    {
+      "delta": 0.5,
+      "name": "gate-wait",
+      "score_with": 1.0,
+      "score_without": 0.5
+    },
+    {
+      "delta": 0.33333333333333337,
+      "name": "lanes-boundary",
+      "score_with": 1.0,
+      "score_without": 0.6666666666666666
+    },
+    {
+      "delta": 1.0,
+      "name": "skill-evals-unit",
+      "score_with": 1.0,
+      "score_without": 0.0
+    },
+    {
+      "delta": 0.5,
+      "name": "tier0-docs",
+      "score_with": 1.0,
+      "score_without": 0.5
+    },
+    {
+      "delta": 0.75,
+      "name": "tier3-process",
+      "score_with": 1.0,
+      "score_without": 0.25
+    }
+  ],
+  "content_hash": "2ceac7460020c877bdbbf4c10e08459f5a0f5a407741356330d0bb99ff069774",
+  "cost_usd": 0.5331526999999999,
+  "model": "sonnet",
+  "run_date": "2026-10-10T17:55:04.401386+00:00",
+  "runner": {
+    "ablation": "with-without",
+    "name": "claude plugin eval",
+    "version": "2.1.296"
+  },
+  "schema_version": 1,
+  "skill": "skills/pharos-dev/SKILL.md"
+}

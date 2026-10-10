@@ -192,8 +192,10 @@ A pane reads `herdr agent get`: working is running, idle or done with a report w
 the start ends `done`, idle or done without one after status has seen it working is `idle`
 ("waiting: the agent ended its turn without a report"; an agent never seen working stays
 running, as it may not have started its turn; wait keeps polling it), an agent that is gone
-ends `done` with a report and `failed` without one, and blocked is surfaced, never answered.
-wait polls status: exit 0 ended, 5 blocked (the user must answer), 1 still running at its
+ends `done` with a report and `failed` without one, and blocked is surfaced without automatic
+input. The orchestrator reads the dialog, answers questions it can decide from the spec and
+earlier authorizations, never answers trust/permission reviews, and escalates material decisions.
+wait polls status: exit 0 ended, 5 blocked (read the dialog and apply that rule), 1 still running at its
 timeout. result prints {dispatch, status, report, usage} (exit 1 while running). cancel ends
 `cancelled` and stops the worker; it never delivers a pending brief (it clears `prompt_pending`
 under the state lock first) (headless: SIGTERM, then SIGKILL, to the supervisor's and the
@@ -264,6 +266,8 @@ SNAPSHOT_MARKER = "dev-harness-snapshot"  # <snapshot>/.git/<marker> holds the d
 RUN_STATE = ".harness"  # git-ignored run state: never copied into a snapshot
 LAUNCHERS = ("headless", "pane")
 WATCH_MINUTES = 20
+BLOCKED_REASON = ("read the dialog; answer questions you can decide from the spec and earlier authorizations; "
+                  "never answer trust/permission reviews; escalate material decisions to the user")
 TIERS = range(4)
 
 
@@ -1104,8 +1108,8 @@ def pane_launch(state: dict, path: Path, run: Path, primary: Path) -> None:
                         *flags)
     except LaneError as exc:
         if getattr(exc, "code", None) == "agent_not_ready":
-            # Blocked at startup: status surfaces it as blocked, nobody answers it, and the
-            # brief goes out once the agent is idle.
+            # Blocked at startup: status surfaces the dialog for the orchestrator's decision;
+            # trust/permission reviews stay with the user; the brief goes out once idle.
             update_state(path, prompt_pending=True)
             return
         raise
@@ -1263,6 +1267,8 @@ def launch(args, launcher: str, reason: str, budget: dict, primary: Path, run: P
              "log": str(folder / f"{dispatch}.log"), "pid": None, "child_pid": None,
              "pane_id": None, "tab_id": None, "pane_name": name if launcher == "pane" else None,
              "agent_id": None, "prompt_pending": False, "report_before": report_stamp(report),
+             "launch_pending": launcher == "pane",
+             "launch_pid": os.getpid() if launcher == "pane" else None,
              "other_repo": other_repository(str(checkout), Path.cwd())
              if launcher == "pane" else None,
              "max_budget_usd": args.max_budget_usd if enforced else None,
@@ -1290,6 +1296,7 @@ def launch(args, launcher: str, reason: str, budget: dict, primary: Path, run: P
             update_state(path, pid=proc.pid)
         else:
             pane_launch(state, path, run, primary)
+            update_state(path, launch_pending=False)
     except (LaneError, OSError) as exc:
         finish(state, "failed")
         raise LaneError(f"launch failed, dispatch {dispatch} ended failed: {exc}") from None
@@ -1368,9 +1375,8 @@ def observed_status(path: Path, stale_minutes: float, seen: dict) -> dict:
             return {**out, "reason": not_ours(state)}
         if current not in ("idle", "done"):
             return {**out, "state": "blocked",
-                    "reason": "the agent has not finished starting and waits for the user's "
-                              "answer or approval; show it to the user (the brief is delivered "
-                              "once the agent is idle)"}
+                    "reason": "the agent has not finished starting; " + BLOCKED_REASON
+                              + " (the brief is delivered once the agent is idle)"}
         if claim(path, "prompt_pending"):
             try:
                 send_prompt(state)
@@ -1382,7 +1388,7 @@ def observed_status(path: Path, stale_minutes: float, seen: dict) -> dict:
         return {**out, "state": "running", "reason": "the brief was delivered to the ready agent"}
     if current == "blocked":
         return {**out, "state": "blocked",
-                "reason": "the agent waits for the user's answer or approval; show it to the user"}
+                "reason": BLOCKED_REASON}
     if current in ("idle", "done") and report_fresh(state):
         return {**out, "state": finish(state, "done")["status"]}
     if current == "working" and not state.get("seen_working"):

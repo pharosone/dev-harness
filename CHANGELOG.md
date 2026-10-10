@@ -3,6 +3,109 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.4.0 — 2026-10-10
+
+### Watch
+
+- Review fixes: `watch.py --ack D` permanently closes accepted/handled terminal lane alerts;
+  live alerts cannot be acknowledged. Only Herdr status or an agent working indicator suppresses
+  freeze checks; prose/prompt quotations from working agents do not trigger input alerts.
+  Transient poll/lane errors are logged and retried; pane registration is protected while its
+  recorded launcher is alive (legacy states have a bounded grace window).
+- Check timeouts handle an exit race and bounded stdout draining; optional JSON `{key, message}`
+  anomaly lines suppress changing counters by stable identity. HTML keeps the latest 50 watch
+  events and does not regenerate for un-emitted frozen-minute changes. Full events stay on disk.
+- Blocked-lane rule reconciled with the owner amendment, skill, adapters and wait messages:
+  read the dialog, answer questions decidable from the spec and earlier authorizations,
+  never answer trust/permission reviews, and escalate material decisions to the user.
+
+- `watch.py --task T [--once] [--every S] [--quiet-repeat S]` watches the run's lane dialogs,
+  blocked states, unchanged non-working screens, exits and completed/missing reports, plus
+  overlay `watch.checks` shell commands. Cadence, open conditions and repeat suppression live
+  in `<run>/lanes/_watch.json`; cleared conditions re-arm. No Herdr: persisted dispatch state
+  and product checks still work. Unknown watch/check keys and bad values exit 2.
+- Every emitted line becomes a locked `watch` event. The Herdr events pane and HTML dashboard
+  show those lines; both status views show `Watch: ✅ quiet` / `Watch: 🚨 N open`.
+- `pharos-dev` and both adapters arm the watch at run start (Claude Monitor, re-armed on expiry;
+  Codex background process or one poll per turn). Each condition requires an action in the
+  same turn: answer spec-resolved questions, escalate material and permission decisions,
+  recover frozen/exited lanes, accept reports, stop repeating product failures through the
+  product's `watch.stop_command`, and tell the user what was done. The script is observational.
+### Feedback
+
+- Public harness feedback: `scripts/feedback.py draft/list/offer/decline/send` queues local
+  harness-only drafts, remembers offers and declines, previews sanitized titles/bodies,
+  checks open/closed issue duplicates and creates an issue only with user approval. Missing
+  `gh`/auth prints a prefilled URL without marking the draft sent.
+- Mandatory redaction reuses the dashboard/xreview secret patterns, scrubs product/overlay
+  names, non-core absolute paths, emails, IPs and private URLs, and refuses unresolved secret
+  patterns. Optional `project.json → feedback.redact` adds literal private terms; no required
+  overlay change.
+- Local vendored-core edits offer `harness_sync.py propose --feedback-file <draft>` instead;
+  the small optional attachment extension links the reviewed draft in the PR body and
+  sanitizes the PR title/body, and records the URL after authorized publication. Preparing
+  feedback never publishes code.
+- `pharos-dev`, `pharos-discover` and both runtime adapters offer feedback once per distinct
+  harness failure, workaround, session tool, user-corrected decision or process complaint at
+  a natural pause. `pharos-dev` lists waiting drafts at every taste gate and run end.
+- Review fixes: sanitize redirected/tagged paths while preserving placeholders and link
+  punctuation; redact checkout names at word boundaries while preserving harness terms;
+  allow `send --issue` without subtree history and user-confirmed `--not-a-duplicate` with
+  candidate links. Keep secret prose usable, distinguish Unicode/truncated draft slugs,
+  refuse declined/sent PR attachments, and tighten the decline eval grader.
+- Second review fixes: redact product/checkout names inside separated or digit-delimited
+  tokens without changing ordinary words or harness vocabulary; inspect declined/sent
+  drafts before drafting a reworded complaint; bound browser fallback URLs and direct
+  long evidence to the full sanitized preview.
+- Six owner-reported examples are synthetic test fixtures, never real issues.
+
+### Skill evals
+
+- Every new or changed core/product skill ships with purpose/failure-based cases and paired
+  measured scores, positive new-case Δ, model, cost, date and stored history; existing cases
+  may regress at most 0.05 by default. Discovery includes "eval cases + Δ" in Done when;
+  both runtime adapters and implementer briefs carry the same acceptance rule.
+- New stdlib `skill_evals.py check/run/report`: cheap CI checks skill and case hashes,
+  case changes, deltas and historical scores; Claude runs isolated paired plugin evals,
+  while products can supply a Hermes/Codex runner via validated `project.json → skills`.
+- Two new product-skill acceptance scenarios cover pharos-dev and pharos-discover. Existing
+  coverage gaps remain follow-ups. No required overlay migration.
+- Review fixes: gate and hash the complete skill directory and transitive declared inputs;
+  record a schema-2 input manifest, reject input changes during evaluation, compare regression
+  only for identical cases, and require an explicit run base. External runners receive exact
+  registered case paths in an environment manifest. Shared-context changes require purpose
+  coverage and fresh measurements for all seven core skills; only shared inputs changed for five of the seven skills.
+
+### Review calibration
+
+- Calibrated review acceptance: likelihood × impact matrix, code-read evidence and reachable
+  scenarios; pilot/empty-invariant defaults, triage before fix-up and two rounds per milestone.
+  Round 2 checks fixes/new code and previous blockers; only new severe matrix blockers can block.
+- Cross-review accepts repeated `--section`, `--run-dir`, `--milestone`, `--round`; all findings
+  enter `review-ledger.jsonl` (QA/panel reports use `review_calibration.py record` and share
+  rounds), Minors go to `backlog.md`. Calibration records triage and observed outcomes, reports
+  across runs, and exports sanitized feedback fixtures; user overrides need no invented outcome.
+  Roles, runtime adapters, `pharos-dev` G4/final reports and a mixed-triage eval use this scale.
+- Review parsing normalizes Markdown/line ranges and retains malformed claims verbatim;
+  exit 4 requires triage. Prior blockers match path/caller/scenario plus ledger triage or a
+  prior finding ID. Persisted milestones are explicit; failed reviewer attempts release rounds
+  for bounded retry (three attempts per input). Explicit round 1 keeps addressed context in round 1.
+
+### Benchmark dataset
+
+- Benchmark dataset (part A): latest retained Claude, GPT/Codex,
+  Gemini and Grok classes, sourced results with effort and scaffold metadata, Arena categories
+  with score intervals and votes, and planned Gemini/Grok runtime availability. A stdlib
+  validator reports stale observations and renders SVG charts and a coverage index.
+- Deep web research evidence adds separately identified browsing, research-report and
+  factuality protocols, preserves sample counts and uncertainty without inventing confidence
+  intervals, and expands the task taxonomy to v1.1 with `web_research`.
+- Per-model effort curves add benchmark-weighted token use and derived decode time, with
+  effort support and missing measurements recorded separately. Quota charges, task elapsed
+  time and failure/rework estimates remain uncalibrated; routing behavior is unchanged.
+- The model router is **not released**: no changes to model selection, lane execution or classifier
+  defaults. Router implementation and classifier evaluation await owner approval.
+
 ## 1.3.0 — 2026-10-10
 
 - `lanes.py`: the herdr agent limit is configurable — `project.json → lanes`

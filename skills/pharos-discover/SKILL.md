@@ -194,3 +194,55 @@ requirements themselves, with the capability needed to finish it.
 | "A project row is technical, I'll decide" | A project asks a row on every feature because its answer affects users' rights or data; use established decisions or ask. |
 | "We need approval again because the runtime changed" | Authorization persists across runtimes and sessions. |
 | "The skill itself is the approval" | Record actual user authorization; a timeout is not an answer. |
+
+## Harness feedback
+
+Offer feedback when a harness script errors or contradicts its docs; a harness rule forces a
+workaround or manual step; a session-built tool belongs in the harness; the user corrects a
+profile, tier or gate decision; or the user complains about the harness process. Check the
+queue first: `python3 harness/core/scripts/feedback.py list --run-dir <run>`
+(or omit `--run-dir` when there is no run). Compare the underlying problem with all
+recorded drafts, including declined/sent ones; a new title does not make it a new issue.
+Use `list --offerable` only to find existing drafts that still need their first offer.
+Draft each distinct issue once with `draft --kind
+bug|friction|feature --title "<drafted title>" [--from-file <harness-only evidence>]` using the
+same queue selector. At a natural pause after the unit, gate or turn, use `offer <slug>` to
+record and ask exactly: **Offer harness feedback “<drafted title>” for your review?** Never
+interrupt a running decision. The user decides; reuse their answer. A refusal is `decline
+<slug>` in that queue, so it is never offered again; `offer` remembers earlier offers too.
+
+The repository `pharosone/dev-harness` is public. Include only minimal harness reproductions
+and sanitized evidence; no product data. `send <slug>` previews the final sanitized text and
+checks duplicates before creating anything. Show candidate issue links; only use
+`--not-a-duplicate` when the user confirms they are distinct. Publication still needs approval.
+The user must see that text before approval;
+`--yes` is only for their explicit go for that exact text, never an agent's default. If local
+vendored-core edits implement the fix, offer the printed `harness_sync.py propose
+--feedback-file <draft>` command instead; it prepares a PR with the reviewed draft attached.
+Review its code and body before the user authorizes publishing. `--issue` explicitly chooses
+an issue instead. Missing `gh`/auth prints a bounded browser URL; for long drafts, copy
+the full sanitized preview into the form. It stays unsent until
+publication is verified. At a gate and run end, show `feedback.py list --run-dir <run>
+--summary` in one line: **“2 harness feedback drafts waiting: <title>; <title>”**. Declined and
+sent drafts remain recorded, without counting as waiting.
+
+## Skill evals
+
+A new skill, or a change to a skill's instructions, ships with at least one added or changed
+scenario from its purpose or a recorded failure, with graders for the required behaviour.
+Instructions include all files in the skill's directory and its declared references: a
+reference-only edit still changes the skill. The content hash covers that complete bundle.
+The unit is not done without score with the skill, score without it (baseline), Δ, model,
+cost and run date. Require Δ > 0 on every new or changed case and no regression on existing
+cases beyond the overlay tolerance (default 0.05). A case whose Δ stays 0 does not test the
+skill: fix the case. This covers core and product skills, including non-Claude skills.
+
+Run `python3 harness/core/scripts/skill_evals.py run --skill <SKILL.md path> --model <model>
+--run-dir <run> --base <unit base>`; add a cost ceiling with `--max-cost-usd <usd>`.
+Evidence goes to `<run>/evals/<skill>.json` and the skill's eval history; quote the scores,
+Δ, model, cost and run date in the unit report. Run the cheap gate
+`python3 harness/core/scripts/skill_evals.py check --base <unit base>` before accepting the unit.
+
+For a feature that adds or changes a skill, put **eval cases + Δ** in its "Done when":
+scenario and graders, paired measured scores, positive Δ, existing-case tolerance, model,
+cost, run date and stored evidence. Budget these evals as part of the implementation unit.

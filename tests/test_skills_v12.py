@@ -94,8 +94,16 @@ class LanesInDevTest(unittest.TestCase):
 
     def test_blocked_lanes_and_foreign_panes(self):
         text = skill("pharos-dev")
-        self.assertRegex(text, r"`blocked`[^\n]{0,160}(never answer|not answer)")
+        self.assertIn("spec and earlier authorizations", text)
+        self.assertIn("never answer trust/permission reviews", text)
+        self.assertIn("escalate material decisions to the user", text)
         self.assertRegex(text, r"panes? the run did not create[^\n]{0,60}never closed")
+
+    def test_blocked_rule_agrees_with_spec_and_wait_message(self):
+        spec = (CORE / "docs/specs/2026-10-09-v1.2.0-compare-lanes-dashboard.md").read_text()
+        for phrase in ("spec and earlier authorizations", "never answer trust/permission reviews",
+                       "escalate material decisions to the user"):
+            self.assertIn(phrase, spec)
 
 
 class AdaptersTest(unittest.TestCase):
@@ -178,7 +186,9 @@ class EvalCasesTest(unittest.TestCase):
         self.assertRegex(offer, r"compare")
         self.assertRegex(offer, r"recommend")
         declined = " ".join(read(g) for g in (EVALS / "compare-declined" / "graders").glob("*.md"))
-        self.assertIn("not_contains", declined)
+        self.assertIn("does not dispatch comparison candidates", declined)
+        self.assertIn("is not a launch and must not fail", declined)
+        self.assertIn("Fail any actual proposed comparison dispatch", declined)
         self.assertRegex(declined, r"compare\\\\.py|compare\.py")
         lanes = " ".join(read(g) for g in (EVALS / "lanes-boundary" / "graders").glob("*.md"))
         self.assertRegex(lanes, r"subagent")

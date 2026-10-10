@@ -22,13 +22,16 @@ class EvalPluginTest(unittest.TestCase):
     def test_manifest_and_skill_links_resolve(self):
         manifest = json.loads((PLUGIN / ".claude-plugin/plugin.json").read_text())
         self.assertEqual(manifest["name"], "dev-harness-evals")
-        for skill in ("pharos-dev", "pharos-discover", "pharos-investigate"):
+        registry = json.loads((PLUGIN / 'evals/cases.json').read_text())
+        for path in registry:
+            skill = Path(path).parent.name
             link = PLUGIN / "skills" / skill
             self.assertTrue(link.is_symlink(), skill)
             self.assertTrue((link / "SKILL.md").is_file(), skill)
 
     def test_every_case_is_well_formed(self):
-        cases = sorted(p for p in (PLUGIN / "evals").iterdir() if p.is_dir() and p.name != "results")
+        cases = sorted(p for p in (PLUGIN / "evals").iterdir()
+                       if p.is_dir() and p.name not in {"results", "history"})
         self.assertGreaterEqual(len(cases), 4)
         for case in cases:
             header = frontmatter(case / "prompt.md")

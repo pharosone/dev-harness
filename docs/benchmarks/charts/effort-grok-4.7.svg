@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="1380" viewBox="0 0 1120 1380" role="img" aria-labelledby="title desc">
+<title id="title">Grok 4.7: effort evidence</title>
+<desc id="desc">Four panels: AA Intelligence v4.3.2, weighted tokens/task, derived decode seconds/task, API cost/task. Effort categories are ordinal per model. Missing data is not zero and is not interpolated.</desc>
+<defs><pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#dbeafe"/><path d="M-2 2L2-2M0 7L7 0M5 9L9 5" stroke="#1e3a8a" stroke-width="1.5"/></pattern></defs>
+<rect width="1120" height="1380" fill="#fff"/>
+<g font-family="Arial, sans-serif" font-size="13" fill="#172033">
+<text x="28" y="30" font-size="22" >Grok 4.7 — effort evidence</text>
+<text x="28" y="54" font-size="13" >AA suite proxies. Decode time excludes first-token delay and overhead. API cost and tokens are not subscription quota.</text>
+<text x="28" y="77" font-size="13" >Each effort is categorical within this model; identical names across models do not imply equal work. Gaps break lines.</text>
+<text x="28" y="110" font-size="17" >AA Intelligence Index v4.3.2 (fixed 0–100)</text>
+<path d="M100 315H1050" stroke="#e5e7eb"/>
+<text x="90" y="319" font-size="11" text-anchor="end">0</text>
+<path d="M100 273H1050" stroke="#e5e7eb"/>
+<text x="90" y="277" font-size="11" text-anchor="end">25</text>
+<path d="M100 231H1050" stroke="#e5e7eb"/>
+<text x="90" y="235" font-size="11" text-anchor="end">50</text>
+<path d="M100 189H1050" stroke="#e5e7eb"/>
+<text x="90" y="193" font-size="11" text-anchor="end">75</text>
+<path d="M100 147H1050" stroke="#e5e7eb"/>
+<text x="90" y="151" font-size="11" text-anchor="end">100</text>
+<text x="650" y="110" font-size="12" fill="#1d4ed8">Index</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 42.2166560223448, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="244.08" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="234.07601788246075" font-size="12" text-anchor="middle">42.2</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 46.3321770885625, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="237.16" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="227.161942491215" font-size="12" text-anchor="middle">46.3</text>
+<path d="M660 237.16L830 236.97" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;aa_intelligence_v4_3_2&quot;, &quot;value&quot;: 46.4465506302286, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="236.97" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="226.96979494121595" font-size="12" text-anchor="middle">46.4</text>
+<text x="150" y="337" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="355" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="337" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="337" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="355" font-size="10" text-anchor="middle">unmeasured</text>
+<text x="660" y="337" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="337" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="355" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="337" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="355" font-size="10" text-anchor="middle">unsupported</text>
+<text x="28" y="410" font-size="17" >Weighted output tokens per suite task</text>
+<path d="M100 615H1050" stroke="#e5e7eb"/>
+<text x="90" y="619" font-size="11" text-anchor="end">0</text>
+<path d="M100 573H1050" stroke="#e5e7eb"/>
+<text x="90" y="577" font-size="11" text-anchor="end">25,000</text>
+<path d="M100 531H1050" stroke="#e5e7eb"/>
+<text x="90" y="535" font-size="11" text-anchor="end">50,000</text>
+<path d="M100 489H1050" stroke="#e5e7eb"/>
+<text x="90" y="493" font-size="11" text-anchor="end">75,000</text>
+<path d="M100 447H1050" stroke="#e5e7eb"/>
+<text x="90" y="451" font-size="11" text-anchor="end">100,000</text>
+<text x="650" y="410" font-size="12" fill="#1d4ed8">Total</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 28011.88258153639, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="567.94" r="4" fill="#1d4ed8"/></g>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 65901.46774813943, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="504.29" r="4" fill="#1d4ed8"/></g>
+<path d="M660 504.29L830 479.66" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;output_tokens_per_task&quot;, &quot;value&quot;: 80561.36472853081, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="479.66" r="4" fill="#1d4ed8"/></g>
+<text x="780" y="410" font-size="12" fill="#7e22ce">Reasoning</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 14426.374918027426, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="590.76" r="4" fill="#7e22ce"/></g>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 46633.30527496027, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="536.66" r="4" fill="#7e22ce"/></g>
+<path d="M660 536.66L830 516.65" fill="none" stroke="#7e22ce" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;reasoning_tokens_per_task&quot;, &quot;value&quot;: 58543.633141273924, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="516.65" r="4" fill="#7e22ce"/></g>
+<text x="910" y="410" font-size="12" fill="#0f766e">Answer</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 13585.507663508964, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="592.18" r="4" fill="#0f766e"/></g>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 19268.162473179156, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="582.63" r="4" fill="#0f766e"/></g>
+<path d="M660 582.63L830 578.01" fill="none" stroke="#0f766e" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;answer_tokens_per_task&quot;, &quot;value&quot;: 22017.731587256894, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="578.01" r="4" fill="#0f766e"/></g>
+<text x="150" y="637" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="655" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="637" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="637" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="655" font-size="10" text-anchor="middle">unmeasured</text>
+<text x="660" y="637" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="637" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="655" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="637" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="655" font-size="10" text-anchor="middle">unsupported</text>
+<text x="28" y="710" font-size="17" >Derived weighted decode seconds/task — NOT wall-clock task latency</text>
+<path d="M100 915H1050" stroke="#e5e7eb"/>
+<text x="90" y="919" font-size="11" text-anchor="end">0</text>
+<path d="M100 873H1050" stroke="#e5e7eb"/>
+<text x="90" y="877" font-size="11" text-anchor="end">500</text>
+<path d="M100 831H1050" stroke="#e5e7eb"/>
+<text x="90" y="835" font-size="11" text-anchor="end">1,000</text>
+<path d="M100 789H1050" stroke="#e5e7eb"/>
+<text x="90" y="793" font-size="11" text-anchor="end">1,500</text>
+<path d="M100 747H1050" stroke="#e5e7eb"/>
+<text x="90" y="751" font-size="11" text-anchor="end">2,000</text>
+<text x="650" y="710" font-size="12" fill="#1d4ed8">Seconds</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 387.15625813279246, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="882.48" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="872.4788743168455" font-size="12" text-anchor="middle">387.2</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 845.6490853170786, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="843.97" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="833.9654768333654" font-size="12" text-anchor="middle">845.6</text>
+<path d="M660 843.97L830 823.71" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;derived_decode_seconds_per_task&quot;, &quot;value&quot;: 1086.8148454641423, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="823.71" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="813.707552981012" font-size="12" text-anchor="middle">1,086.8</text>
+<text x="150" y="937" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="955" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="937" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="937" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="955" font-size="10" text-anchor="middle">unmeasured</text>
+<text x="660" y="937" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="937" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="955" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="937" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="955" font-size="10" text-anchor="middle">unsupported</text>
+<text x="28" y="1010" font-size="17" >Weighted API USD/task — NOT Max/Codex quota charges</text>
+<path d="M100 1215H1050" stroke="#e5e7eb"/>
+<text x="90" y="1219" font-size="11" text-anchor="end">0.00</text>
+<path d="M100 1173H1050" stroke="#e5e7eb"/>
+<text x="90" y="1177" font-size="11" text-anchor="end">1.25</text>
+<path d="M100 1131H1050" stroke="#e5e7eb"/>
+<text x="90" y="1135" font-size="11" text-anchor="end">2.50</text>
+<path d="M100 1089H1050" stroke="#e5e7eb"/>
+<text x="90" y="1093" font-size="11" text-anchor="end">3.75</text>
+<path d="M100 1047H1050" stroke="#e5e7eb"/>
+<text x="90" y="1051" font-size="11" text-anchor="end">5.00</text>
+<text x="650" y="1010" font-size="12" fill="#1d4ed8">USD</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;low&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 1.2479664056943975, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-low&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="320" cy="1173.07" r="4" fill="#1d4ed8"/></g>
+<text x="320" y="1163.0683287686682" font-size="12" text-anchor="middle">1.25</text>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;high&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 2.726106691786027, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7-high&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="660" cy="1123.40" r="4" fill="#1d4ed8"/></g>
+<text x="660" y="1113.4028151559894" font-size="12" text-anchor="middle">2.73</text>
+<path d="M660 1123.40L830 1089.39" fill="none" stroke="#1d4ed8" stroke-width="2"/>
+<g><title>{&quot;model_id&quot;: &quot;grok-4.7&quot;, &quot;effort&quot;: &quot;xhigh&quot;, &quot;field&quot;: &quot;api_cost_usd_per_task&quot;, &quot;value&quot;: 3.738325952106939, &quot;source_url&quot;: &quot;https://artificialanalysis.ai/models/grok-4-7&quot;, &quot;support_status&quot;: &quot;supported&quot;}</title><circle cx="830" cy="1089.39" r="4" fill="#1d4ed8"/></g>
+<text x="830" y="1079.392248009207" font-size="12" text-anchor="middle">3.74</text>
+<text x="150" y="1237" font-size="13" text-anchor="middle">none</text>
+<text x="150" y="1255" font-size="10" text-anchor="middle">unsupported</text>
+<text x="320" y="1237" font-size="13" text-anchor="middle">low</text>
+<text x="320" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="490" y="1237" font-size="13" text-anchor="middle">medium</text>
+<text x="490" y="1255" font-size="10" text-anchor="middle">unmeasured</text>
+<text x="660" y="1237" font-size="13" text-anchor="middle">high</text>
+<text x="660" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="830" y="1237" font-size="13" text-anchor="middle">xhigh</text>
+<text x="830" y="1255" font-size="10" text-anchor="middle">supported</text>
+<text x="1000" y="1237" font-size="13" text-anchor="middle">max</text>
+<text x="1000" y="1255" font-size="10" text-anchor="middle">unsupported</text>
+<text x="28" y="1360" font-size="13" >Input/task, subscription quota, lead wall time, failure/rework remain unmeasured. Source suite totals are not divided.</text>
+</g></svg>

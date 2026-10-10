@@ -50,6 +50,34 @@ read their evidence, own the final report.
   `project.json → dashboard`). It changes only where a `pane` decision opens, never the
   decision: short report-only work on your own vendor is still a subagent (your agent tool),
   not a pane. Without herdr it is a no-op.
+- **Run watch.** At run start arm `python3 harness/core/scripts/watch.py --task <task>`:
+  Claude Code uses `Monitor`, unbounded with the tool's maximum timeout, and re-arms on expiry
+  or any unexpected exit while the run remains active;
+  if unavailable, use a background process and read its output every turn and before going
+  idle. Codex uses a background process with captured output read at those boundaries, or
+  `watch.py --task <task> --once` at every turn and before going idle. Restart a background
+  watcher that exits while the run is active. Stop the watcher when the run ends. Product
+  checks and the product's own stop command come from `project.json → watch` (see
+  `harness/core/docs/overlay.md`); state and repeat suppression survive re-arming.
+
+## Act on watch output
+
+Every emitted line gets an action in the same turn. `LANE … needs-input`: read the dialog,
+answer questions you can decide from the spec and earlier authorizations; never answer trust/permission reviews;
+escalate material decisions to the user. A watch category is an alert, not the question text:
+read the actual dialog and those authorizations before deciding. `frozen`: inspect, nudge or cancel the lane. `exited` or
+`ended-no-report`: inspect its logs and recover or report the failed dispatch. `done`: read and
+accept the report promptly, with the unit's checks and spend recording. As part of acceptance,
+or after recovering/handling an `ended-no-report` dispatch, run
+`python3 harness/core/scripts/watch.py --task <task> --ack <dispatch>`. Acknowledgment closes
+that dispatch's terminal alert permanently; new work must use a new dispatch id. It cannot
+hide needs-input or frozen conditions. For a `CHECK` indicating
+a repeating failure or retry loop, stop the product's live process using its own
+`watch.stop_command` from the product checkout before another retry; when no stop command is
+configured, escalate immediately for the product's stop procedure. A repeated generic check
+failure needs diagnosis; determine whether live work is retrying before stopping it. Report the
+action to the user in 2–3 lines. Silence is fine when nothing fires. The watcher records
+observations and never answers dialogs or stops the product itself.
 
 ## Tier decides the process
 
@@ -132,7 +160,9 @@ what, so the dashboard and a resuming runtime see it without a living session.
   (report and usage) and `cancel`. `start` exit 3: dispatch it as a subagent; exit 4
   (`queued`, at the herdr agent limit: three by default, `project.json → lanes`): start it
   again after a lane ends. `wait` exit 5: the
-  lane is `blocked` — show it to the user with its pane and never answer it yourself.
+  lane is `blocked` — never answer trust/permission reviews yourself. Read its dialog and
+  apply «Act on watch output»: answer questions you can decide from the spec and earlier authorizations;
+  escalate material decisions to the user.
 - **Panes:** the run's own panes stay open after the work;
   panes the run did not create are never closed or reused, and `cancel` refuses a pane that
   is no longer the run's. With the dashboard open, a lane pane whose agent has exited is
@@ -146,23 +176,99 @@ what, so the dashboard and a resuming runtime see it without a living session.
   done|failed|timeout|cancelled` at its end (`<d>` may be the agent id the launch returned).
   Usage you do not have stays null; never estimate it.
 
-## Cross-vendor review — once per milestone
+## Cross-vendor review — at most two rounds per milestone
 
-A unit is guarded by its tests, red evidence and tripwires; the other vendor reviews the
-**milestone** diff, where sibling units are visible (reviewed one by one, units get their
-siblings reported as missing, and each review costs a full pass). Before the milestone's gate:
+A unit is guarded by tests, red evidence and tripwires; review the **milestone** diff so sibling
+units are visible. Before the milestone gate run:
 `python3 harness/core/scripts/xreview.py --base <milestone base> --writer claude|codex --spec <spec>
---sections "<milestone headings>" --ledger <run>/xreview.jsonl --out <run>/reports/<m>-xreview.md`
-(the tier comes from `tier.py`; Astra only when the milestone touches Tier-3 paths, otherwise
-GPT-6.1 Sol or Claude Opus). Before the PR, review only the diff since the last reviewed
-milestone; skip it when nothing changed. The ledger caps critical reviews at five per run.
-Exit 0 pass; exit 1 → a fix-up with the Critical/Major findings, then another round with
-`--addressed <previous reports>`; keep alternating fix-up and review without asking the user
-until the review passes or the cap is used up — only then the gate card (or the user's word
-for more). Exit 2/3
-(refused, timeout, no verdict) is not approval: record the review as not performed.
-A diff over the 200 KB cap is split by area with `--paths` (e.g. the harness paths apart from
-the application paths); each part's context lists its siblings so they are not reported missing.
+--section "<heading, including any comma>" --section "<another heading>" --run-dir <run>
+--milestone <m> --round 1 --ledger <run>/xreview.jsonl --out <run>/reports/<m>-xreview.md`.
+Use repeated `--section` for exact headings; legacy `--sections` still splits on commas.
+Persisted calls (`--run-dir` or `--ledger`) require an explicit stable `--milestone <m>`;
+there is no shared default. Standalone reviews may use the report stem as an informational fallback.
+`--round` defaults to unspecified: it resolves to 2 with `--addressed`, otherwise 1.
+An explicit round always wins.
+An explicit `--round 1 --addressed` imports earlier external findings as context only:
+`xreview.py --base <base> --writer claude|codex --run-dir <run> --milestone <m> --round 1
+--addressed <external-report> --out <run>/reports/<m>-xreview.md`. It remains a first-round review.
+The tier comes from `tier.py`; Astra only for Tier-3 paths, otherwise GPT-6.1 Sol or Claude Opus.
+Before the PR, review only changes since the last reviewed milestone; skip an empty diff.
+Only exit 0 approves review. Exit 1 means a computed matrix blocker; exit 4 means findings need
+triage (malformed/partial blocking claims or uncertain prior-blocker identity), not a verified
+blocker. Both require the triage step before dependent work. Exit 2/3 (refused, failed reviewer,
+timeout or no verdict) is not approval: record the review as not performed. Fully verified matrix
+backlogs may override a reviewer's block to pass; an unverified blocking claim cannot. A diff over 200 KB is split by area with
+`--paths`; each part lists siblings. Splitting areas or changing lenses does not reset rounds.
+A failed/timeout reviewer attempt releases its reservation for a bounded retry: at most three
+attempts for the same review input, including retries with a different `--out`. Running or completed
+reviews cannot duplicate. Reports count active/completed logical rounds; failed attempts do not
+consume a successful round. Do not retry a completed review to evade its result or round cap.
+
+### Review calibration and triage
+
+Use the overlay's `project.json → review`: `stage` defaults to `pilot`, `invariants` to empty.
+Every finding is one Markdown list item with six em-dash-separated fields, parsed by the runtime:
+- [Critical|Major|Minor] path:line — defect — likelihood/impact — reachable path — failure scenario — evidence: path:line
+
+Reachable path = real caller/route; scenario = specific input/state → wrong result; evidence =
+code read in this review. Tests/measurements supplement code-read evidence. Optional trailing
+fields: `— workaround: none` or `— workaround: <specific usable workaround>`;
+`— invariant: <exact overlay invariant text>` for a proven violation, never an invented one;
+`— id: <prior stable ledger finding ID>` only to reference that prior finding.
+The parser normalizes backticks/bold and line ranges. Explicit malformed/partial findings are
+retained verbatim in the sidecar `<report>.calibration.md` and `<run>/review-ledger.jsonl`.
+Missing ratings, reachable path, scenario or code-read evidence remain Minor until verified;
+they never establish approval of a reviewer's block. Exit 4 requires triage before proceeding.
+
+Likelihood in THIS product: `will` = main path within days; `plausible` = documented path users
+sometimes take; `edge` = rare combination, race window, unusual environment or operator mistake.
+Impact: `severe` = unapproved/wrong-recipient outbound action, burned limits/credits, account-ban
+risk, external secrets/personal-data leak, data loss, or a guard/check silently stops working;
+`functional` = recoverable feature failure/visible wrong result; `cosmetic` = presentation only.
+
+| Impact / likelihood | will | plausible | edge |
+|---|---|---|---|
+| severe | block | block | block only for violated overlay invariant or production stage; else backlog |
+| functional | block | block only with verified no workaround; else backlog | backlog |
+| cosmetic | backlog | backlog | backlog |
+
+Blockers: Critical for severe, Major for functional; backlog: Minor. Labels never override the
+matrix. Plausible/functional requires verified `workaround: none` to block; omission is unverified.
+
+1. Before triage, ingest every QA/panel report with `python3 harness/core/scripts/review_calibration.py
+   record --run <run> --report <role-report> --milestone <m> --round 1|2
+   [--addressed <previous blockers>]`. It reads the active overlay review config; cross-review
+   records its own findings. The record CLI also leaves `--round` unspecified by default;
+   `--addressed` implies 2 only when no explicit round is supplied. For external context use
+   `review_calibration.py record --run <run> --report <role-report> --milestone <m> --round 1
+   --addressed <external-report>`; this remains round 1. Distinct report paths/lenses share a round;
+   `rounds_used` counts active/completed logical rounds, not lenses or failed attempts. Repeating
+   a running/completed review or returning to round 1 after round 2 is refused.
+2. Read `<run>/review-ledger.jsonl` and the calibration sidecar, including every verbatim
+   malformed/partial finding. Resolve exit-4 triage needs and check every blocker's reachable
+   scenario against code (≤5 min each). Verify ratings, workaround and any claimed
+   exact overlay invariant. Downgrade edge findings per the matrix, recording the reason.
+3. Record each triage decision with `python3 harness/core/scripts/review_calibration.py triage
+   --run <run> --id <finding-id> --decision block|backlog --reason "<code-grounded reason>"`.
+   Verified corrections may add `--likelihood will|plausible|edge --impact severe|functional|cosmetic
+   --workaround "<none or specific workaround>" --invariant "<exact text>" --evidence "<path:line>"`.
+   Keep unverified findings Minor; do not fabricate evidence to upgrade them or treat the
+   downgrade as approval. Resolve the incomplete blocking claim or identity before dependent work.
+4. Fix verified blockers. Minors never block: include fixes costing ≤15 min in the same fix-up;
+   send the rest to `<run>/backlog.md`. Re-run checks affected by fixes. Record observed outcomes
+   with `review_calibration.py outcome --run <run> --id <id> --outcome failure|harmless|confirmed
+   --source fix-up|incident|user-report|review --reason "<observed result>"`;
+   add `--user-override block|backlog` only for an explicit user decision, never your own inference.
+   `--outcome` is optional when `--user-override` is supplied: an override alone records the
+   acceptance decision and leaves an unobserved later outcome unknown; never fabricate an outcome.
+5. If needed, run round 2 with `--round 2 --addressed <previous reports>`, the same explicit
+   `--milestone <m>` and `--run-dir <run>`. Review only fixes/new code and previous blockers.
+   Match source path + reachable caller + failure scenario against prior ledger findings and triage;
+   a defect title alone is insufficient, and source/evidence lines may move. An optional trailing
+   `— id: <prior stable ledger finding ID>` can reference the same prior finding. Known same-site
+   findings with uncertain identity require triage (exit 4); never silently treat them as new backlog.
+   A new blocker counts only if severe **and** matrix-blocking; new functional/cosmetic findings go
+   to backlog. No automatic third round; unresolved blockers or triage needs go to the gate.
 
 ## Taste gates and tripwires
 
@@ -182,6 +288,8 @@ Record the card as `task_state.py event <task> gate.open --data '{"gate": "<gate
 <task>`, which prints the page's path) and give the user that path with the card: running and
 stale lanes, pending gates, tripwires, spend per unit and compare status on one local page.
 With herdr, also point to the live `📊 <task>` tab, where the gate shows as pending.
+At each taste gate, include `python3 harness/core/scripts/feedback.py list --run-dir <run-dir>
+--summary` as one line in the card (Harness feedback below).
 Ask through the runtime's question tool and send a push notification when the runtime has one.
 Record the answer (continue / redirect with notes / stop) in `run.md` and as `gate.answer`
 {gate, answer, source: the user's words} before dependent work.
@@ -201,11 +309,15 @@ the application up yourself, then brief the `ui-design-verifier` with its URL, t
 from the project's seed or fixtures, the spec's screens, states and mockups, and
 `<run-dir>/screens/<gate>/`; it captures and assesses the screenshots, and those files are the
 gate's and the PR's evidence. Each lens briefs from the spec and the diff, not from a list:
-reviewers derive what to look for from the change. Reviewers report every issue they find with
-a severity; a Critical/Major needs a concrete failure scenario, otherwise it is Minor.
-Critical/Major → fix-up and a targeted QA re-pass; Minor → the final report. **Ship gate:** no
-open Critical/Major after at most two review iterations. A lens is waived only in the user's
-words, recorded in `run.md`.
+reviewers derive what to look for from the change. Give QA and every lens the overlay's review
+stage/invariants, milestone name, round number and previous blockers. All use the calibrated
+finding contract and matrix above; ingest their reports with `review_calibration.py record`
+for the same milestone/round before triage, so all findings enter `<run>/review-ledger.jsonl`.
+Triaged blockers → fix-up and targeted QA; Minor → cheap same-fix-up repair or backlog.
+**Ship gate:** no open verified matrix blockers or unresolved triage needs, with at most two rounds per milestone shared
+by cross-review, QA and panel. Round 2 checks fixes/new code and previous blockers only; new blockers must
+be severe and matrix-blocking. Remaining blockers stop at the gate; a pass never hides failed
+required checks. A lens is waived only in the user's words, recorded in `run.md`.
 
 **Architecture.** The `architecture-reviewer` (`critical-review`, read-only) joins the panel on
 every Tier 2–3 milestone, not only the PR. When the project has a
@@ -216,15 +328,95 @@ exit 2 a broken declaration to fix before the review. The reviewer gets that res
 overlay's `architecture.md`, the spec's `## Placement` and the milestone diff; a deviation from
 Placement is a finding unless the spec was amended.
 
+## G4 and final report — review evidence
+
+At G4 (before the PR) and in the final report, show `python3
+harness/core/scripts/review_calibration.py report --run <run>` for the review summary and
+outcome counts. Add unresolved triage needs, verbatim malformed/partial claims, triage/downgrade
+reasons and remaining blockers from the ledger and fix-up
+evidence; outcome counts alone do not prove a blocker was fixed. Repeat `--run <other-run>` for an across-run
+report; `--json` emits machine-readable results. Link `<run>/backlog.md` explicitly, including
+when empty, and distinguish outcomes not yet observed from `harmless` or `confirmed` ones.
+
+Feedback hook: export each user correction as a sanitized calibration fixture; observed
+outcomes can also become regression fixtures. Use
+`python3 harness/core/scripts/review_calibration.py fixture --run <run> --id <id>
+--case <sanitized-case.json> --out <fixture-path>`. The JSON file contains exactly `name`,
+`finding` (one canonical finding string) and `review` (`stage` plus `invariants`). Remove secrets,
+personal data and private identifiers from the case; review the generated fixture before
+including it in tests/evals.
+Use the sanitized fixture and aggregate `report --json` counts to write
+`<run>/calibration-proposal.md`, with `What happened`, `Expected`, `Repro (minimal, harness-only)`,
+`Evidence` and `Proposal` headings; omit private run paths and raw ledger content. Include a
+concrete cell/invariant adjustment, before/after fixture decisions and observed outcome rates.
+Create its local reviewable draft with `python3 harness/core/scripts/feedback.py draft
+--kind friction --title "Calibrate review acceptance from observed outcomes"
+--from-file <run>/calibration-proposal.md --run-dir <run>`. Check the full feedback queue first
+for the same underlying issue, including declined/sent drafts. Follow Harness feedback below
+for the one-time offer, sanitized preview and explicit user authorization before submission.
+The full handoff is documented in `docs/overlay.md`.
+Show this hook in G4/final reports so later incidents and user reports update the evidence.
+
 ## Handoff
 
 Every "works" claim cites a command run in this session; UI-visible changes ship with the
-design verifier's screenshots. A PR goes through `submit-pr` when the user asks. Deploys go through CD only.
+design verifier's screenshots. At run end, include `python3 harness/core/scripts/feedback.py
+list --run-dir <run-dir> --summary` as one line, retaining unsent drafts for the next session.
+A PR goes through `submit-pr` when the user asks. Deploys go through CD only.
 
 ## Stop and ask
 
-- A tripwire tripped, a gate is reached, a lane is `blocked`, or the same finding survived two
+- A tripwire tripped, a gate is reached, a lane needs a material decision or trust/permission
+  review, or the same finding survived two
   rounds.
 - The implementer flagged that the spec and a frozen test cannot both hold.
 - A required capability (second vendor, browser, independent context) is unavailable: record
   the step as not performed; self-review is never relabelled as independent review.
+
+## Harness feedback
+
+Offer feedback when a harness script errors or contradicts its docs; a harness rule forces a
+workaround or manual step; a session-built tool belongs in the harness; the user corrects a
+profile, tier or gate decision; or the user complains about the harness process. Check the
+queue first: `python3 harness/core/scripts/feedback.py list --run-dir <run>`
+(or omit `--run-dir` when there is no run). Compare the underlying problem with all
+recorded drafts, including declined/sent ones; a new title does not make it a new issue.
+Use `list --offerable` only to find existing drafts that still need their first offer.
+Draft each distinct issue once with `draft --kind
+bug|friction|feature --title "<drafted title>" [--from-file <harness-only evidence>]` using the
+same queue selector. At a natural pause after the unit, gate or turn, use `offer <slug>` to
+record and ask exactly: **Offer harness feedback “<drafted title>” for your review?** Never
+interrupt a running decision. The user decides; reuse their answer. A refusal is `decline
+<slug>` in that queue, so it is never offered again; `offer` remembers earlier offers too.
+
+The repository `pharosone/dev-harness` is public. Include only minimal harness reproductions
+and sanitized evidence; no product data. `send <slug>` previews the final sanitized text and
+checks duplicates before creating anything. Show candidate issue links; only use
+`--not-a-duplicate` when the user confirms they are distinct. Publication still needs approval.
+The user must see that text before approval;
+`--yes` is only for their explicit go for that exact text, never an agent's default. If local
+vendored-core edits implement the fix, offer the printed `harness_sync.py propose
+--feedback-file <draft>` command instead; it prepares a PR with the reviewed draft attached.
+Review its code and body before the user authorizes publishing. `--issue` explicitly chooses
+an issue instead. Missing `gh`/auth prints a bounded browser URL; for long drafts, copy
+the full sanitized preview into the form. It stays unsent until
+publication is verified. At a gate and run end, show `feedback.py list --run-dir <run>
+--summary` in one line: **“2 harness feedback drafts waiting: <title>; <title>”**. Declined and
+sent drafts remain recorded, without counting as waiting.
+
+## Skill evals
+
+A new skill, or a change to a skill's instructions, ships with at least one added or changed
+scenario from its purpose or a recorded failure, with graders for the required behaviour.
+Instructions include all files in the skill's directory and its declared references: a
+reference-only edit still changes the skill. The content hash covers that complete bundle.
+The unit is not done without score with the skill, score without it (baseline), Δ, model,
+cost and run date. Require Δ > 0 on every new or changed case and no regression on existing
+cases beyond the overlay tolerance (default 0.05). A case whose Δ stays 0 does not test the
+skill: fix the case. This covers core and product skills, including non-Claude skills.
+
+Run `python3 harness/core/scripts/skill_evals.py run --skill <SKILL.md path> --model <model>
+--run-dir <run> --base <unit base>`; add a cost ceiling with `--max-cost-usd <usd>`.
+Evidence goes to `<run>/evals/<skill>.json` and the skill's eval history; quote the scores,
+Δ, model, cost and run date in the unit report. Run the cheap gate
+`python3 harness/core/scripts/skill_evals.py check --base <unit base>` before accepting the unit.

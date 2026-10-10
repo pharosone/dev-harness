@@ -1,0 +1,1596 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-10-10",
+  "benchmarks": [
+    {
+      "id": "terminal-bench-4.0-aa",
+      "name": "Terminal-Bench 4.0 / AA",
+      "description": "66 terminal tasks, pass@1 over three repeats using mini-swe-agent.",
+      "task_traits": [
+        "terminal",
+        "repo_edit"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/terminalbench-4-0",
+      "category": "task_completion"
+    },
+    {
+      "id": "automationbench-aa",
+      "name": "AutomationBench-AA",
+      "description": "Share of SaaS task objectives completed; a guardrail violation zeros that task. Not the full-task-completion metric.",
+      "task_traits": [
+        "tool_workflow",
+        "instruction"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/automationbench-aa",
+      "category": "task_completion"
+    },
+    {
+      "id": "hle-aa-no-tools",
+      "name": "HLE / AA text-only, no tools",
+      "description": "2,158 text-only questions from the May 2025 HLE revision, pass@1; GPT-5.6 Luna medium equality checker. Difficult reasoning is a review proxy.",
+      "task_traits": [
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/humanitys-last-exam",
+      "category": "task_completion"
+    },
+    {
+      "id": "aa-long-context-v1.1",
+      "name": "AA-LCR v1.1",
+      "description": "100 long-document retrieval and reasoning questions (~100K input), three repeats, equality-checker pass@1.",
+      "task_traits": [
+        "long_context"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/artificial-analysis-long-context-reasoning",
+      "category": "task_completion"
+    },
+    {
+      "id": "aa-omniscience-accuracy",
+      "name": "AA-Omniscience accuracy",
+      "description": "Factual accuracy on 6,000 private questions; distinct from refusal and hallucination metrics.",
+      "task_traits": [
+        "factual",
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/omniscience",
+      "category": "task_completion",
+      "web_research_role": "closed_book_factuality_proxy"
+    },
+    {
+      "id": "aa-omniscience-hallucination-rate",
+      "name": "AA-Omniscience hallucination rate",
+      "description": "Hallucination frequency as defined by AA; lower is better. Refusal behavior affects interpretation.",
+      "task_traits": [
+        "factual",
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": false
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/omniscience",
+      "category": "task_completion",
+      "web_research_role": "closed_book_factuality_proxy"
+    },
+    {
+      "id": "scicode-aa-v1.0.1",
+      "name": "SciCode / AA v1.0.1",
+      "description": "288 Python scientific subproblems with scientist background prompting, pass@1 over three repeats; 300-second grading timeout.",
+      "task_traits": [
+        "algorithmic"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "AA flags SciCode under review; inactive until reliability review resolves.",
+      "url": "https://artificialanalysis.ai/evaluations/scicode",
+      "category": "task_completion"
+    },
+    {
+      "id": "gdp-pdf-aa",
+      "name": "GDP.pdf / AA all-pass",
+      "description": "Professional document reasoning, 100 tasks, five attempts; share of attempts passing every criterion.",
+      "task_traits": [
+        "long_context",
+        "instruction"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/gdp-pdf",
+      "category": "task_completion"
+    },
+    {
+      "id": "terminal-bench-science-0.1-aa",
+      "name": "Terminal-Bench-Science 0.1 / AA",
+      "description": "70 expert research workflows in a terminal; all tests must pass, pass@1 over three repeats.",
+      "task_traits": [
+        "terminal",
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/terminal-bench-science",
+      "category": "task_completion"
+    },
+    {
+      "id": "ifbench-aa",
+      "name": "IFBench / AA",
+      "description": "294 constrained-output questions, rule-based assessment, five repeats.",
+      "task_traits": [
+        "instruction"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/ifbench",
+      "category": "task_completion"
+    },
+    {
+      "id": "gpqa-diamond-aa",
+      "name": "GPQA Diamond / AA",
+      "description": "198 difficult science multiple-choice questions, pass@1.",
+      "task_traits": [
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Removed from AA Intelligence Index in v4.2; frontier saturation reduces discrimination; inactive.",
+      "url": "https://artificialanalysis.ai/evaluations/gpqa",
+      "category": "task_completion"
+    },
+    {
+      "id": "terminal-bench-2.1-aa",
+      "name": "Terminal-Bench 2.1 / AA",
+      "description": "89 terminal tasks, Terminus 2 on E2B, pass@1 averaged over three repeats.",
+      "task_traits": [
+        "terminal"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Superseded by 4.0 for current routing; retain independently versioned observations only.",
+      "url": "https://artificialanalysis.ai/evaluations/terminalbench-2-1",
+      "category": "task_completion"
+    },
+    {
+      "id": "tau2-telecom-aa",
+      "name": "tau²-bench Telecom / AA",
+      "description": "Dual-control telecom support tool use; preserve the domain and user simulator protocol.",
+      "task_traits": [
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Legacy AA suite; replaced by tau³-Banking; no current scoped scores verified.",
+      "url": "https://artificialanalysis.ai/evaluations/tau2-bench",
+      "category": "task_completion"
+    },
+    {
+      "id": "livecodebench-aa-legacy",
+      "name": "LiveCodeBench / AA legacy",
+      "description": "AA legacy competitive-code generation evaluation; sample date window is unverified in this snapshot.",
+      "task_traits": [
+        "algorithmic"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "AA retired active reporting; exact historical sample window unknown. No routing use.",
+      "url": "https://artificialanalysis.ai/evaluations/livecodebench",
+      "category": "task_completion"
+    },
+    {
+      "id": "aa-analyst-agent-pass5",
+      "name": "AA-AnalystAgent pass^5",
+      "description": "80 data-analysis questions, five attempts; headline requires success in all five.",
+      "task_traits": [
+        "algorithmic",
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/aa-analyst-agent",
+      "category": "task_completion"
+    },
+    {
+      "id": "aa-intelligence-v4.3.2",
+      "name": "AA Intelligence Index v4.3.2",
+      "description": "Composite of ten AA evaluations; do not double count against its constituents.",
+      "task_traits": [
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "index",
+      "active": false,
+      "saturation_note": "Composite retained for reference only; routing should use task-specific component results.",
+      "url": "https://artificialanalysis.ai/methodology/intelligence-benchmarking",
+      "category": "composite"
+    },
+    {
+      "id": "aa-briefcase-v1.1",
+      "name": "AA-Briefcase v1.1 Elo",
+      "description": "Combined rubric, analytical quality and presentation Elo for 91 long-horizon professional tasks.",
+      "task_traits": [
+        "tool_workflow",
+        "instruction"
+      ],
+      "normalization": {
+        "min": 500,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/aa-briefcase",
+      "category": "task_completion"
+    },
+    {
+      "id": "gdpval-aa-v2.1",
+      "name": "GDPval-AA v2.1 Elo",
+      "description": "Blind pairwise judgments for 220 professional tasks across 44 occupations; frozen/scaled anchor, Stirrup agent loop.",
+      "task_traits": [
+        "tool_workflow",
+        "instruction"
+      ],
+      "normalization": {
+        "min": 500,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/evaluations/gdpval-aa",
+      "category": "task_completion"
+    },
+    {
+      "id": "aa-cost-per-task-v4.3.2",
+      "name": "AA cost per Intelligence Index task",
+      "description": "Weighted task cost; token prices, token use and cache behavior included.",
+      "task_traits": [
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 20,
+        "higher_is_better": false
+      },
+      "unit": "USD/task",
+      "active": false,
+      "saturation_note": "Cost measure, not quality. Fixed display scale 0–20 USD, not a probability.",
+      "url": "https://artificialanalysis.ai/methodology/intelligence-benchmarking",
+      "category": "operational"
+    },
+    {
+      "id": "aa-output-speed",
+      "name": "AA output speed",
+      "description": "Median first-party API decode tokens/second after first chunk; excludes thinking/first-token time.",
+      "task_traits": [
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 500,
+        "higher_is_better": true
+      },
+      "unit": "tokens/s",
+      "active": false,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/methodology",
+      "category": "operational"
+    },
+    {
+      "id": "aa-first-chunk-latency",
+      "name": "AA first-chunk latency",
+      "description": "Median seconds to first response chunk; includes reasoning delay where reported.",
+      "task_traits": [
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 1000,
+        "higher_is_better": false
+      },
+      "unit": "seconds",
+      "active": false,
+      "saturation_note": "Not saturated in the observed snapshot.",
+      "url": "https://artificialanalysis.ai/methodology",
+      "category": "operational"
+    },
+    {
+      "id": "terminal-bench-4.0-anthropic",
+      "name": "Terminal-Bench 4.0 / Anthropic",
+      "description": "Vendor-hosted release-table evaluation; effort/harness unspecified unless explicitly recorded.",
+      "task_traits": [
+        "terminal",
+        "repo_edit"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Self-reported release table. Full scaffold/effort missing for some rows; use only a verified comparable cohort.",
+      "url": "https://www.anthropic.com/claude-haiku-5-5",
+      "category": "task_completion"
+    },
+    {
+      "id": "frontiercode-1.1-main-anthropic",
+      "name": "FrontierCode 1.1 Main / Anthropic",
+      "description": "Merge-readiness score from vendor release tables; not Extended subset.",
+      "task_traits": [
+        "repo_edit"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Self-reported release table. Full scaffold/effort missing for some rows; use only a verified comparable cohort.",
+      "url": "https://www.anthropic.com/claude-haiku-5-5",
+      "category": "task_completion"
+    },
+    {
+      "id": "hle-anthropic-tools",
+      "name": "HLE / Anthropic with tools",
+      "description": "Vendor HLE evaluation with tools; incompatible with AA text-only no-tools.",
+      "task_traits": [
+        "review",
+        "tool_workflow",
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Self-reported release table. Full scaffold/effort missing for some rows; use only a verified comparable cohort.",
+      "url": "https://www.anthropic.com/claude-haiku-5-5",
+      "category": "task_completion",
+      "web_research_role": "academic_reasoning_with_search_proxy"
+    },
+    {
+      "id": "hle-anthropic-no-tools",
+      "name": "HLE / Anthropic no tools",
+      "description": "Vendor HLE no-tools protocol; task subset/grade details unverified.",
+      "task_traits": [
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Self-reported release table. Full scaffold/effort missing for some rows; use only a verified comparable cohort.",
+      "url": "https://www.anthropic.com/claude-haiku-5-5",
+      "category": "task_completion"
+    },
+    {
+      "id": "osworld-2.1-offline-anthropic",
+      "name": "OSWorld 2.1 offline subset / Anthropic",
+      "description": "Computer-use task completion, offline subset only.",
+      "task_traits": [
+        "browser"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Self-reported release table. Full scaffold/effort missing for some rows; use only a verified comparable cohort.",
+      "url": "https://www.anthropic.com/claude-haiku-5-5",
+      "category": "task_completion"
+    },
+    {
+      "id": "osworld-2.1-partial-anthropic",
+      "name": "OSWorld 2.1 partial / Anthropic",
+      "description": "Partial-credit metric, separately versioned from offline task completion.",
+      "task_traits": [
+        "browser"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Self-reported release table. Full scaffold/effort missing for some rows; use only a verified comparable cohort.",
+      "url": "https://www.anthropic.com/claude-haiku-5-5",
+      "category": "task_completion"
+    },
+    {
+      "id": "cursorbench-4.0-anthropic",
+      "name": "CursorBench 4.0 / Anthropic",
+      "description": "Ambiguous multi-file tasks drawn from real Cursor sessions.",
+      "task_traits": [
+        "repo_edit"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Self-reported release table. Full scaffold/effort missing for some rows; use only a verified comparable cohort.",
+      "url": "https://www.anthropic.com/claude-haiku-5-5",
+      "category": "task_completion"
+    },
+    {
+      "id": "swe-bench-verified",
+      "name": "SWE-bench Verified",
+      "description": "500 human-filtered repository issue fixes.",
+      "task_traits": [
+        "repo_edit"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Public frontier clustering and contamination concerns; no verified scoped model rows collected.",
+      "url": "https://www.swebench.com/",
+      "category": "task_completion"
+    },
+    {
+      "id": "swe-bench-pro",
+      "name": "SWE-bench Pro",
+      "description": "Harder multi-repository software issue resolution.",
+      "task_traits": [
+        "repo_edit"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "No exact current scoped rows established from primary leaderboard.",
+      "url": "https://labs.scale.com/leaderboard/swe_bench_pro",
+      "category": "task_completion"
+    },
+    {
+      "id": "aider-polyglot",
+      "name": "Aider Polyglot",
+      "description": "225 Exercism edits across six programming languages.",
+      "task_traits": [
+        "polyglot"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Opened board still reports historical generations; excluded from latest-only dataset and inactive.",
+      "url": "https://aider.chat/docs/leaderboards/",
+      "category": "task_completion"
+    },
+    {
+      "id": "swe-lancer",
+      "name": "SWE-Lancer",
+      "description": "Freelance software implementation and engineering-management tasks.",
+      "task_traits": [
+        "repo_edit"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "No current scoped comparable values verified.",
+      "url": "https://github.com/openai/SWELancer-Benchmark",
+      "category": "task_completion"
+    },
+    {
+      "id": "browsecomp",
+      "name": "BrowseComp",
+      "description": "Difficult web research with multi-step browsing.",
+      "task_traits": [
+        "browser",
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Scaffold and compaction choices matter; no comparable current scoped rows established.",
+      "url": "https://github.com/openai/simple-evals",
+      "category": "task_completion",
+      "web_research_role": "information_discovery"
+    },
+    {
+      "id": "arc-agi-2",
+      "name": "ARC-AGI-2",
+      "description": "Novel visual-rule abstraction; pass rate depends on test-time compute.",
+      "task_traits": [
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Latest frontier reports have shifted to ARC-AGI-3; no verified scoped version-2 cohort retained.",
+      "url": "https://arcprize.org/leaderboard",
+      "category": "task_completion"
+    },
+    {
+      "id": "mrcr-v2-8needle-1m",
+      "name": "MRCR v2 / 8 needles / 512K–1M",
+      "description": "Long-context multi-round coreference retrieval, eight needles, 512K–1M length bucket.",
+      "task_traits": [
+        "long_context"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "No verified shared current scoped effort cohort; AA-LCR is a distinct proxy, not MRCR.",
+      "url": "https://github.com/openai/mrcr",
+      "category": "task_completion"
+    },
+    {
+      "id": "simpleqa",
+      "name": "SimpleQA",
+      "description": "Short factual-answer accuracy; hallucination/refusal must be interpreted separately.",
+      "task_traits": [
+        "factual",
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "No current scoped rows verified; AA-Omniscience is retained as a separate benchmark.",
+      "url": "https://github.com/openai/simple-evals",
+      "category": "task_completion",
+      "web_research_role": "closed_book_factuality_proxy"
+    },
+    {
+      "id": "sec-bench-pro",
+      "name": "SEC-bench Pro",
+      "description": "Long-horizon security investigation and patching across V8, SpiderMonkey and Linux.",
+      "task_traits": [
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Credible public security benchmark; restricted-access/safeguard modes not comparable to ordinary harness review; no rows retained.",
+      "url": "https://github.com/SEC-bench/SEC-bench-Pro",
+      "category": "task_completion"
+    },
+    {
+      "id": "aacr-bench",
+      "name": "AACR-Bench",
+      "description": "Expert-verified multilingual repository-context automated code review.",
+      "task_traits": [
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Relevant code-review benchmark; no current four-family generation scores verified.",
+      "url": "https://github.com/alibaba/aacr-bench",
+      "category": "task_completion"
+    },
+    {
+      "id": "deepswe-1.1-google",
+      "name": "DeepSWE v1.1 / Google",
+      "description": "Long-horizon repository engineering; vendor launch headline, scaffold/effort not stated.",
+      "task_traits": [
+        "repo_edit"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Self-reported; exact effort/scaffold unknown, so report-only until a compatible protocol is verified.",
+      "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
+      "category": "task_completion"
+    },
+    {
+      "id": "automationbench-full-google",
+      "name": "AutomationBench full completion / Google",
+      "description": "Full tasks completed, not AA partial objective score.",
+      "task_traits": [
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Self-reported; exact effort/scaffold unknown, so report-only until a compatible protocol is verified.",
+      "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
+      "category": "task_completion"
+    },
+    {
+      "id": "cwe-bench-v1-google",
+      "name": "CWE-bench v1 / Google",
+      "description": "Security vulnerability remediation, generation-v1 protocol; vendor launch headline.",
+      "task_traits": [
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Self-reported; exact effort/scaffold unknown, so report-only until a compatible protocol is verified.",
+      "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-argon/",
+      "category": "task_completion"
+    },
+    {
+      "id": "arena-text",
+      "name": "Arena Text",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "instruction"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": false,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/text",
+      "category": "preference"
+    },
+    {
+      "id": "arena-text-coding",
+      "name": "Arena Text Coding",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "repo_edit"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/text/coding",
+      "category": "preference"
+    },
+    {
+      "id": "arena-text-hard-prompts",
+      "name": "Arena Text Hard Prompts",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/text/hard-prompts",
+      "category": "preference"
+    },
+    {
+      "id": "arena-text-math",
+      "name": "Arena Text Math",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "algorithmic"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/text/math",
+      "category": "preference"
+    },
+    {
+      "id": "arena-text-instruction-following",
+      "name": "Arena Text Instruction Following",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "instruction"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/text/instruction-following",
+      "category": "preference"
+    },
+    {
+      "id": "arena-text-multi-turn",
+      "name": "Arena Text Multi Turn",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/text/multi-turn",
+      "category": "preference"
+    },
+    {
+      "id": "arena-text-longer-query",
+      "name": "Arena Text Longer Query",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "long_context"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": false,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/text/longer-query",
+      "category": "preference"
+    },
+    {
+      "id": "arena-text-creative-writing",
+      "name": "Arena Text Creative Writing",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "instruction"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": false,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/text/creative-writing",
+      "category": "preference"
+    },
+    {
+      "id": "arena-text-expert",
+      "name": "Arena Text Expert",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "review"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/text/expert",
+      "category": "preference"
+    },
+    {
+      "id": "arena-webdev",
+      "name": "Arena Webdev",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "browser",
+        "repo_edit"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/code/webdev",
+      "category": "preference"
+    },
+    {
+      "id": "arena-search",
+      "name": "Arena Search",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "browser",
+        "factual",
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/search",
+      "category": "preference",
+      "web_research_role": "human_search_preference"
+    },
+    {
+      "id": "arena-vision",
+      "name": "Arena Vision",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "browser"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/chat/vision",
+      "category": "preference"
+    },
+    {
+      "id": "arena-image-to-webdev",
+      "name": "Arena Image To Webdev",
+      "description": "Human pairwise preference rating for this category; not task-completion accuracy. Higher rating means preferred outputs under the source settings.",
+      "task_traits": [
+        "browser"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 2500,
+        "higher_is_better": true
+      },
+      "unit": "Elo",
+      "active": true,
+      "saturation_note": "Human preference; planned design caps relevant preference at 15%. Category samples, style control, CIs and votes matter; do not treat this as objective coding accuracy.",
+      "url": "https://arena.ai/leaderboard/code/image-to-webdev",
+      "category": "preference"
+    },
+    {
+      "id": "arena-agent-code-net-improvement",
+      "name": "Agent Arena Code net improvement",
+      "description": "Causal net improvement estimated from real coding-agent sessions; not Elo or a raw pass rate.",
+      "task_traits": [
+        "repo_edit",
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": -100,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percentage_points",
+      "active": false,
+      "saturation_note": "Report-only: causal treatment effect depends on assignment baseline and Arena tool stack. Five signal pipelines; 95% confidence intervals, not pairwise votes.",
+      "url": "https://arena.ai/leaderboard/agent/code",
+      "category": "observational_agent"
+    },
+    {
+      "id": "simpleqa-verified-epoch-anti-abstention",
+      "name": "SimpleQA Verified / Epoch anti-abstention accuracy",
+      "description": "1,000 closed-book factoid questions with Epoch anti-abstention instruction; raw correct-answer proportion, NOT Google F1 and NOT citation accuracy.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Protocol changed 2026-08-27; use post-change evaluations only. No tools/search; useful factuality proxy, not lead-dossier validation.",
+      "url": "https://epoch.ai/benchmarks/simple-qa-verified",
+      "category": "task_completion",
+      "web_research_role": "closed_book_factuality_proxy",
+      "metric_group": "simpleqa-verified-epoch-anti-abstention"
+    },
+    {
+      "id": "browsecomp-mercor-130",
+      "name": "BrowseComp / Mercor 130-question subset",
+      "description": "130 public questions, four runs, pass@1; web-research agent, 100 steps, 3-hour limit, Gemini 3.5 Flash grader.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Short-answer correctness, not citation/report accuracy or 15-minute quality. Source sample counts vary; missing-run/denominator policy undisclosed; uncertainty error is not a verified CI.",
+      "url": "https://www.mercor.com/apex/oss-benchmarks/oss-browsecomp-leaderboard/",
+      "category": "task_completion",
+      "web_research_role": "information_discovery",
+      "metric_group": "browsecomp-mercor-130",
+      "task_count": 130,
+      "methodology_url": "https://www.mercor.com/apex/methodology/",
+      "trials_per_task": 4,
+      "time_limit_seconds": 10800,
+      "max_steps": 100,
+      "judge_model": "Gemini 3.5 Flash"
+    },
+    {
+      "id": "browsecomp-mercor-extended-100",
+      "name": "BrowseComp Extended / Mercor 100-task set",
+      "description": "Separate 100-task held-out Mercor set; no pooled 230-question score. Exact repeats, tools, time limit and grader unverified.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Short-answer correctness, not citation/report accuracy or 15-minute quality. Source sample counts vary; missing-run/denominator policy undisclosed; uncertainty error is not a verified CI.",
+      "url": "https://www.mercor.com/apex/mercor-extended/ots-held-out-browsecomp-leaderboard/",
+      "category": "task_completion",
+      "web_research_role": "information_discovery",
+      "metric_group": "browsecomp-mercor-extended-100",
+      "task_count": 100,
+      "methodology_url": "https://www.mercor.com/apex/methodology/",
+      "trials_per_task": null,
+      "time_limit_seconds": null,
+      "max_steps": null,
+      "judge_model": null
+    },
+    {
+      "id": "draco-anthropic-opus46-grader-2026-09",
+      "name": "DRACO / Anthropic Opus-4.6 regrading, September 2026",
+      "description": "100 expert-rubric research reports; 980K token task budget, web search/fetch, programmatic tool calling, code execution; final report file graded five times by Opus 4.6.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Self-reported rubric score. Changed grader can shift absolute scores 10–25 points relative to original Perplexity; no 15-minute quality or cost-from-log-chart claim.",
+      "url": "https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf",
+      "category": "task_completion",
+      "web_research_role": "research_report_quality",
+      "metric_group": "draco",
+      "task_budget_tokens": 980000,
+      "judge_model": "claude-opus-4-6"
+    },
+    {
+      "id": "wandr-anthropic-frozen-opus46-grader-2026-09",
+      "name": "WANDR / Anthropic frozen index, Opus-4.6 grader",
+      "description": "500 wide-research tasks with structured entity facts and citations; FROZEN search/fetch index, 980K token budget; Opus 4.6 re-fetches cited evidence. Soft F1 balances supported fact precision and requested fact recall.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": true,
+      "saturation_note": "Soft F1, not raw citation precision. Frozen corpus/Opus4.6 grader differs from original live-web/GPT5.4 protocol; no 15-minute claim.",
+      "url": "https://www-cdn.anthropic.com/fc1b44717c85dc068bc6ba5024219938094694bd/Claude%20Opus%205.5%20System%20Card.pdf",
+      "category": "task_completion",
+      "web_research_role": "supported_fact_precision_recall",
+      "metric_group": "wandr",
+      "task_budget_tokens": 980000,
+      "judge_model": "claude-opus-4-6"
+    },
+    {
+      "id": "draco-anthropic-fable-card-2026-09-01",
+      "name": "DRACO / Fable 5.1 launch-card cohort",
+      "description": "Earlier Fable launch-card evaluation; preserve independently from its later re-evaluation in Opus card.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Same current model, distinct evaluation cohort: do not overwrite or average later Opus-card re-evaluation.",
+      "url": "https://www-cdn.anthropic.com/0339e6a7c5c7b87f5c07798616dc32c215d14235/Claude%20Fable%205.1%20&%20Claude%20Mythos%205.1%20System%20Card.pdf",
+      "category": "task_completion",
+      "web_research_role": "research_report_quality",
+      "metric_group": "draco",
+      "task_budget_tokens": 980000,
+      "judge_model": "claude-opus-4-6"
+    },
+    {
+      "id": "browsecomp-openai-launch-2026-09",
+      "name": "BrowseComp / OpenAI Astra launch",
+      "description": "Original BrowseComp vendor launch; maximum at any effort, research/API environment.",
+      "task_traits": [
+        "browser",
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Self-reported, exact effort undisclosed: report-only. Production system prompts/tools can differ; do not transfer to a named effort.",
+      "url": "https://openai.com/index/gpt-6-astra/",
+      "category": "task_completion",
+      "web_research_role": "information_discovery",
+      "metric_group": "browsecomp-openai-launch-2026-09"
+    },
+    {
+      "id": "hle-openai-tools-launch-2026-09",
+      "name": "HLE with tools / OpenAI Astra launch",
+      "description": "Academic tool-enabled headline, maximum across any effort; not the AA no-tools subset.",
+      "task_traits": [
+        "review",
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Self-reported, exact effort undisclosed: report-only. Production system prompts/tools can differ; do not transfer to a named effort.",
+      "url": "https://openai.com/index/gpt-6-astra/",
+      "category": "task_completion",
+      "web_research_role": "academic_reasoning_with_search_proxy",
+      "metric_group": "hle-openai-tools-launch-2026-09"
+    },
+    {
+      "id": "mrcr-v2-8needle-512k-1m-openai-launch",
+      "name": "MRCR v2 / 8 needles / 512K–1M / OpenAI launch",
+      "description": "Long-context retrieval; 512K–1M bucket, eight needles, maximum across any effort.",
+      "task_traits": [
+        "long_context"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Self-reported, exact effort undisclosed: report-only. Production system prompts/tools can differ; do not transfer to a named effort.",
+      "url": "https://openai.com/index/gpt-6-astra/",
+      "category": "task_completion",
+      "web_research_role": "long_context_retrieval",
+      "metric_group": "mrcr-v2-8needle-512k-1m-openai-launch"
+    },
+    {
+      "id": "browsecomp-plus-fixed-corpus",
+      "name": "BrowseComp-Plus fixed corpus",
+      "description": "830 reasoning-intensive queries over ~100K verified documents; retriever/scaffold/grade must be retained.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Maintainer CSV has 85 agent/retriever rows; no retained current model. Separate from live-web BrowseComp.",
+      "url": "https://huggingface.co/datasets/Tevatron/BrowseComp-Plus-results",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "browsecomp-plus-fixed-corpus"
+    },
+    {
+      "id": "deepresearch-bench-i-race",
+      "name": "DeepResearch Bench I / RACE",
+      "description": "100 PhD-level tasks, 50 English/50 Chinese, 22 fields; adaptive reference-based report-quality rubric.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Maintainer CSV reports products/custom agents and older models; no exact retained base-model/scaffold cohort.",
+      "url": "https://deepresearch-bench.github.io/",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "deepresearch-bench-i-race"
+    },
+    {
+      "id": "deepresearch-bench-i-fact-citation",
+      "name": "DeepResearch Bench I / FACT citation accuracy",
+      "description": "FACT tests whether citations support cited claims; distinct from RACE report quality and effective citation count.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "No current retained base-model citation-accuracy row. Product score cannot be transferred to underlying model.",
+      "url": "https://deepresearch-bench.github.io/",
+      "category": "task_completion",
+      "web_research_role": "citation_support",
+      "metric_group": "deepresearch-bench-i-fact-citation"
+    },
+    {
+      "id": "deepresearch-bench-ii",
+      "name": "DeepResearch Bench II",
+      "description": "Maintainer portal labels Bench I and Bench II separately; no matching current base-model result verified.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Version/protocol difference unverified here; no values or cross-version score transfer.",
+      "url": "https://muset-ai-deepresearch-bench-leaderboard.hf.space/",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "deepresearch-bench-ii"
+    },
+    {
+      "id": "deep-research-bench-futuresearch",
+      "name": "Deep Research Bench / FutureSearch",
+      "description": "169 diverse frozen-web research tasks with curated answers; ReAct/RetroSearch, category-averaged scoring.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Different benchmark from 100-task DeepResearch Bench. Board last updated 2026-06-10; no retained current models.",
+      "url": "https://drb.futuresearch.ai/",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "deep-research-bench-futuresearch"
+    },
+    {
+      "id": "deepconsult",
+      "name": "DeepConsult",
+      "description": "102 business/consulting queries with paired research-report grading six times per query.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "ARI versus OpenAI Deep Research is a product comparison; no retained current base-model identity/protocol.",
+      "url": "https://github.com/youdotcom-oss/ydc-deep-research-evals",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "deepconsult"
+    },
+    {
+      "id": "deepresearch-arena-seminar",
+      "name": "DeepResearch Arena / seminar tasks",
+      "description": "Research tasks grounded in academic seminars, over 10K tasks across 12 disciplines; paper defines research-specific grading.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "No exact retained current base-model results verified; distinct from sandbox Deep Research Arena and arena.ai.",
+      "url": "https://arxiv.org/abs/2509.01396",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "deepresearch-arena-seminar"
+    },
+    {
+      "id": "deepresearch-arena-sandbox",
+      "name": "Deep Research Arena / frozen sandbox",
+      "description": "13-task diagnostic harness×backbone board; URL reachability gate multiplied by jury win rate.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Board has 11 harnesses over two non-scope backbones; no retained model. URL reachability alone is not claim support.",
+      "url": "https://www.deepresearcharena.com/",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "deepresearch-arena-sandbox"
+    },
+    {
+      "id": "gaia-test",
+      "name": "GAIA test set",
+      "description": "General assistant questions requiring reasoning, web search, files and tools; three levels; board reports best submissions.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Public table has agent ensembles/generic family labels and older versions; no unambiguous retained current model score.",
+      "url": "https://gaia-benchmark-leaderboard.hf.space/",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "gaia-test"
+    },
+    {
+      "id": "webarena-functional",
+      "name": "WebArena functional success",
+      "description": "Self-hosted web tasks with programmatic end-state checks across shopping/forums/GitLab/CMS.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Exact current model/observation-space/action-scaffold cohort missing. Web task actions differ from a read-only lead brief.",
+      "url": "https://webarena.dev/og/",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "webarena-functional"
+    },
+    {
+      "id": "webvoyager",
+      "name": "WebVoyager",
+      "description": "End-to-end multimodal browser navigation on live websites; evaluator/human-check settings matter.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Maintainer release describes earlier models; no exact retained current class score established.",
+      "url": "https://github.com/MinorJerry/WebVoyager",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "webvoyager"
+    },
+    {
+      "id": "online-mind2web",
+      "name": "Online-Mind2Web",
+      "description": "300 live-web tasks on 136 sites; updated task set, human checks/WebJudge.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Both primary tables inspected (13 and 20 rows); no exact retained current model. Generic labels not resolved by guessing.",
+      "url": "https://huggingface.co/spaces/osunlp/Online_Mind2Web_Leaderboard",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "online-mind2web"
+    },
+    {
+      "id": "simpleqa-verified-google-f1",
+      "name": "SimpleQA Verified / Google F1",
+      "description": "1,000 short-answer factuality prompts; harmonic mean of overall accuracy and attempted-answer accuracy, not Epoch raw accuracy.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Kaggle page did not expose current numeric rows to the reader; Epoch raw accuracy remains separately sourced.",
+      "url": "https://www.kaggle.com/benchmarks/deepmind/simpleqa-verified",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "simpleqa-verified-google-f1"
+    },
+    {
+      "id": "frames",
+      "name": "FRAMES",
+      "description": "824 multi-hop Wikipedia questions evaluating factuality, retrieval and reasoning; search/RAG protocol must be specified.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "No exact current model/harness comparison verified; do not transfer DeepResearch product scores.",
+      "url": "https://huggingface.co/datasets/google/frames-benchmark",
+      "category": "task_completion",
+      "web_research_role": "research_or_browsing",
+      "metric_group": "frames"
+    },
+    {
+      "id": "factscore-atomic-precision",
+      "name": "FActScore atomic factual precision",
+      "description": "Breaks generated text into atomic claims and measures supported proportion using a specified knowledge source.",
+      "task_traits": [
+        "web_research"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 100,
+        "higher_is_better": true
+      },
+      "unit": "percent",
+      "active": false,
+      "saturation_note": "Framework verified; no current retained model measured with a specified evaluator/retriever/context cohort.",
+      "url": "https://github.com/shmsw25/FActScore",
+      "category": "task_completion",
+      "web_research_role": "citation_support",
+      "metric_group": "factscore-atomic-precision"
+    },
+    {
+      "id": "aa-output-tokens-per-task-v4.3.2",
+      "name": "AA suite-weighted output tokens/task",
+      "description": "AA benchmark-weighted token use per Intelligence Index task; provider counts when available, canonical fallback otherwise. Not subscription quota burn.",
+      "task_traits": [
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 1000000,
+        "higher_is_better": false
+      },
+      "unit": "tokens/task",
+      "active": false,
+      "saturation_note": "Operational benchmark-suite proxy only; no local quota calibration, lead-task latency, failure or rework measurement.",
+      "url": "https://artificialanalysis.ai/methodology/intelligence-benchmarking",
+      "category": "operational",
+      "metric_group": "aa-suite-resource-v4.3.2"
+    },
+    {
+      "id": "aa-reasoning-tokens-per-task-v4.3.2",
+      "name": "AA suite-weighted reasoning tokens/task",
+      "description": "AA benchmark-weighted token use per Intelligence Index task; provider counts when available, canonical fallback otherwise. Not subscription quota burn.",
+      "task_traits": [
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 1000000,
+        "higher_is_better": false
+      },
+      "unit": "tokens/task",
+      "active": false,
+      "saturation_note": "Operational benchmark-suite proxy only; no local quota calibration, lead-task latency, failure or rework measurement.",
+      "url": "https://artificialanalysis.ai/methodology/intelligence-benchmarking",
+      "category": "operational",
+      "metric_group": "aa-suite-resource-v4.3.2"
+    },
+    {
+      "id": "aa-answer-tokens-per-task-v4.3.2",
+      "name": "AA suite-weighted answer tokens/task",
+      "description": "AA benchmark-weighted token use per Intelligence Index task; provider counts when available, canonical fallback otherwise. Not subscription quota burn.",
+      "task_traits": [
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 1000000,
+        "higher_is_better": false
+      },
+      "unit": "tokens/task",
+      "active": false,
+      "saturation_note": "Operational benchmark-suite proxy only; no local quota calibration, lead-task latency, failure or rework measurement.",
+      "url": "https://artificialanalysis.ai/methodology/intelligence-benchmarking",
+      "category": "operational",
+      "metric_group": "aa-suite-resource-v4.3.2"
+    },
+    {
+      "id": "aa-derived-decode-time-per-task-v4.3.2",
+      "name": "AA suite-weighted derived decode seconds/task",
+      "description": "AA benchmark-weighted decode-time estimate: output-token use divided by output speed and weighted across evaluations. Excludes first-token delay and overhead; not wall-clock agent task time.",
+      "task_traits": [
+        "tool_workflow"
+      ],
+      "normalization": {
+        "min": 0,
+        "max": 3600,
+        "higher_is_better": false
+      },
+      "unit": "seconds/task",
+      "active": false,
+      "saturation_note": "Operational benchmark-suite proxy only; no local quota calibration, lead-task latency, failure or rework measurement.",
+      "url": "https://artificialanalysis.ai/methodology/intelligence-benchmarking",
+      "category": "operational",
+      "metric_group": "aa-suite-resource-v4.3.2"
+    }
+  ]
+}
