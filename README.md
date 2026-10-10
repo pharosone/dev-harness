@@ -207,7 +207,7 @@ for your review?** The user decides; a declined offer is recorded and never repe
 
 ```sh
 python3 harness/core/scripts/feedback.py draft --kind bug --title "<title>" --from-file <harness-only.md> --task <task>
-python3 harness/core/scripts/feedback.py list --task <task> --offerable
+python3 harness/core/scripts/feedback.py list --task <task>
 python3 harness/core/scripts/feedback.py offer <slug> --task <task>
 python3 harness/core/scripts/feedback.py decline <slug> --task <task>
 python3 harness/core/scripts/feedback.py send <slug> --task <task>
@@ -216,6 +216,8 @@ python3 harness/core/scripts/feedback.py send <slug> --task <task>
 Drafts live in `<run>/feedback/<slug>.md`. Use `--task` for the primary checkout's durable run,
 `--run-dir` for an existing run directory (including an overlay-owned one), or omit both for
 `<checkout>/.harness/feedback`. A repeated title retains the existing draft and its state.
+Check the full list before drafting: compare the problem with declined/sent drafts even if its wording changed.
+Use `list --offerable` only to find existing drafts awaiting their first offer.
 `list` shows draft, declined, or sent with its URL; `offer` records the one-time question.
 At each taste gate and run end, `pharos-dev` shows `list --summary` using the same queue:
 “2 harness feedback drafts waiting: <title>; <title>”.
@@ -225,8 +227,10 @@ with `gh issue list --search` (open and closed), and creates an issue in the `co
 which must resolve to `pharosone/dev-harness`. Possible duplicates are shown with issue links
 and block creation for review. If the user confirms they are distinct, rerun with
 `--not-a-duplicate`; publication still needs approval. Approval is for the displayed text;
-agents use `--yes` only after the user's explicit go. Without `gh` or authentication, a prefilled `issues/new` URL is printed and the draft stays
-unsent. A send error retains the draft; check upstream before retrying an ambiguous failure.
+agents use `--yes` only after the user's explicit go. Without `gh` or authentication, an
+`issues/new` URL of at most 2,000 characters is printed and the draft stays unsent. If the encoded body would exceed that limit, copy the full sanitized preview into
+the form; an oversized title must also be copied. A send error retains the draft; check
+upstream before retrying an ambiguous failure.
 
 With local edits in the vendored core, `send` offers `harness_sync.py propose --feedback-file
 <draft>` instead of creating an issue. That option attaches a link and the reviewed draft to
@@ -237,8 +241,10 @@ the draft sent. Declined or sent attachments are refused. Use `send --issue` to 
 choose an issue instead; this works even in a copied or shallow core without subtree history.
 
 **No product data:** use a synthetic, minimal harness reproduction. The mandatory sanitizer
-removes product/overlay names as whole words or path components, absolute paths outside the
-core (including redirects and HTML), emails, IPs, known keys/tokens,
+removes product/overlay names case-insensitively as whole words or token parts delimited
+by `-`, `_`, `.`, `/` or digits, while preserving ordinary words such as `application`
+for a name of `app`. It also scrubs absolute paths outside the core (including redirects
+and HTML), emails, IPs, known keys/tokens,
 and extra literal terms in `project.json → feedback.redact` ([overlay](docs/overlay.md#feedback)).
 Names shared with harness scripts or commands preserve those harness terms. Explicit private
 terms remain literal redactions. Sanitized placeholders and Markdown link punctuation survive.

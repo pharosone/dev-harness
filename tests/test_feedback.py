@@ -382,6 +382,85 @@ class FeedbackTest(unittest.TestCase):
                 raw = 'dev-harness Freeze lanes.py https://github.com/pharosone/dev-harness/issues/1'
                 self.assertEqual(feedback.sanitize(raw, self.root), raw)
 
+    def test_product_names_match_separated_token_parts_case_insensitively(self):
+        self.config['name'] = 'Acme'
+        self.save_config()
+        for token, expected in (
+            ('acme-billing', '[private]-billing'), ('acme_api', '[private]_api'),
+            ('ACME-123', '[private]-123'), ('acme.worker', '[private].worker'),
+            ('worker/acme', 'worker/[private]'), ('acme123', '[private]123'),
+            ('123AcMe', '123[private]'), ('worker_acme_retry', 'worker_[private]_retry'),
+            ('123acme456', '123[private]456'), ('Acme123Acme', '[private]123[private]'),
+        ):
+            with self.subTest(token=token):
+                clean = feedback.sanitize(token, self.root)
+                self.assertEqual(clean, expected)
+                self.assertEqual(feedback.sanitize(clean, self.root), clean)
+        ordinary = 'acmeology macme acméacme acmeé dev-harness feedback.py application happy'
+        self.assertEqual(feedback.sanitize(ordinary, self.root), ordinary)
+        self.config['name'] = 'app'
+        self.save_config()
+        self.assertEqual(feedback.sanitize('app_api app123 application happy', self.root),
+                         '[private]_api [private]123 application happy')
+        for name, raw, expected in (
+            ('dev', 'dev_api dev-harness', '[private]_api dev-harness'),
+            ('task', 'task-123 task_state.py', '[private]-123 task_state.py'),
+            ('core-acme', 'core-acme_api core', '[private]_api core'),
+            ('state-acme', 'task_state-acme_api task_state.py', 'task_[private]_api task_state.py'),
+        ):
+            with self.subTest(harness_part=name):
+                self.config['name'] = name
+                self.save_config()
+                self.assertEqual(feedback.sanitize(raw, self.root), expected)
+
+    def test_checkout_names_match_separated_token_parts(self):
+        for name in ('acme', 'acme-client'):
+            with self.subTest(name=name), patch.object(
+                    feedback.task_state, 'checkouts', return_value=(Path('/synthetic') / name, None)):
+                raw = f'{name.upper()}_api worker-{name}.log ticket/{name}123'
+                self.assertEqual(feedback.sanitize(raw, self.root),
+                                 '[private]_api worker-[private].log ticket/[private]123')
+        for name in ('freeze', 'lanes', *feedback.UPSTREAM.split('/')):
+            with self.subTest(name=name), patch.object(
+                    feedback.task_state, 'checkouts', return_value=(Path('/synthetic') / name, None)):
+                raw = f'{name}_api {name}-123 {name}.py dev-harness feedback.py'
+                self.assertEqual(feedback.sanitize(raw, self.root), raw)
+
+    def test_token_part_names_are_scrubbed_at_draft_and_send_boundaries(self):
+        self.config['name'] = 'Acme'
+        self.save_config()
+        source = self.root / 'source.md'
+        source.write_text('## What happened\nacme_api worker/acme123\n')
+        path = self.draft(title='acme-billing guard', from_file=source)
+        self.assertNotIn('acme', path.read_text().lower())
+        meta, body = feedback.read(path)
+        feedback.write(path, meta, body.replace('# [private]-billing guard', '# ACME-123 guard')
+                       + '\nAcMe.worker\n')
+        output = self.cli('send', path.stem, '--yes', '--issue')
+        self.assertNotIn('acme', output.lower())
+        self.assertEqual(len(self.sent()), 1)
+        sent = self.sent()[0]
+        self.assertNotIn('acme', sent['body'].lower())
+        self.assertEqual(sent['args'][sent['args'].index('--title') + 1], '[private]-123 guard')
+
+    def test_browser_fallback_bounds_encoded_url_and_keeps_full_preview(self):
+        path = self.draft()
+        meta, body = feedback.read(path)
+        body += '\n## Evidence\n' + ('Synthetic evidence: λ / ? & #\n' * 250)
+        feedback.write(path, meta, body)
+        with patch.object(feedback.shutil, 'which', return_value=None):
+            output = self.cli('send', path.stem, '--yes')
+        url = output.splitlines()[-1]
+        self.assertLessEqual(len(url), 2000)
+        self.assertNotIn('body', parse_qs(urlsplit(url).query))
+        self.assertIn('Copy the full sanitized body from the preview', output)
+        self.assertIn(body, output)
+        self.assertEqual(feedback.read(path)[0]['status'], 'draft')
+        self.assertFalse(self.calls())
+        huge_title_url = feedback.browser_url('λ' * 3000, body)
+        self.assertLessEqual(len(huge_title_url), 2000)
+        self.assertFalse(urlsplit(huge_title_url).query)
+
     def test_duplicate_confirmation_shows_links_and_still_requires_approval(self):
         path = self.draft()
         link = 'https://github.com/pharosone/dev-harness/issues/9'

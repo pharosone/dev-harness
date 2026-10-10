@@ -60,8 +60,10 @@ it configures the guard itself.
 ### name
 
 String, optional. `feedback.py` redacts it from public feedback, along with the product checkout
-name, as whole words or path components. Names shared with harness scripts or commands preserve
-those harness terms; `feedback.redact` remains available for explicit literal private terms.
+name, case-insensitively as whole words or token parts separated by `-`, `_`, `.`, `/`
+or digits. Ordinary words stay intact (`app` does not match `application`). Names shared with
+harness scripts or commands preserve those harness terms; `feedback.redact` remains available
+for explicit literal private terms.
 
 ### core — the pin
 

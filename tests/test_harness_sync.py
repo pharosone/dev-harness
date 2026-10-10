@@ -497,6 +497,27 @@ class PullTest(SyncTestCase):
         self.assertIn("## What happened", draft.read_text())
         self.assertEqual(len(self.gh_calls()), 1)
 
+    def test_feedback_pr_scrubs_token_part_names_in_title_commits_and_draft(self):
+        self.edit_core()
+        config = self.config()
+        config['name'] = 'Acme'
+        (self.product / 'harness/project/project.json').write_text(json.dumps(config))
+        self.commit_core({'README.md': '# core v1\n\nSynthetic fix\n'},
+                         message='ACME-123: fix acme_api worker/acme123')
+        draft = self.product / '.harness/feedback/demo.md'
+        draft.parent.mkdir(parents=True)
+        draft.write_text('<!-- harness-feedback {"kind":"bug","status":"draft"} -->\n\n'
+                         '# Fix acme-billing guard\n\nacme.worker dev-harness feedback.py\n')
+        output = self.ok(self.sync('propose', '--branch', 'fix-demo', '--feedback-file', str(draft),
+                                   env=self.fake_gh_env()))
+        argv = shlex.split(self.printed(output, 'gh pr create'))
+        body = Path(argv[argv.index('--body-file') + 1]).read_text()
+        self.assertNotIn('acme', body.lower())
+        self.assertNotIn('acme', argv[argv.index('--title') + 1].lower())
+        self.assertIn('dev-harness feedback.py', body)
+        self.assertEqual(self.upstream_branches(), 'refs/heads/main')
+        self.assertEqual(self.gh_calls(), [])
+
     def test_feedback_attachment_refuses_declined_or_sent_before_publication(self):
         self.edit_core()
         draft = self.product / '.harness/feedback/demo.md'

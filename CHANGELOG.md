@@ -25,6 +25,10 @@ with defaults; a major release may require an overlay change and says which.
   allow `send --issue` without subtree history and user-confirmed `--not-a-duplicate` with
   candidate links. Keep secret prose usable, distinguish Unicode/truncated draft slugs,
   refuse declined/sent PR attachments, and tighten the decline eval grader.
+- Second review fixes: redact product/checkout names inside separated or digit-delimited
+  tokens without changing ordinary words or harness vocabulary; inspect declined/sent
+  drafts before drafting a reworded complaint; bound browser fallback URLs and direct
+  long evidence to the full sanitized preview.
 - Six owner-reported examples are synthetic test fixtures, never real issues. Renumber this
   entry at merge if the parallel release branches require a different version.
 

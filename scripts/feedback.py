@@ -148,8 +148,22 @@ def sanitize(text: str, root: Path) -> str:
             return raw
 
     text = re.sub(r"(?<![\w:])(?:[0-9A-Fa-f]*:){2,}[0-9A-Fa-f:.]*(?:%[\w.-]+)?(?!\w)|(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])", ip, text)
-    for name in sorted(set(names), key=len, reverse=True):
-        text = re.sub(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])", "[private]", text, flags=re.I)
+    if names:
+        # Letters keep ordinary words intact (app != application). Separators and
+        # digits delimit private token parts. Protect names wholly contained in
+        # harness vocabulary (dev in dev-harness, task in task_state.py). A private
+        # composite extending beyond that vocabulary still needs redaction.
+        boundary = r"(?<![^\W\d_])(?:{})(?![^\W\d_])"
+        harness = "|".join(re.escape(t) for t in sorted(HARNESS_TERMS, key=lambda t: (-len(t), t)))
+        protected = [(m.start(), m.end()) for m in re.finditer(boundary.format(harness), text, re.I)]
+        private = "|".join(re.escape(n) for n in sorted(set(names), key=lambda n: (-len(n), n)))
+
+        def redact_name(match: re.Match) -> str:
+            if any(start <= match.start() and match.end() <= end for start, end in protected):
+                return match[0]
+            return "[private]"
+
+        text = re.sub(boundary.format(private), redact_name, text, flags=re.I)
     for term in sorted(set(terms), key=len, reverse=True):
         text = re.sub(re.escape(term), "[private]", text, flags=re.I)
     if SECRET_VALUE.search(text) or REMAINING.search(text) or JWT.search(text):
@@ -275,7 +289,13 @@ def core_edits(root: Path, pin: dict) -> bool:
 
 
 def browser_url(title: str, body: str) -> str:
-    return "https://github.com/" + UPSTREAM + "/issues/new?" + urlencode({"title": title, "body": body})
+    base = "https://github.com/" + UPSTREAM + "/issues/new"
+    # Bound the encoded URL, not the source text: Unicode/punctuation expand.
+    for fields in ({"title": title, "body": body}, {"title": title}):
+        url = base + "?" + urlencode(fields)
+        if len(url) <= 2000:
+            return url
+    return base
 
 
 def gh(root: Path, *args: str) -> subprocess.CompletedProcess:
@@ -298,7 +318,12 @@ def send(root: Path, folder: Path, args: argparse.Namespace) -> int:
     if repo != UPSTREAM:
         raise FeedbackError("feedback destination must be the public pharosone/dev-harness core pin")
     if not shutil.which("gh") or gh(root, "auth", "status").returncode:
-        print("Not sent. Open and review the prefilled issue:\n" + browser_url(title, body))
+        url = browser_url(title, body)
+        if "body=" in url:
+            print("Not sent. Open and review the prefilled issue:\n" + url)
+        else:
+            print("Not sent. Copy the full sanitized body from the preview into the issue form; "
+                  "copy its title too if not prefilled.\n" + url)
         return 0
     duplicates = gh(root, "issue", "list", "-R", repo, "--state", "all", "--search", title,
                     "--json", "title,url", "--limit", "20")

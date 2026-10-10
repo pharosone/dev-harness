@@ -200,8 +200,11 @@ requirements themselves, with the capability needed to finish it.
 Offer feedback when a harness script errors or contradicts its docs; a harness rule forces a
 workaround or manual step; a session-built tool belongs in the harness; the user corrects a
 profile, tier or gate decision; or the user complains about the harness process. Check the
-queue first: `python3 harness/core/scripts/feedback.py list --run-dir <run> --offerable`
-(or omit `--run-dir` when there is no run). Draft each distinct issue once with `draft --kind
+queue first: `python3 harness/core/scripts/feedback.py list --run-dir <run>`
+(or omit `--run-dir` when there is no run). Compare the underlying problem with all
+recorded drafts, including declined/sent ones; a new title does not make it a new issue.
+Use `list --offerable` only to find existing drafts that still need their first offer.
+Draft each distinct issue once with `draft --kind
 bug|friction|feature --title "<drafted title>" [--from-file <harness-only evidence>]` using the
 same queue selector. At a natural pause after the unit, gate or turn, use `offer <slug>` to
 record and ask exactly: **Offer harness feedback “<drafted title>” for your review?** Never
@@ -217,7 +220,8 @@ The user must see that text before approval;
 vendored-core edits implement the fix, offer the printed `harness_sync.py propose
 --feedback-file <draft>` command instead; it prepares a PR with the reviewed draft attached.
 Review its code and body before the user authorizes publishing. `--issue` explicitly chooses
-an issue instead. Missing `gh`/auth prints a prefilled browser URL; it stays unsent until
+an issue instead. Missing `gh`/auth prints a bounded browser URL; for long drafts, copy
+the full sanitized preview into the form. It stays unsent until
 publication is verified. At a gate and run end, show `feedback.py list --run-dir <run>
 --summary` in one line: **“2 harness feedback drafts waiting: <title>; <title>”**. Declined and
 sent drafts remain recorded, without counting as waiting.
