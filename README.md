@@ -176,8 +176,18 @@ prints `{"launcher", "reason"}`:
 
 `lanes.py start` launches the decision and records `dispatch.start`/`dispatch.end`; `status`,
 `wait`, `result` and `cancel` work the same for every launcher. Herdr holds at most three live
-agents, counting ones the run did not start; a `blocked` lane is shown to the user and never
-answered by the orchestrator; panes the run did not create are never closed or reused.
+agents, counting ones the run did not start, unless the overlay sets `project.json → lanes`
+(`herdr_max_agents`, and `count: "run"` to count only the run's own agents); a `blocked` lane is
+shown to the user and never answered by the orchestrator; panes the run did not create are never
+closed or reused.
+
+With herdr, `lanes.py dashboard --task T --open` opens the run's dashboard tab `📊 <task>`: on
+the left (58%) a live status view (units, lanes running/blocked/stale, pending gates, open
+tripwires, vendor shares; every 30 s), the formatted events tail and the overlay's project
+panes (`project.json → dashboard`); on the right the run's lane panes, labelled `🤖 <work> ·
+<runtime> <model>`. From then on `lanes.py start` puts pane lanes there, reusing a pane whose
+lane ended and whose shell is idle before splitting a new one; `--close` closes only the run's
+own dashboard panes. Without herdr it is a no-op and `dashboard.py`'s page is the dashboard.
 
 The run directory keeps `events.jsonl`, one JSON event per line (`run.start`,
 `dispatch.start`/`dispatch.end`, `gate.open`/`gate.answer`, `compare.*`), appended only through
@@ -195,10 +205,11 @@ documents its CLI and overlay keys.
 |---|---|
 | `task_state.py init/locate/freeze/verify/import-legacy` | run directory in the primary checkout (`.harness/tasks/<task>`); freezes tests by Git blob hash, with the red log as evidence |
 | `task_state.py event TASK TYPE --data JSON [--id ID]` | the only writer of the run's `events.jsonl`: one locked append, a repeated id skipped |
-| `lanes.py decide/start/status/wait/result/cancel/snapshot-cleanup` | how a worker starts (subagent, headless CLI, herdr pane) by a tested rule; starts, watches and stops headless and pane lanes and records their events; `start --capability candidate --scratch DIR` runs a compare candidate in a private snapshot with one writable directory, `--max-budget-usd` caps a headless Claude lane, `snapshot-cleanup` removes the ended candidates' snapshots |
+| `lanes.py decide/start/status/wait/result/cancel/snapshot-cleanup/dashboard` | how a worker starts (subagent, headless CLI, herdr pane) by a tested rule; starts, watches and stops headless and pane lanes and records their events; `start --capability candidate --scratch DIR` runs a compare candidate in a private snapshot with one writable directory, `--max-budget-usd` caps a headless Claude lane, `snapshot-cleanup` removes the ended candidates' snapshots; `dashboard --open/--close` opens or closes the run's herdr dashboard tab |
 | `compare.py design/investigation/status` | two independent agents on one frozen input: approach memos and two order-swapped arbiter passes, or investigation reports, cross-critiques and a disagreement map |
 | `balance.py usage/observe/pick` | each vendor's usage windows (Claude from captured stream-json logs, Codex from its session files, manual `usage set`) and the pick of a worker's vendor inside one profile; each pick is a `balance.pick` event |
 | `dashboard.py TASK [--out PATH]` | the run as one self-contained local page (`<run>/dashboard.html`): lanes, pending gates, tripwires, compares, vendors (usage windows, runway, shares, latest picks), spend per unit |
+| `dashboard_herdr.py view status\|events --task T` | the run's herdr dashboard tab behind `lanes.py dashboard`: geometry, lane placement and reuse, the live status and events views it runs in its panes (`project.json → dashboard` adds project panes) |
 | `tripwire.py scope/spend/flag/check/report/resolve/close/hook` | unit paths, spend ledger, stop-the-lane facts, decisions on flags; `hook` and `spend --dispatch … --status …` write dispatch events |
 | `tier.py --base REF` | risk tier from paths × size (`tiers.json`) |
 | `gate.py [AREA…] [--changed BASE] [--dry-run]`, `--pin-ci WORKFLOW` | the one copy of the CI gates (`gates.json`), quiet output, full logs on disk; the pin against CI |

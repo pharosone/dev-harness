@@ -14,7 +14,7 @@ dialect (`tripwire.py`): `*` and `?` stay inside one directory, `**` crosses dir
 
 | File | Read by | Without it |
 |---|---|---|
-| `project.json` | `guard.py`, `harness_sync.py`, `worktree.py`, `render_adapters.py`, `balance.py`, the skills | core guard rules only; no pin (`harness_sync.py` refuses); no project roles or interview rows |
+| `project.json` | `guard.py`, `harness_sync.py`, `worktree.py`, `render_adapters.py`, `balance.py`, `lanes.py`, `dashboard_herdr.py`, the skills | core guard rules only; no pin (`harness_sync.py` refuses); no project roles or interview rows |
 | `tiers.json` | `tier.py` (and `xreview.py` through it) | every changed path is tier 2 (`no tiers.json`) |
 | `gates.json` | `gate.py` | `gate.py` exits 2: nothing to run is never reported as a pass |
 | `drift.json` | `check_docs_drift.py`, the Stop hook (`runtime_hook.py`) | only the harness-log rule, with its defaults |
@@ -29,7 +29,7 @@ dialect (`tripwire.py`): `*` and `?` stay inside one directory, `**` crosses dir
 | `tests/` | `harness_sync.py pull`; your `gates.json` | no project harness tests |
 
 An overlay file that exists but cannot be used (bad JSON, wrong type, unknown key, invalid entry)
-is an error for `tier.py`, `gate.py`, `check_docs_drift.py` and `arch_check.py` (exit 2) and for the renderer
+is an error for `tier.py`, `gate.py`, `check_docs_drift.py`, `arch_check.py` and `lanes.py` (exit 2) and for the renderer
 (exit 1), never a clean result. The guard is the exception: it prints a note to stderr, skips the
 bad part and keeps every core rule, because a broken guard must not lock a session.
 
@@ -47,7 +47,10 @@ One JSON object. Each script reads only its own section; other top-level keys ar
   "roles": {"a11y-reviewer": {"description": "…", "profile": "routine", "sandbox": "read-only",
                               "panel": {"min_tier": 2, "paths_exist": ["web/"]}}},
   "worktree": {"node_dirs": ["web"]},
-  "balance": {"min_share": 0.3, "stop_at": 0.85, "hysteresis": 0.15, "min_elapsed": 0.25}
+  "balance": {"min_share": 0.3, "stop_at": 0.85, "hysteresis": 0.15, "min_elapsed": 0.25},
+  "lanes": {"herdr_max_agents": 5, "count": "run"},
+  "dashboard": {"panes": [{"label": "🖥 worker log", "command": "tail -n 30 -f var/worker.log",
+                           "zone": "events"}]}
 }
 ```
 
@@ -145,6 +148,27 @@ default. Any other key, a non-number or a value out of range is exit 2.
 
 Runway of a window is (1 − used) / (1 − elapsed fraction); a vendor's runway is its smallest
 current window's. A vendor without a current observation is unknown and counts as neutral.
+
+### lanes — herdr agent limit
+
+Read by `lanes.py start` for pane lanes (`HERDR_ENV=1`). Optional; each key replaces its default.
+Any other key or an invalid value is exit 2.
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `herdr_max_agents` | integer ≥ 1 | `3` | live herdr agents at which a new pane lane waits: report-only work runs headless instead, other work is refused with exit 4 (`queued`) |
+| `count` | `"workspace"` or `"run"` | `"workspace"` | what counts toward the limit: every agent in the herdr workspace, the user's own sessions included, or only the live agents this run started |
+
+### dashboard — herdr dashboard panes
+
+Read by `lanes.py dashboard --open` (`dashboard_herdr.py`), which opens the run's herdr tab
+`📊 <task>`: a left column of live views (`📊 status`, `🧾 events`) and a right column of the
+run's lane panes. Project panes join it, each running its command in the current checkout.
+Optional; any other key, an empty label or command, or another zone is exit 2.
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `panes` | [{`label`, `command`, `zone`}] | none | `label` (string): the pane's title; `command` (string): run in the pane through `herdr pane run`, e.g. a product's live status loop or a log tail; `zone`: `status` (left column, below the status view), `events` (left column, below the events view) or `side` (top of the right column, above the lanes; the default) |
 
 ## tiers.json
 
@@ -346,7 +370,8 @@ deep-merged over the core table (nested objects merge, other values replace), so
 changes one value or adds a profile without restating the rest. The renderer uses the merged
 table for every agent file; `xreview.py` uses the reviewed checkout's merged table, and
 `compare.py` the compared checkout's, for its competitors, arbiter and critics. `lanes.py` and
-`dashboard.py` read no overlay file.
+`dashboard.py` do not read `models.json` (`lanes.py` reads `project.json → lanes` and
+`dashboard` only).
 
 ```json
 {"claude": {"routine": {"effort": "high"}}}
@@ -438,6 +463,8 @@ class GatesTest(unittest.TestCase):
 | `models.json` | `adapters/models.json` | deep-merged |
 | `tiers.json`, `gates.json`, `worktree.node_dirs` | none | the whole table |
 | `balance` in `project.json` | `min_share` 0.3, `stop_at` 0.85, `hysteresis` 0.15, `min_elapsed` 0.25 | each key given replaces its default |
+| `lanes` in `project.json` | `herdr_max_agents` 3, `count` `workspace` | each key given replaces its default |
+| `dashboard.panes` in `project.json` | the status and events views | added to their zones, in order |
 | `architecture.json` | none | the whole declaration; without it `arch_check.py` is off |
 | `architecture.md` | none | the whole map, read as context; the core adds nothing to it |
 | `drift.json` | the harness-log rule | `harness_log.path` / `paths` replace its defaults; the other rules are the project's |
