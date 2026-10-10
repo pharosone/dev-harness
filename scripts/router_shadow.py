@@ -377,6 +377,12 @@ def evaluate(root: Path, run: Path, primary: Path, *, actual: dict, profile: str
         context = model_router.load_context(root)
         policy = context["policy"]
         event.update({key: context.get(key) for key in ("policy_hash", "data_hash")})
+        event.update(policy_version=policy.get("policy_version"), taxonomy_version=TAXONOMY_VERSION)
+        event["implementation_hashes"] = {}
+        for name, filename in (("scorer", getattr(model_router, "__file__", None)),
+                               ("shadow", __file__)):
+            if filename:
+                event["implementation_hashes"][name] = hashlib.sha256(Path(filename).read_bytes()).hexdigest()
         if parent_attempt_id or root_attempt_id or linked_decision_id:
             event.update(validated_links(run, actual, parent_attempt_id,
                                          root_attempt_id, linked_decision_id))
