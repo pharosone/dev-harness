@@ -547,7 +547,8 @@ def shadow_section(events: list[dict]) -> str:
     """Add read-only recommendations; absent shadow events leave the page unchanged."""
     rows = []
     for event in [e for e in events if e.get("type") == "router.shadow"][-20:]:
-        badge = "<br><strong>UNVALIDATED classifier</strong>" if event.get("classifier") is not None else ""
+        label = router_calibration.classifier_label(event)
+        badge = "<br><strong>" + text(label) + "</strong>" if label else ""
         details = "<br>".join(text(item) for item in router_calibration.shadow_details(event))
         recommendation = ("would pick " + router_calibration.show_tuple(event["recommendation"])
                           if isinstance(event.get("recommendation"), dict) else "skipped / no recommendation")

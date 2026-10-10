@@ -75,6 +75,14 @@ class ShadowDashboardTest(unittest.TestCase):
         absent = event(); absent.pop('classifier')
         self.assertNotIn('UNVALIDATED classifier', dashboard.shadow_section([absent]))
 
+    def test_manual_weights_and_disabled_classifier_do_not_claim_a_model_call(self):
+        for status, label in (("manual_weights", "manual weights; no classifier call"),
+                              ("disabled", "classifier disabled")):
+            row = event(); row["classifier"] = {"status": status}
+            self.assertIn(label, dashboard.shadow_section([row]))
+            self.assertIn(label, cal.shadow_text(row))
+            self.assertNotIn("UNVALIDATED classifier", cal.shadow_text(row))
+
     def test_secrets_redacted_before_truncation_and_controls(self):
         forged = event(); forged['reason'] = 'x' * 600 + ' sk-' + 'x' * 48
         self.assertIn('[redacted]', dashboard.shadow_section([forged]))

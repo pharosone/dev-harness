@@ -351,10 +351,22 @@ def show_tuple(value):
     return " ".join(safe_text(value.get(k), 80) for k in TUPLE_KEYS)
 
 
+def classifier_label(event):
+    classifier = event.get("classifier")
+    if classifier is None:
+        return ""
+    if isinstance(classifier, dict) and classifier.get("status") == "manual_weights":
+        return "manual weights; no classifier call"
+    if isinstance(classifier, dict) and classifier.get("status") == "disabled":
+        return "classifier disabled"
+    return "UNVALIDATED classifier"
+
+
 def shadow_text(event):
     recommendation = event.get("recommendation")
     chosen = "would pick " + show_tuple(recommendation) if isinstance(recommendation, dict) else "skipped"
-    classifier = " [UNVALIDATED classifier]" if event.get("classifier") is not None else ""
+    label = classifier_label(event)
+    classifier = f" [{label}]" if label else ""
     return (f"⚖ shadow: {chosen}{classifier}; actual {show_tuple(event.get('actual'))}; "
             f"{safe_text(event.get('status'), 80)} because {safe_text(event.get('reason'))}")
 
