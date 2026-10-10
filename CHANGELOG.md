@@ -76,6 +76,21 @@ with defaults; a major release may require an overlay change and says which.
   registered case paths in an environment manifest. Shared-context changes require purpose
   coverage and fresh measurements for all seven core skills; their instructions are unchanged.
 
+## 1.8.0 — 2026-10-10
+
+- Calibrated review acceptance: likelihood × impact matrix, code-read evidence and reachable
+  scenarios; pilot/empty-invariant defaults, triage before fix-up and two rounds per milestone.
+  Round 2 checks fixes/new code and previous blockers; only new severe matrix blockers can block.
+- Cross-review accepts repeated `--section`, `--run-dir`, `--milestone`, `--round`; all findings
+  enter `review-ledger.jsonl` (QA/panel reports use `review_calibration.py record` and share
+  rounds), Minors go to `backlog.md`. Calibration records triage and observed outcomes, reports
+  across runs, and exports sanitized feedback fixtures; user overrides need no invented outcome.
+  Roles, runtime adapters, `pharos-dev` G4/final reports and a mixed-triage eval use this scale.
+- Review parsing normalizes Markdown/line ranges and retains malformed claims verbatim;
+  exit 4 requires triage. Prior blockers match path/caller/scenario plus ledger triage or a
+  prior finding ID. Persisted milestones are explicit; failed reviewer attempts release rounds
+  for bounded retry (three attempts per input). Explicit round 1 keeps addressed context in round 1.
+
 ## 1.3.0 — 2026-10-10
 
 - `lanes.py`: the herdr agent limit is configurable — `project.json → lanes`

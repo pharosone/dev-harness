@@ -2,7 +2,8 @@
 """Send a diff to the other vendor's CLI for a report-only review.
 
   xreview.py --base REF --writer claude|codex --out REPORT [--tier N]
-             [--spec FILE --sections "Title A,Title B"] [--addressed FILE]
+             [--spec FILE --section "Title, with comma" --section "Title B"]
+             [--addressed FILE] [--run-dir RUN --milestone NAME --round 1|2]
              [--dry-run] [--timeout SEC]
 
 The diff is `git diff REF` of the checkout containing the current directory, with
@@ -17,14 +18,19 @@ Overlay file `models.json` (in $HARNESS_PROJECT, else <checkout>/harness/project
 reviewed checkout), optional: the same shape as the core's
 {"<runtime>": {"<profile>": {"model", "effort"}}}, deep-merged over it, so a project can
 change one model or effort, or add a profile, without restating the rest.
+Review acceptance reads project.json.review (stage/invariants), recomputes labels and
+verdicts, and records findings/backlog when --run-dir or --ledger supplies a run.
 
 Exit codes: 0 pass, 1 block, 2 not reviewed (usage, configuration, nothing to review,
-diff over the cap), 3 no verdict (timeout, reviewer failure, missing verdict).
+diff over the cap), 3 no verdict (timeout, reviewer failure, missing verdict),
+4 needs orchestrator triage (unparsed/incomplete claims or uncertain prior identity).
 Only exit 0 is an approval.
 """
 
 import argparse
 import json
+import hashlib
+import uuid
 try:
     import fcntl
 except ImportError:  # Windows: no advisory locks; the cap is checked without one
@@ -42,13 +48,14 @@ import sys
 # Importing must not write __pycache__ into a read-only installed harness.
 sys.dont_write_bytecode = True
 from project import OverlayError, load as load_overlay, overlay_dir
+from review_calibration import (review_config, parse_findings, compute, record_findings,
+                                append_event, previous_blockers, finish_review, prior_ledger_findings)
 
 HARNESS = Path(__file__).resolve().parents[1]
 DIFF_CAP = 200 * 1024
 REVIEWER = {"claude": "codex", "codex": "claude"}
 NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/\[\]-]*")
 VERDICT = re.compile(r"[\s>*_`#-]*VERDICT:[\s*_`]*([A-Za-z]+)[\s*_`.]*")
-OPEN_FINDING = re.compile(r"^\s*[-*]\s*\[(Critical|Major)\]", re.MULTILINE)
 HEADING = re.compile(r" {0,3}(#{1,6})[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*")
 FENCE = re.compile(r" {0,3}(`{3,}|~{3,})")
 
@@ -257,14 +264,28 @@ def context(args, base: str, names: list[str], patch: str, tier: tuple[int, str,
     ]
     if tier3:
         parts.append(block("Tier-3 paths", "".join(f"- {line}\n" for line in tier3)))
+    try:
+        policy = review_config(checkout())
+    except OverlayError as exc:
+        raise ReviewError(str(exc)) from None
+    parts.append(block("Review policy from overlay", json.dumps(policy, indent=2)))
+    parts.append(block("Review round", str(args.round)))
     if args.spec:
-        titles = [title.strip() for title in args.sections.split(",") if title.strip()]
+        titles = list(getattr(args, "section", None) or [])
+        titles += [title.strip() for title in (args.sections or "").split(",") if title.strip()]
         if not titles:
             raise ReviewError("--sections names no section")
         parts.append(block(f"Spec sections ({args.spec})",
                            spec_sections(read(args.spec, "spec"), titles)))
     if args.addressed:
         parts.append(block("Already addressed — do not repeat", read(args.addressed, "addressed findings")))
+    run_dir = getattr(args, 'run_dir', None) or (Path(args.ledger).resolve().parent if getattr(args, 'ledger', None) else None)
+    if args.round == 2 and run_dir:
+        prior = [{key: finding.get(key) for key in ('id', 'location', 'defect', 'likelihood', 'impact',
+                 'reachable_path', 'scenario', 'evidence', 'workaround', 'invariant')}
+                 for finding in prior_ledger_findings(Path(run_dir), args.milestone)]
+        if prior:
+            parts.append(block('Prior blockers after orchestrator triage', json.dumps(prior, indent=2)))
     # A fence longer than any backtick run in the patch cannot be closed by the patch.
     fence = "`" * max(3, 1 + max(map(len, re.findall(r"`+", patch)), default=0))
     patch = patch.rstrip("\n")
@@ -289,6 +310,7 @@ def command(reviewer: str, model: str, effort: str, root: Path, report: Path) ->
 def run(argv: list[str], env: dict, payload: str, root: Path, report: Path, timeout: float) -> int | None:
     """The reviewer's exit code, or None after a timeout."""
     report.unlink(missing_ok=True)  # a stale report must never pass for this round's verdict
+    Path(f"{report}.calibration.md").unlink(missing_ok=True)
     capture = argv[0] == "claude"
     try:
         proc = subprocess.Popen(argv, cwd=root, env={**os.environ, **env}, stdin=subprocess.PIPE,
@@ -315,7 +337,16 @@ def run(argv: list[str], env: dict, payload: str, root: Path, report: Path, time
     return proc.returncode
 
 
-def verdict(report: Path) -> tuple[int, str]:
+def write_verdict(report: Path, status: int, message: str, text: str) -> tuple[int, str]:
+    Path(f"{report}.calibration.md").write_text(
+        "# Computed review verdict\n\n" + message + "\n\n## Reviewer findings (verbatim)\n\n" + text,
+        encoding="utf-8")
+    return status, message
+
+
+def verdict(report: Path, policy: dict | None = None, *, addressed: str = "",
+            round_number: int = 1, run_dir: Path | None = None,
+            milestone: str = "milestone") -> tuple[int, str]:
     try:
         text = report.read_text(encoding="utf-8", errors="replace")
     except FileNotFoundError:
@@ -323,14 +354,51 @@ def verdict(report: Path) -> tuple[int, str]:
     lines = [line for line in text.splitlines() if "VERDICT:" in line]
     match = VERDICT.fullmatch(lines[-1]) if lines else None
     word = match.group(1).lower() if match else None
-    if word == "block":
-        return 1, "VERDICT: block"
-    if word != "pass":
-        return 3, "no verdict — not an approval"
-    found = sorted(set(OPEN_FINDING.findall(text)))
-    if found:
-        return 1, f"VERDICT: pass contradicts open {'/'.join(found)} findings — treated as block"
-    return 0, "VERDICT: pass"
+    if word not in ("pass", "block"):
+        return write_verdict(report, 3, "no verdict — not an approval", text)
+    policy = policy or {"stage": "pilot", "invariants": []}
+    findings = parse_findings(text)
+    if word == 'block':
+        recognized = {finding['raw'] for finding in findings}
+        for line in text.splitlines():
+            raw = line.strip()
+            # Only protocol scaffolding can be ignored. Any other unclassified prose
+            # might contain the reason for block, even beside a valid Minor finding.
+            scaffold = (not raw or VERDICT.fullmatch(line) or raw == 'No findings.'
+                        or re.fullmatch(r"(?:#{1,6}\s+|\*\*)?(?:Findings|Cross-vendor review|Review)(?:\*\*)?:?", raw, re.I)
+                        or FENCE.fullmatch(line))
+            if raw not in recognized and not scaffold:
+                opaque = parse_findings('- [Critical] Unparsed reviewer response')[0]
+                opaque.update(raw=raw, location='', defect=raw, reviewer_rating='Unknown')
+                findings.append(opaque)
+    if word == 'block' and not findings:
+        opaque = parse_findings('- [Critical] Unparsed reviewer response')[0]
+        opaque['raw'] = text
+        findings = [opaque]
+    previous, uncertain = (previous_blockers(findings, addressed, policy, run_dir, milestone)
+                           if round_number == 2 else (set(), []))
+    results = [compute(f, policy, round_number=round_number, previous_ids=previous) for f in findings]
+    if run_dir:
+        record_findings(run_dir, findings, policy, milestone, round_number, previous)
+    adjustments = []
+    pending = []
+    for finding, result in zip(findings, results):
+        label = finding["reviewer_rating"]
+        if result['reason'].startswith('unverified:') and (word == 'block' or label != 'Minor'):
+            pending.append(f"{finding['location'] or 'unparsed finding'}: {result['reason']}")
+        if label != result["label"]:
+            direction = "downgraded" if result["label"] == "Minor" else "reclassified"
+            adjustments.append(f"{label} {finding['location']} {direction} to {result['label']}: {result['reason']}")
+    if pending or uncertain:
+        return write_verdict(report, 4, "VERDICT: needs triage — not an approval; reviewer VERDICT: " + word
+                             + "; " + "; ".join(pending + uncertain), text)
+    status = int(any(result["verdict"] == "block" for result in results))
+    message = "VERDICT: " + ("block" if status else "pass") + " (computed from matrix)"
+    if word != ("block" if status else "pass"):
+        message += f"; reviewer VERDICT: {word} overridden"
+    if adjustments:
+        message += "; " + "; ".join(adjustments)
+    return write_verdict(report, status, message, text)
 
 
 CRITICAL = ("critical-review", "escalation")
@@ -351,7 +419,7 @@ def cap_reached(text: str, cap: int, ledger: Path) -> None:
                           "review per milestone, or ask the user for more")
 
 
-def reserve(ledger: Path, entry: dict, cap: int | None) -> None:
+def reserve(ledger: Path, entry: dict, cap: int | None, on_reserve=None) -> None:
     """Count and append under one exclusive lock, so concurrent reviews cannot pass the cap."""
     ledger.parent.mkdir(parents=True, exist_ok=True)
     with ledger.open("a+", encoding="utf-8") as stream:
@@ -361,6 +429,8 @@ def reserve(ledger: Path, entry: dict, cap: int | None) -> None:
             if cap is not None:
                 stream.seek(0)
                 cap_reached(stream.read(), cap, ledger)
+            if on_reserve:
+                on_reserve()
             stream.seek(0, os.SEEK_END)
             stream.write(json.dumps(entry) + "\n")
             stream.flush()
@@ -376,7 +446,11 @@ def main() -> int:
     parser.add_argument("--out", required=True, help="report path; the context goes next to it")
     parser.add_argument("--tier", type=int, choices=range(4))
     parser.add_argument("--spec")
-    parser.add_argument("--sections", help="comma-separated heading titles of --spec")
+    parser.add_argument("--sections", help="comma-separated heading titles of --spec (legacy)")
+    parser.add_argument("--section", action="append", help="one exact heading title; repeat, commas preserved")
+    parser.add_argument("--run-dir", type=Path, help="run directory for backlog and review-ledger.jsonl")
+    parser.add_argument("--milestone", help="stable milestone identity; required with --run-dir or --ledger")
+    parser.add_argument("--round", type=int, choices=(1, 2), help="review round; --addressed defaults to 2 unless explicitly --round 1")
     parser.add_argument("--addressed", help="findings already addressed, included verbatim")
     parser.add_argument("--paths", nargs="+", metavar="PATHSPEC",
                         help="review only this part of the change (git pathspecs, e.g. server/ ':(glob)web/**')")
@@ -388,10 +462,23 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--timeout", type=float, default=900.0)
     args = parser.parse_args()
-    if bool(args.spec) != bool(args.sections):
-        parser.error("--spec and --sections go together")
+    if bool(args.spec) != bool(args.sections or args.section):
+        parser.error("--spec and --section/--sections go together")
+    if args.round == 2 and not args.addressed:
+        parser.error("round 2 requires --addressed (previous blockers and fixes)")
+    if (args.run_dir or args.ledger) and not args.milestone:
+        parser.error("--milestone is required with --run-dir or --ledger")
+    if args.milestone is not None and not args.milestone.strip():
+        parser.error("--milestone must be non-empty")
+    args.milestone = args.milestone or Path(args.out).stem
+    args.round = args.round if args.round is not None else 2 if args.addressed else 1
     if args.timeout <= 0:
         parser.error("--timeout must be positive")
+    attempt_id = None
+    run_dir = None
+    def finish(status, reason):
+        if run_dir and attempt_id:
+            finish_review(run_dir, attempt_id, status, reason)
     try:
         root = checkout()
         base = base_commit(root, args.base)
@@ -415,6 +502,8 @@ def main() -> int:
         if report.is_dir():
             raise ReviewError(f"Report path is a directory: {report}")
         ledger = Path(args.ledger).resolve() if args.ledger else None
+        run_dir = args.run_dir.resolve() if args.run_dir else ledger.parent if ledger else None
+        policy = review_config(root)
         critical = profile_name in ("critical-review", "escalation")
         if ledger and critical and ledger.is_file():
             cap_reached(ledger.read_text(encoding="utf-8"), args.max_critical, ledger)
@@ -440,21 +529,57 @@ def main() -> int:
             print(f"context: {context_path}")
             return 0
         payload = prompt.rstrip("\n") + "\n\n" + text
+        if ledger and run_dir and ledger == run_dir / "review-ledger.jsonl":
+            raise ReviewError("--ledger is the vendor usage ledger; use xreview.jsonl, not review-ledger.jsonl")
+        def reserve_round():
+            nonlocal attempt_id
+            if run_dir:
+                identity = uuid.uuid4().hex
+                review_key = hashlib.sha256(base.encode() + raw + json.dumps(sorted(args.paths or [])).encode()).hexdigest()
+                append_event(run_dir, {"type": "review", "milestone": args.milestone, "round": args.round,
+                                       "report": str(report), "reviewer": reviewer, "status": "running",
+                                       "review_key": review_key, "attempt_id": identity}, reserve_round=True)
+                attempt_id = identity
         if ledger:
             reserve(ledger, {"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                              "reviewer": reviewer, "profile": profile_name, "model": model,
                              "base": base, "tier": tier[0], "single_vendor": reviewer == args.writer},
-                    args.max_critical if critical else None)
+                    args.max_critical if critical else None, reserve_round)
+        else:
+            reserve_round()
         code = run(argv, env, payload, root, report, args.timeout)
-    except ReviewError as exc:
+    except (ReviewError, OverlayError, OSError, ValueError) as exc:
+        try:
+            finish('failed', str(exc))
+        except (OSError, ValueError) as ledger_error:
+            print(f"xreview: cannot release failed attempt: {ledger_error}", file=sys.stderr)
         print(f"xreview: {exc}", file=sys.stderr)
         return 2
     if code is None:
+        try:
+            finish('failed', 'reviewer timeout')
+        except (OSError, ValueError) as exc:
+            print(f"xreview: cannot release failed attempt: {exc}", file=sys.stderr)
         print(f"xreview: timeout after {args.timeout:g} s — not an approval: {report}", file=sys.stderr)
         return 3
-    status, message = verdict(report)
+    try:
+        status, message = verdict(report, policy,
+                                  addressed=read(args.addressed, "addressed findings") if args.addressed else "",
+                                  round_number=args.round, run_dir=run_dir, milestone=args.milestone)
+    except (ReviewError, OSError, ValueError) as exc:
+        try:
+            finish('failed', 'cannot persist review: ' + str(exc))
+        except (OSError, ValueError):
+            pass
+        print(f"xreview: cannot persist review: {exc} — not an approval", file=sys.stderr)
+        return 3
     if code and status != 1:
-        status, message = 3, f"{argv[0]} exited {code} — not an approval"
+        status, message = write_verdict(report, 3, f"{argv[0]} exited {code} — not an approval",
+                                        report.read_text(encoding="utf-8", errors="replace") if report.exists() else "")
+    try:
+        finish('failed' if code or status == 3 else 'complete', message)
+    except (OSError, ValueError) as exc:
+        status, message = 3, f"cannot finalize review attempt: {exc} — not an approval"
     print(f"xreview: {message}: {report}", file=sys.stderr if status else sys.stdout)
     return status
 

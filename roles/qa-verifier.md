@@ -41,4 +41,42 @@ re-run only what the new diff affects and diff your findings against the previou
 
 ## Findings
 
-Report every issue you find with its severity; filtering is a separate step. A Critical/Major names a concrete failure scenario (input or state → wrong result) — without one it is Minor. Say plainly when nothing matters.
+Report every issue as one Markdown list item with six em-dash-separated fields:
+- [Critical|Major|Minor] path:line — defect — likelihood/impact — reachable path — failure scenario — evidence: path:line
+
+The reachable path names the real caller/route; the scenario is specific input/state → wrong
+result. Evidence cites code read in this review, even when tests or measurements also prove it.
+The parser normalizes backticks/bold and line ranges; explicit malformed/partial findings remain
+verbatim in the calibration sidecar and run ledger. Missing ratings, reachable path, scenario or
+code-read evidence remain Minor until verified; this never approves a reviewer's blocking claim.
+Exit 4 requires triage, distinct from exit 1 for a computed blocker; only exit 0 approves.
+Fully verified matrix backlogs can override a reviewer's block to pass.
+Optional trailing fields: `— workaround: none` or `— workaround: <specific usable workaround>`;
+`— invariant: <exact overlay invariant text>` for a proven violation, never an invented invariant;
+`— id: <prior stable ledger finding ID>` only to reference that same prior finding.
+
+Likelihood in THIS product: `will` = main path, happens within days; `plausible` = documented
+path users sometimes take; `edge` = rare combination, race window, unusual environment or
+operator mistake. Impact: `severe` = unapproved/wrong-recipient outbound action, limits/credits
+burned or account-ban risk, external leak of secrets/personal data, data loss, or a guard/check
+silently stops working; `functional` = recoverable feature failure/visible wrong result;
+`cosmetic` = presentation only.
+
+| Impact / likelihood | will | plausible | edge |
+|---|---|---|---|
+| severe | block | block | block only for violated overlay invariant or production stage; else backlog |
+| functional | block | block only with verified no workaround; else backlog | backlog |
+| cosmetic | backlog | backlog | backlog |
+
+Overlay `review.stage` defaults to `pilot`, `review.invariants` to empty. A severe blocker is
+Critical, a functional blocker Major, all backlog Minor; labels never override the matrix.
+For plausible/functional, missing workaround information is unverified: blocking requires
+`workaround: none`. At most two rounds per milestone across cross-review, QA and panel;
+distinct lenses share a round. Count active/completed logical rounds, not failed attempts.
+Round 2 checks fixes/new code and previous blockers only; new blockers must be severe and
+matrix-blocking. Match prior source path + reachable caller + failure scenario and ledger triage,
+not defect title alone; evidence lines may move. Known same-site but uncertain identity needs
+triage (exit 4), never silent passing. Optional `id` can reference a prior stable ledger finding.
+Before fix-up the orchestrator rechecks each scenario against code (≤5 min each) and
+records the triage reason. Minors never block: ≤15-minute fixes join that fix-up; others go to
+`<run>/backlog.md`. Say plainly when there are no findings; do not invent issues.

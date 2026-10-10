@@ -1,0 +1,26 @@
+[
+  {
+    "name": "public-feedback-hyphenated-product-name",
+    "origin": "sanitized live feedback round-2 failure 2026-10-10",
+    "report": "- [Critical] scripts/feedback.py:152 \u2014 Product name within a hyphenated token reaches a public issue \u2014 plausible/severe \u2014 draft/send -> sanitize() -> public tracker \u2014 configured Demo name remains in demo-billing or DEMO-412 text and is published \u2014 evidence: scripts/feedback.py:151-152, scripts/feedback.py:63-67, README.md:240, scripts/harness_sync.py:507-509 \u2014 workaround: add a literal redaction term\n\nVERDICT: block\n",
+    "expected_exit": 1
+  },
+  {
+    "name": "slightly-malformed-code-evidence-needs-triage",
+    "origin": "sanitized variation of live feedback failure",
+    "report": "- [Critical] scripts/feedback.py:152 \u2014 Product name within a hyphenated token leaks \u2014 plausible/severe \u2014 draft/send -> sanitize() -> public tracker \u2014 demo-billing reaches a public issue \u2014 evidence: scripts/feedback.py lines 151-152\n\nVERDICT: block\n",
+    "expected_exit": 4
+  },
+  {
+    "name": "partial-findings-never-erase-reviewer-block",
+    "origin": "cross-vendor review correction",
+    "report": "- [Minor] src/ui.py:2 \u2014 spacing \u2014 will/cosmetic \u2014 render() \u2014 dense text \u2014 evidence: src/ui.py:2\n- **[Critical]** src/db.py:40 \u2014 drops rows \u2014 likely/severe \u2014 sync() -> flush() \u2014 empty batch deletes rows\n\nVERDICT: block\n",
+    "expected_exit": 4
+  },
+  {
+    "name": "verified-edge-downgrade-still-follows-matrix",
+    "origin": "approved matrix boundary",
+    "report": "- [Major] src/watch.py:29 \u2014 false exited during startup \u2014 edge/functional \u2014 launch -> first watcher tick \u2014 startup race briefly shows exited \u2014 evidence: src/watch.py:29\n\nVERDICT: block\n",
+    "expected_exit": 0
+  }
+]
