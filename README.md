@@ -222,9 +222,10 @@ At each taste gate and run end, `pharos-dev` shows `list --summary` using the sa
 
 `send` sanitizes both title and body, shows the exact final text, checks possible duplicates
 with `gh issue list --search` (open and closed), and creates an issue in the `core.repo` pin,
-which must resolve to `pharosone/dev-harness`. Any potential duplicate blocks creation for
-review. Approval is for the displayed text; agents use `--yes` only after the user's explicit
-go. Without `gh` or authentication, a prefilled `issues/new` URL is printed and the draft stays
+which must resolve to `pharosone/dev-harness`. Possible duplicates are shown with issue links
+and block creation for review. If the user confirms they are distinct, rerun with
+`--not-a-duplicate`; publication still needs approval. Approval is for the displayed text;
+agents use `--yes` only after the user's explicit go. Without `gh` or authentication, a prefilled `issues/new` URL is printed and the draft stays
 unsent. A send error retains the draft; check upstream before retrying an ambiguous failure.
 
 With local edits in the vendored core, `send` offers `harness_sync.py propose --feedback-file
@@ -232,11 +233,15 @@ With local edits in the vendored core, `send` offers `harness_sync.py propose --
 the PR body and sanitizes its title/body; preparation publishes nothing. Review the diff as
 well as the body before authorizing publication: the feedback sanitizer does not scrub code.
 Successful publication through `propose --feedback-file --yes` records the PR URL and marks
-the draft sent. Use `send --issue` to explicitly choose an issue instead.
+the draft sent. Declined or sent attachments are refused. Use `send --issue` to explicitly
+choose an issue instead; this works even in a copied or shallow core without subtree history.
 
 **No product data:** use a synthetic, minimal harness reproduction. The mandatory sanitizer
-removes product/overlay names, absolute paths outside the core, emails, IPs, known keys/tokens,
+removes product/overlay names as whole words or path components, absolute paths outside the
+core (including redirects and HTML), emails, IPs, known keys/tokens,
 and extra literal terms in `project.json → feedback.redact` ([overlay](docs/overlay.md#feedback)).
+Names shared with harness scripts or commands preserve those harness terms. Explicit private
+terms remain literal redactions. Sanitized placeholders and Markdown link punctuation survive.
 Only HTTPS links to this core or the explicit public documentation allowlist survive; query
 strings/fragments are removed. Current docs allowlist: `docs.python.org`, `docs.github.com`,
 `learn.chatgpt.com/docs`, `platform.openai.com/docs`, `code.claude.com/docs`,

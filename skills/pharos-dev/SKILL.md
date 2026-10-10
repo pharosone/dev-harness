@@ -248,7 +248,9 @@ interrupt a running decision. The user decides; reuse their answer. A refusal is
 
 The repository `pharosone/dev-harness` is public. Include only minimal harness reproductions
 and sanitized evidence; no product data. `send <slug>` previews the final sanitized text and
-checks duplicates before creating anything. The user must see that text before approval;
+checks duplicates before creating anything. Show candidate issue links; only use
+`--not-a-duplicate` when the user confirms they are distinct. Publication still needs approval.
+The user must see that text before approval;
 `--yes` is only for their explicit go for that exact text, never an agent's default. If local
 vendored-core edits implement the fix, offer the printed `harness_sync.py propose
 --feedback-file <draft>` command instead; it prepares a PR with the reviewed draft attached.

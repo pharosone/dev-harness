@@ -20,6 +20,11 @@ with defaults; a major release may require an overlay change and says which.
 - `pharos-dev`, `pharos-discover` and both runtime adapters offer feedback once per distinct
   harness failure, workaround, session tool, user-corrected decision or process complaint at
   a natural pause. `pharos-dev` lists waiting drafts at every taste gate and run end.
+- Review fixes: sanitize redirected/tagged paths while preserving placeholders and link
+  punctuation; redact checkout names at word boundaries while preserving harness terms;
+  allow `send --issue` without subtree history and user-confirmed `--not-a-duplicate` with
+  candidate links. Keep secret prose usable, distinguish Unicode/truncated draft slugs,
+  refuse declined/sent PR attachments, and tighten the decline eval grader.
 - Six owner-reported examples are synthetic test fixtures, never real issues. Renumber this
   entry at merge if the parallel release branches require a different version.
 

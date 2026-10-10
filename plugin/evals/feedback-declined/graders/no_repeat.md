@@ -1,6 +1,6 @@
 ---
 type: regex
 flags: i
-pattern: "never[\\s\\S]{0,60}(offer|ask)|not[\\s\\S]{0,60}(offer|ask|re-offer)|no[\\s\\S]{0,40}(repeat|re-offer|new offer)|skip[\\s\\S]{0,40}(offer|question)|already offered|declined.*(persist|retain|record)|won.t[\\s\\S]{0,40}(offer|ask)"
+pattern: "(?:\\bnever|\\b(?:do\\s+)?not|\\bwon['’]t)\\s+(?:(?:be|ever|again)\\s+){0,3}(?:re[- ]?)?(?:offer(?:ed|ing)?|ask(?:ed|ing)?)\\b|\\bno\\s+(?:repeat|re-offer|new offer|further(?: feedback)? offers?)\\b|\\bskip\\s+(?:(?:the|this)\\s+)?(?:feedback\\s+)?(?:offer|question)\\b|\\balready offered\\b|\\bdeclined\\b[^\\n.]{0,40}\\b(?:persist\\w*|retain\\w*|record\\w*)"
 target: last_message
 ---

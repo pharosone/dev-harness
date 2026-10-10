@@ -336,6 +336,105 @@ class FeedbackTest(unittest.TestCase):
             self.save_config()
             self.cli("draft", "--kind", "bug", "--title", "test", code=2)
 
+    def test_paths_after_redirects_and_inside_tags_preserve_placeholders(self):
+        raw = (f'<code>/Users/alice/acme-client/report.md</code> '
+               f'python3 x.py 2>/Users/alice/acme-client/err.log '
+               f'<code>{SCRIPTS}/feedback.py</code> '
+               '<harness>/scripts/freeze.py <product>/…')
+        clean = feedback.sanitize(raw, self.root)
+        self.assertEqual(clean, '<code><product>/…</code> python3 x.py 2><product>/… '
+                         '<code><harness>/scripts/feedback.py</code> '
+                         '<harness>/scripts/freeze.py <product>/…')
+        self.assertEqual(feedback.sanitize(clean, self.root), clean)
+
+    def test_issue_choice_needs_no_subtree_history(self):
+        core = self.root / 'harness/core'
+        core.mkdir(parents=True)
+        (core / 'README.md').write_text('synthetic copied core')
+        self.git('add', 'harness/core')
+        self.git('-c', 'user.name=Test', '-c', 'user.email=test@example.invalid',
+                 '-c', 'commit.gpgsign=false', 'commit', '-qm', 'copied core without subtree')
+        path = self.draft()
+        with patch.object(feedback, 'core_edits', wraps=feedback.core_edits) as inspect:
+            self.cli('send', path.stem, '--yes', '--issue')
+            inspect.assert_not_called()
+        self.assertEqual(len(self.sent()), 1)
+
+    def test_checkout_names_match_words_and_keep_harness_terms(self):
+        for name, raw in [('app', 'app application happy /relative/app/file'),
+                          ('lanes', 'lanes.py lanes Freeze refuses authorized amendments'),
+                          ('freeze', 'Freeze refuses authorized amendments lanes.py freeze')]:
+            with self.subTest(name=name):
+                with patch.object(feedback.task_state, 'checkouts', return_value=(Path('/synthetic') / name, None)):
+                    clean = feedback.sanitize(raw, self.root)
+                if name == 'app':
+                    self.assertEqual(clean, '[private] application happy <product>/…')
+                else:
+                    self.assertEqual(clean, raw)
+        self.config['name'] = 'app'
+        self.save_config()
+        self.assertEqual(feedback.sanitize('app application happy', self.root),
+                         '[private] application happy')
+        for name in (*feedback.UPSTREAM.split('/'), 'freeze', 'lanes'):
+            with self.subTest(harness_name=name):
+                self.config['name'] = name
+                self.save_config()
+                raw = 'dev-harness Freeze lanes.py https://github.com/pharosone/dev-harness/issues/1'
+                self.assertEqual(feedback.sanitize(raw, self.root), raw)
+
+    def test_duplicate_confirmation_shows_links_and_still_requires_approval(self):
+        path = self.draft()
+        link = 'https://github.com/pharosone/dev-harness/issues/9'
+        duplicates = [{'title': 'Existing freeze problem', 'url': link}]
+        with patch.dict(os.environ, FAKE_GH_DUPLICATES=json.dumps(duplicates)):
+            first = self.cli('send', path.stem, '--yes', '--issue')
+            self.assertIn(link, first)
+            self.assertIn('--not-a-duplicate', first)
+            self.assertFalse(self.sent())
+            with patch.object(sys.stdin, 'isatty', return_value=False):
+                output = self.cli('send', path.stem, '--issue', '--not-a-duplicate')
+            self.assertIn(link, output)
+            self.assertFalse(self.sent())
+            output = self.cli('send', path.stem, '--yes', '--issue', '--not-a-duplicate')
+        self.assertIn(link, output)
+        self.assertEqual(len(self.sent()), 1)
+
+    def test_secret_prose_can_be_drafted_and_declined(self):
+        for title in ('Guard misses private key files', 'Guard misses PRIVATE KEY files',
+                      'SK-123 bug report', 'sk-learn compatibility'):
+            with self.subTest(title=title):
+                path = self.draft(title=title)
+                self.assertEqual(feedback.title_of(feedback.read(path)[1]), title)
+                self.cli('decline', path.stem)
+                self.assertEqual(feedback.read(path)[0]['status'], 'declined')
+
+    def test_url_replacement_preserves_markdown_and_sentence_punctuation(self):
+        raw = '[docs](https://docs.python.org/3/). (https://private.invalid/path),'
+        self.assertEqual(feedback.sanitize(raw, self.root),
+                         '[docs](https://docs.python.org/3/). ([url]),')
+
+    def test_unicode_and_truncated_titles_have_stable_distinct_slugs(self):
+        titles = ['Ошибка во freeze', 'Ошибка в гейте', 'Ошибка в очереди', 'x' * 100 + ' first',
+                  'x' * 100 + ' second']
+        paths = [self.draft(title=title) for title in titles]
+        self.assertEqual(len(set(paths)), len(titles))
+        for title, path in zip(titles, paths):
+            self.assertLessEqual(len(path.stem), 90)
+            self.assertEqual(self.draft(title=title), path)
+            self.cli('decline', path.stem)
+            self.assertEqual(self.draft(title=title), path)
+            self.assertEqual(feedback.read(path)[0]['status'], 'declined')
+
+    def test_duplicate_public_titles_do_not_fail_closed(self):
+        path = self.draft()
+        link = 'https://github.com/pharosone/dev-harness/issues/9'
+        duplicates = [{'title': 'Guard misses private key headers sk-learn', 'url': link}]
+        with patch.dict(os.environ, FAKE_GH_DUPLICATES=json.dumps(duplicates)):
+            output = self.cli('send', path.stem, '--yes')
+        self.assertIn('Guard misses private key headers sk-learn', output)
+        self.assertIn(link, output)
+        self.assertFalse(self.sent())
+
     def test_all_six_seed_examples_create_sanitized_drafts(self):
         fixtures = json.loads((Path(__file__).parent / "fixtures/feedback/seeds.json").read_text())
         self.assertEqual(len(fixtures), 6)

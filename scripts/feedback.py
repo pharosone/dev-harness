@@ -5,7 +5,7 @@
   list [--summary | --offerable]
   offer SLUG                 print the one-time question and remember the offer
   decline SLUG               remember the user's refusal
-  send SLUG [--yes] [--issue] preview, deduplicate, then create an issue
+  send SLUG [--yes] [--issue] [--not-a-duplicate] preview, deduplicate, then create an issue
 
 Every command accepts --task T (task_state's primary-checkout run directory) or
 --run-dir DIR (an existing run directory, including an overlay-owned run).
@@ -19,6 +19,7 @@ chooses an issue. No PR is published by this script. Exit 0 done/preview, 2 refu
 from __future__ import annotations
 
 import argparse
+import hashlib
 import ipaddress
 import json
 import os
@@ -51,9 +52,18 @@ ASSIGNMENT = re.compile(r'''(?im)(\b(?:[a-z0-9_]*(?:password|passwd|secret|token
 AUTH = re.compile(r"\b(?:Bearer|Basic)\s+[A-Za-z0-9+/_.=-]+", re.I)
 JWT = re.compile(r"\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b")
 PEM = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----", re.S)
-REMAINING = re.compile(r"PRIVATE KEY|\b(?:sk-|gh[pousr]_|github_pat_|xox[abpr]-|AKIA|AIza|sk_live_)[A-Za-z0-9_-]+", re.I)
-ABS_PATH = re.compile(r"(?<![\w/>])(?:[A-Za-z]:[\\/]|/|\\\\)[^\s<>\"'`),;]+")
+REMAINING = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY|\b(?:sk-[A-Za-z0-9_-]{12,}|(?:gh[pousr]_|github_pat_|xox[abpr]-|AKIA|AIza|sk_live_)[A-Za-z0-9_-]+)")
+# Consume placeholders and closing tags intact before looking for a path. A '>'
+# can precede a real path in both HTML and shell redirections.
+ABS_PATH = re.compile(r"<(?:harness|product)>/[^\s<>\"'`),;]*|</[A-Za-z][\w:-]*\s*>|(?P<path>(?<![\w/])(?:[A-Za-z]:[\\/]|/|\\\\)[^\s<>\"'`),;]+)")
 QUOTED_PATH = re.compile(r'''(["'])(/[^\n"']*|[A-Za-z]:[\\/][^\n"']*|\\\\[^\n"']*)\1''')
+# Task worktrees often share a name with a harness script or command. Such a
+# name is ambiguous, so preserve harness vocabulary; paths are still scrubbed.
+HARNESS_TERMS = {p.stem.casefold() for p in Path(__file__).resolve().parent.glob("*.py")} | set(UPSTREAM.split("/")) | {
+    "harness", "core", "feedback", "freeze", "amend", "verify", "gate", "taste",
+    "draft", "list", "offer", "decline", "send", "propose", "install", "pull",
+    "status", "start", "stop", "run", "bug", "friction", "feature",
+}
 
 
 class FeedbackError(Exception):
@@ -73,14 +83,15 @@ def settings(root: Path) -> tuple[dict, list[str]]:
         names.append(root.name)
         primary, _ = task_state.checkouts()
         names.append(primary.name)
-    return config, [t for t in [*names, *terms] if isinstance(t, str) and t]
+    return config, [t for t in names if isinstance(t, str) and t and t.casefold() not in HARNESS_TERMS]
 
 
 def sanitize(text: str, root: Path) -> str:
     """Scrub recognized private data, then fail closed on unresolved secret patterns."""
-    _, terms = settings(root)
+    config, names = settings(root)
+    terms = config.get("feedback", {}).get("redact", [])
     text = PEM.sub("[redacted]", text)
-    if "PRIVATE KEY" in text:
+    if re.search(r"-----BEGIN [A-Z ]*PRIVATE KEY", text):
         raise FeedbackError("unclosed private key material; remove it before sending")
     text = SECRET_VALUE.sub("[redacted]", text)
     text = re.sub(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b", "[redacted]", text)
@@ -94,11 +105,12 @@ def sanitize(text: str, root: Path) -> str:
 
     def url(match: re.Match) -> str:
         raw = match[0].rstrip(".,)")
+        suffix = match[0][len(raw):]
         try:
             parsed = urlsplit(raw if not raw.startswith("www.") else "https://" + raw)
             port = parsed.port
         except ValueError:
-            return "[url]"
+            return "[url]" + suffix
         host, path = parsed.hostname, parsed.path
         allowed = (host == "github.com" and
                    (path == "/" + UPSTREAM or path.startswith("/" + UPSTREAM + "/")))
@@ -106,9 +118,9 @@ def sanitize(text: str, root: Path) -> str:
         allowed = allowed or (prefix is not None and
                              (prefix == "/" or path == prefix or path.startswith(prefix + "/")))
         if parsed.scheme != "https" or parsed.username or parsed.password or port not in (None, 443) or not allowed:
-            return "[url]"
+            return "[url]" + suffix
         urls.append(urlunsplit(("https", host or "", path, "", "")))
-        return f"{{{{PUBLICURL{len(urls) - 1}}}}}"
+        return f"{{{{PUBLICURL{len(urls) - 1}}}}}" + suffix
 
     text = URL.sub(url, text)
 
@@ -122,7 +134,7 @@ def sanitize(text: str, root: Path) -> str:
         return "<product>/…"
 
     text = QUOTED_PATH.sub(lambda m: m[1] + path(m[2]) + m[1], text)
-    text = ABS_PATH.sub(lambda m: path(m[0]), text)
+    text = ABS_PATH.sub(lambda m: path(m["path"]) if m["path"] else m[0], text)
     for number, allowed_url in enumerate(urls):
         text = text.replace(f"{{{{PUBLICURL{number}}}}}", allowed_url)
     text = EMAIL.sub("[email]", text)
@@ -136,6 +148,8 @@ def sanitize(text: str, root: Path) -> str:
             return raw
 
     text = re.sub(r"(?<![\w:])(?:[0-9A-Fa-f]*:){2,}[0-9A-Fa-f:.]*(?:%[\w.-]+)?(?!\w)|(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])", ip, text)
+    for name in sorted(set(names), key=len, reverse=True):
+        text = re.sub(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])", "[private]", text, flags=re.I)
     for term in sorted(set(terms), key=len, reverse=True):
         text = re.sub(re.escape(term), "[private]", text, flags=re.I)
     if SECRET_VALUE.search(text) or REMAINING.search(text) or JWT.search(text):
@@ -198,7 +212,17 @@ def new_draft(root: Path, folder: Path, args: argparse.Namespace) -> int:
     if not title:
         raise FeedbackError("title must not be empty")
     slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:90].rstrip("-") or "feedback"
+    # Keep established short ASCII slugs. Hash titles that lose distinguishing
+    # text through transliteration/truncation, or collide with another title.
+    if not title.isascii() or len(title) > 90:
+        slug = slug[:77].rstrip("-") + "-" + hashlib.sha256(title.encode()).hexdigest()[:12]
     path = draft_path(folder, slug)
+    if path.exists():
+        meta, body = read(path)
+        if title_of(body) != title or meta.get("kind") != args.kind:
+            suffix = hashlib.sha256((args.kind + "\0" + title).encode()).hexdigest()[:12]
+            slug = slug[:77].rstrip("-") + "-" + suffix
+            path = draft_path(folder, slug)
     if path.exists():
         # A repeated distinct-issue title retains its offered/declined/sent state.
         meta, body = read(path)
@@ -284,15 +308,27 @@ def send(root: Path, folder: Path, args: argparse.Namespace) -> int:
     if not isinstance(found, list):
         raise FeedbackError("invalid duplicate response; nothing sent")
     if found:
-        print("Possible duplicates; nothing created:")
+        print("Possible duplicates:")
         for entry in found:
-            print(sanitize(f"{entry['title']}: {entry['url']}", root))
-        return 0
-    try:
-        changed = core_edits(root, pin)
-    except harness_sync.SyncError:
-        raise FeedbackError("cannot inspect the vendored core; nothing sent") from None
-    if changed and not args.issue:
+            # These are already public upstream titles, not outbound product
+            # evidence. Validate links and suppress terminal control characters.
+            link = entry["url"]
+            if not re.fullmatch(r"https://github\.com/pharosone/dev-harness/issues/\d+", link):
+                raise FeedbackError("invalid duplicate URL; nothing sent")
+            public_title = "".join(c for c in entry["title"] if c.isprintable())
+            print(f"{public_title}: {link}")
+        if not args.not_a_duplicate:
+            print("Nothing created. Review the links; if distinct, rerun send " + args.slug +
+                  " --not-a-duplicate (add --yes only after user approval).")
+            return 0
+        print("User confirmed this is not a duplicate; publication still requires approval.")
+    changed = False
+    if not args.issue:
+        try:
+            changed = core_edits(root, pin)
+        except harness_sync.SyncError:
+            raise FeedbackError("cannot inspect the vendored core; choose --issue or install the core with subtree history") from None
+    if changed:
         command = ["python3", str(project.core_root() / "scripts/harness_sync.py"), "propose",
                    "--branch", "fix/" + args.slug, "--title", title, "--feedback-file", str(path)]
         print("Local core edits may implement this fix. Offer: Prepare a harness PR instead?")
@@ -345,6 +381,8 @@ def parser() -> argparse.ArgumentParser:
         if name == "send":
             command.add_argument("--yes", action="store_true")
             command.add_argument("--issue", action="store_true")
+            command.add_argument("--not-a-duplicate", action="store_true",
+                                 help="user confirms the displayed candidate issues are distinct; still requires approval")
     return main
 
 

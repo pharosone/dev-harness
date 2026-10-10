@@ -58,7 +58,8 @@ create a harness-only draft, and use `offer <slug>` to ask exactly: **Offer harn
 `decline <slug>` records a refusal and prevents repeated offers. Use the same `--task` or
 `--run-dir` queue for every command (omit both when there is no run).
 
-The upstream is public: no product data. `send` previews sanitized text and checks duplicates;
+The upstream is public: no product data. `send` previews sanitized text and checks duplicates.
+Show candidate issue links; `--not-a-duplicate` requires the user to confirm they are distinct;
 `--yes` requires the user's explicit go for that text. Core fixes offer `harness_sync.py
 propose --feedback-file <draft>` instead; review code and body before publication. Missing
 `gh`/auth prints a prefilled URL and stays unsent. At each taste gate and run end, show

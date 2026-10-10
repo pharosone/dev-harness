@@ -476,6 +476,18 @@ def identity(root: Path) -> list[str]:
 
 
 def cmd_propose(root: Path, args: argparse.Namespace) -> int:
+    if args.feedback_file:
+        import feedback
+        try:
+            draft_meta, draft = feedback.read(Path(args.feedback_file))
+            if draft_meta["status"] != "draft":
+                raise SyncError("feedback attachment must have draft status; nothing published")
+            draft = feedback.sanitize(draft, root)
+        except feedback.FeedbackError as exc:
+            raise SyncError(str(exc)) from None
+        except (project.OverlayError, feedback.task_state.StateError, OSError,
+                ValueError, KeyError, TypeError):
+            raise SyncError("invalid feedback attachment or privacy settings; nothing published") from None
     pin = read_pin(root)
     prefix = pin["prefix"]
     branch = argument("--branch", args.branch)
@@ -537,14 +549,15 @@ def cmd_propose(root: Path, args: argparse.Namespace) -> int:
         ])
         if args.feedback_file:
             # A feedback attachment is local evidence, never a link to a product path.
-            import feedback
             try:
-                draft_meta, draft = feedback.read(Path(args.feedback_file))
                 body += "\n[Reviewed feedback draft](#harness-feedback-draft)\n\n## Harness feedback draft\n\n" + draft
                 body = feedback.sanitize(body, root)
                 title = feedback.sanitize(title, root)
             except feedback.FeedbackError as exc:
                 raise SyncError(str(exc)) from None
+            except (project.OverlayError, feedback.task_state.StateError, OSError,
+                    ValueError, KeyError, TypeError):
+                raise SyncError("invalid feedback attachment or privacy settings; nothing published") from None
         body_file.write_text(body, encoding="utf-8")
         (work / "COMMIT_MSG").write_text(f"{title}\n\n{body}", encoding="utf-8")
         git(clone, *identity(root), "commit", "--quiet", "--no-verify",
@@ -584,7 +597,7 @@ def cmd_propose(root: Path, args: argparse.Namespace) -> int:
             raise SyncError("PR opened but its URL was unexpected; verify it before updating the feedback draft")
         feedback.write(Path(args.feedback_file),
                        {**draft_meta, "status": "sent", "offered": True, "url": url},
-                       feedback.sanitize(draft, root))
+                       draft)
     shutil.rmtree(work, ignore_errors=True)
     return 0
 

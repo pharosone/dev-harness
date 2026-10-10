@@ -497,6 +497,38 @@ class PullTest(SyncTestCase):
         self.assertIn("## What happened", draft.read_text())
         self.assertEqual(len(self.gh_calls()), 1)
 
+    def test_feedback_attachment_refuses_declined_or_sent_before_publication(self):
+        self.edit_core()
+        draft = self.product / '.harness/feedback/demo.md'
+        draft.parent.mkdir(parents=True)
+        for status in ('declined', 'sent'):
+            with self.subTest(status=status):
+                text = '<!-- harness-feedback ' + json.dumps({'kind': 'bug', 'status': status}) + ' -->\n\n# Fix demo skill\n'
+                draft.write_text(text)
+                output = self.ok(self.sync('propose', '--branch', 'fix-demo',
+                                          '--feedback-file', str(draft), '--yes',
+                                          env=self.fake_gh_env()), code=2)
+                self.assertIn('draft status', output)
+                self.assertNotIn('Traceback', output)
+                self.assertEqual(draft.read_text(), text)
+                self.assertEqual(self.upstream_branches(), 'refs/heads/main')
+                self.assertEqual(self.gh_calls(), [])
+
+    def test_feedback_attachment_errors_are_generic_refusals(self):
+        self.edit_core()
+        draft = self.product / '.harness/feedback/private-name.md'
+        for mode in ('missing', 'invalid-overlay'):
+            with self.subTest(mode=mode):
+                if mode == 'invalid-overlay':
+                    draft.parent.mkdir(parents=True)
+                    draft.write_text('<!-- harness-feedback {"kind":"bug","status":"draft"} -->\n\n# Fix demo\n')
+                    (self.product / 'harness/project/project.json').write_text('{invalid')
+                output = self.ok(self.sync('propose', '--branch', 'fix-demo',
+                                          '--feedback-file', str(draft)), code=2)
+                self.assertNotIn('Traceback', output)
+                self.assertNotIn(str(self.product), output)
+                self.assertEqual(self.upstream_branches(), 'refs/heads/main')
+
     def test_default_title_is_the_latest_core_commit_subject(self):
         self.edit_core()
         output = self.ok(self.sync("propose", "--branch", "fix-demo"))
