@@ -1,0 +1,404 @@
+{
+  "schema_version": 1,
+  "policy_version": "1.0-shadow",
+  "taxonomy_version": "1.1",
+  "mode": "off",
+  "classifier": {
+    "enabled": false,
+    "model": "claude-haiku-5-5",
+    "effort": "medium",
+    "timeout_seconds": 20,
+    "max_budget_usd": 0.05,
+    "cache": true
+  },
+  "runtimes": {
+    "claude": {
+      "availability": "available",
+      "enabled": true,
+      "implemented": true,
+      "usage_bucket": "claude",
+      "capabilities": [
+        "text",
+        "tools",
+        "terminal"
+      ],
+      "command": {
+        "argv": [
+          "claude",
+          "-p",
+          "--model",
+          "{model}",
+          "--effort",
+          "{effort}"
+        ],
+        "protocol": "claude-code"
+      },
+      "account_status": "unknown",
+      "models": [
+        "claude-fable-5-1",
+        "claude-opus-5-5",
+        "claude-sonnet-5-5",
+        "claude-haiku-5-5"
+      ],
+      "model_access": {
+        "claude-fable-5-1": {
+          "status": "unknown",
+          "efforts": null
+        },
+        "claude-opus-5-5": {
+          "status": "unknown",
+          "efforts": null
+        },
+        "claude-sonnet-5-5": {
+          "status": "unknown",
+          "efforts": null
+        },
+        "claude-haiku-5-5": {
+          "status": "unknown",
+          "efforts": null
+        }
+      }
+    },
+    "codex": {
+      "availability": "available",
+      "enabled": true,
+      "implemented": true,
+      "usage_bucket": "codex",
+      "capabilities": [
+        "text",
+        "tools",
+        "terminal"
+      ],
+      "command": {
+        "argv": [
+          "codex",
+          "exec",
+          "--model",
+          "{model}"
+        ],
+        "protocol": "codex"
+      },
+      "account_status": "unknown",
+      "models": [
+        "gpt-6-astra",
+        "gpt-6.1-sol",
+        "gpt-6-luna"
+      ],
+      "model_access": {
+        "gpt-6-astra": {
+          "status": "unknown",
+          "efforts": null
+        },
+        "gpt-6.1-sol": {
+          "status": "unknown",
+          "efforts": null
+        },
+        "gpt-6-luna": {
+          "status": "unknown",
+          "efforts": null
+        }
+      }
+    },
+    "gemini": {
+      "availability": "planned",
+      "enabled": true,
+      "implemented": false,
+      "usage_bucket": "gemini",
+      "capabilities": [
+        "text",
+        "tools"
+      ],
+      "command": {
+        "argv": [],
+        "protocol": "planned-gemini-cli"
+      },
+      "account_status": "unknown",
+      "models": [
+        "gemini-4-argon"
+      ],
+      "model_access": {
+        "gemini-4-argon": {
+          "status": "unknown",
+          "efforts": null
+        }
+      }
+    },
+    "grok": {
+      "availability": "planned",
+      "enabled": true,
+      "implemented": false,
+      "usage_bucket": "grok",
+      "capabilities": [
+        "text",
+        "tools"
+      ],
+      "command": {
+        "argv": [],
+        "protocol": "planned-grok"
+      },
+      "account_status": "unknown",
+      "models": [
+        "grok-4.7"
+      ],
+      "model_access": {
+        "grok-4.7": {
+          "status": "unknown",
+          "efforts": null
+        }
+      }
+    }
+  },
+  "profiles": {
+    "mechanical": {
+      "reference_min": 0,
+      "reference_max": 40,
+      "upper_inclusive": false,
+      "quality_floor": 0.2,
+      "rework_cu": 2
+    },
+    "routine": {
+      "reference_min": 40,
+      "reference_max": 48,
+      "upper_inclusive": false,
+      "quality_floor": 0.45,
+      "rework_cu": 10
+    },
+    "implementation": {
+      "reference_min": 48,
+      "reference_max": 52,
+      "upper_inclusive": false,
+      "quality_floor": 0.5,
+      "rework_cu": 30
+    },
+    "critical-review": {
+      "reference_min": 51.5,
+      "reference_max": 56.5,
+      "upper_inclusive": false,
+      "quality_floor": 0.55,
+      "rework_cu": 120
+    },
+    "escalation": {
+      "reference_min": 52,
+      "reference_max": 100,
+      "upper_inclusive": true,
+      "quality_floor": 0.58,
+      "rework_cu": 240
+    },
+    "deep-reasoning": {
+      "reference_min": 52,
+      "reference_max": 100,
+      "upper_inclusive": true,
+      "quality_floor": 0.58,
+      "rework_cu": 240
+    }
+  },
+  "reference": {
+    "benchmark_id": "aa-intelligence-v4.3.2",
+    "comparison_group": "aa-intelligence-v4.3.2-aa-protocol-2026-10",
+    "harness": "Artificial Analysis benchmark-specific evaluation",
+    "unit": "index",
+    "as_of": "2026-10-10"
+  },
+  "trait_maps": {
+    "repo_edit": [],
+    "terminal": [
+      {
+        "benchmark_id": "terminal-bench-4.0-aa",
+        "weight": 1,
+        "comparison_group": "terminal-bench-4.0-aa-aa-protocol-2026-10",
+        "harness": "mini-swe-agent",
+        "unit": "percent",
+        "required": {
+          "statistic": "pass@1 averaged over three repeats",
+          "task_count": 66,
+          "trials_per_task": 3
+        },
+        "setting_matches_reference": true,
+        "note": "66-task mini-swe-agent terminal completion."
+      }
+    ],
+    "polyglot": [],
+    "algorithmic": [],
+    "tool_workflow": [
+      {
+        "benchmark_id": "automationbench-aa",
+        "weight": 1,
+        "comparison_group": "automationbench-aa-aa-protocol-2026-10",
+        "harness": "Artificial Analysis agentic REST API evaluation",
+        "unit": "percent",
+        "required": {
+          "statistic": "mean objective completion, guardrail-gated"
+        },
+        "setting_matches_reference": true,
+        "note": "Partial objective completion, guardrail-gated."
+      }
+    ],
+    "browser": [],
+    "review": [
+      {
+        "benchmark_id": "hle-aa-no-tools",
+        "weight": 1,
+        "comparison_group": "hle-aa-no-tools-aa-protocol-2026-10",
+        "harness": "AA no-tools; GPT-5.6 Luna medium equality checker",
+        "unit": "percent",
+        "required": {
+          "statistic": "pass@1; 2158 text-only questions; no tools"
+        },
+        "setting_matches_reference": true,
+        "note": "Academic reasoning proxy, not security-review accuracy."
+      }
+    ],
+    "long_context": [
+      {
+        "benchmark_id": "aa-long-context-v1.1",
+        "weight": 1,
+        "comparison_group": "aa-long-context-v1.1-aa-protocol-2026-10",
+        "harness": "Artificial Analysis API evaluation; benchmark-specific protocol",
+        "unit": "percent",
+        "required": {},
+        "setting_matches_reference": true,
+        "note": "100K document retrieval/reasoning, not MRCR."
+      }
+    ],
+    "factual": [
+      {
+        "benchmark_id": "aa-omniscience-accuracy",
+        "weight": 1,
+        "comparison_group": "aa-omniscience-accuracy-aa-protocol-2026-10",
+        "harness": "Artificial Analysis API evaluation; benchmark-specific protocol",
+        "unit": "percent",
+        "required": {},
+        "setting_matches_reference": true,
+        "note": "Closed-book accuracy proxy; not live verification/citation accuracy."
+      }
+    ],
+    "instruction": [
+      {
+        "benchmark_id": "gdp-pdf-aa",
+        "weight": 1,
+        "comparison_group": "gdp-pdf-aa-aa-protocol-2026-10",
+        "harness": "Artificial Analysis API evaluation; benchmark-specific protocol",
+        "unit": "percent",
+        "required": {},
+        "setting_matches_reference": true,
+        "note": "Professional document all-criteria proxy, not pure IFBench."
+      }
+    ],
+    "web_research": []
+  },
+  "source_weights": {
+    "independent": 1,
+    "vendor": 0,
+    "preference": 0
+  },
+  "cost": {
+    "scarcity_exponent": 2,
+    "runout_coefficient": 2,
+    "runout_warmup_fraction": 0.25,
+    "multiplier_cap": 50,
+    "stop_at": 0.85,
+    "unknown_used": 0.5,
+    "unknown_pressure_index": 1,
+    "base_price_cu_per_1k": 0.01,
+    "window_base_prices": {},
+    "latency_cu_per_minute": 0.1,
+    "failure_prior_min": 0.02,
+    "failure_prior_max": 0.98,
+    "prior_equivalent_observations": 20,
+    "tier_rework_minima": {
+      "0": 2,
+      "1": 10,
+      "2": 30,
+      "3": 120
+    },
+    "rework_human_fraction": 0.9,
+    "rework_compute_fraction": 0.1,
+    "tie_cu": 1e-06
+  },
+  "estimates": {
+    "proxy_mode": "disabled",
+    "initial_review_cu": null,
+    "deadline_minutes": null,
+    "followup_shares": {
+      "claude": 0.5,
+      "codex": 0.5
+    },
+    "candidates": {},
+    "retry": null
+  },
+  "effort_limits": {},
+  "fallbacks": {
+    "mechanical": [
+      {
+        "runtime": "claude",
+        "model": "claude-haiku-5-5",
+        "effort": "medium"
+      },
+      {
+        "runtime": "codex",
+        "model": "gpt-6-luna",
+        "effort": "high"
+      }
+    ],
+    "routine": [
+      {
+        "runtime": "claude",
+        "model": "claude-sonnet-5-5",
+        "effort": "medium"
+      },
+      {
+        "runtime": "codex",
+        "model": "gpt-6.1-sol",
+        "effort": "medium"
+      }
+    ],
+    "implementation": [
+      {
+        "runtime": "claude",
+        "model": "claude-opus-5-5",
+        "effort": "medium"
+      },
+      {
+        "runtime": "codex",
+        "model": "gpt-6.1-sol",
+        "effort": "high"
+      }
+    ],
+    "critical-review": [
+      {
+        "runtime": "claude",
+        "model": "claude-opus-5-5",
+        "effort": "high"
+      },
+      {
+        "runtime": "codex",
+        "model": "gpt-6-astra",
+        "effort": "xhigh"
+      }
+    ],
+    "escalation": [
+      {
+        "runtime": "claude",
+        "model": "claude-opus-5-5",
+        "effort": "max"
+      },
+      {
+        "runtime": "codex",
+        "model": "gpt-6-astra",
+        "effort": "max"
+      }
+    ],
+    "deep-reasoning": [
+      {
+        "runtime": "claude",
+        "model": "claude-opus-5-5",
+        "effort": "xhigh"
+      },
+      {
+        "runtime": "codex",
+        "model": "gpt-6-astra",
+        "effort": "xhigh"
+      }
+    ]
+  }
+}
