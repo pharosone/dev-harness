@@ -60,10 +60,9 @@ change; your experience picks the suspects:
 
 1. **Picture** — the declared layers the change touches, the spec's Placement, the new and moved
    pieces with where they landed, and the `arch_check.py` run (command, exit code), a few lines.
-2. **Findings**, ranked — per finding: location (file:line) and where it belongs or what it
-   duplicates (file:line), severity — critical (the structure now misleads: a piece in the wrong
-   layer, a second implementation callers will diverge on) / major / minor — the issue in one
-   sentence, the evidence, the fix (the move, rename, merge or split the author could make).
+2. **Findings**, ranked — use the calibrated finding contract below. Cite where the piece
+   belongs or what it duplicates, and suggest the move, rename, merge or split after the item.
+   Structural disagreement alone is cosmetic; show the reachable failure before blocking.
 3. **Checked and holds** — the placements, responsibilities and boundaries you checked that
    hold, and where.
 4. **Not covered** — what you could not examine (no `architecture.md`, no `architecture.json`,
@@ -74,4 +73,33 @@ structure holds, say so.
 
 ## Findings
 
-Report every issue you find with its severity; filtering is a separate step. A Critical/Major names a concrete failure scenario (input or state → wrong result) — without one it is Minor. Say plainly when nothing matters.
+Report every issue as one Markdown list item with six em-dash-separated fields:
+- [Critical|Major|Minor] path:line — defect — likelihood/impact — reachable path — failure scenario — evidence: path:line
+
+The reachable path names the real caller/route; the scenario is specific input/state → wrong
+result. Evidence cites code read in this review, even when tests or measurements also prove it.
+Missing ratings, reachable path, scenario or code-read evidence → Minor until verified.
+Optional trailing fields: `— workaround: none` or `— workaround: <specific usable workaround>`;
+`— invariant: <exact overlay invariant text>` for a proven violation, never an invented invariant.
+
+Likelihood in THIS product: `will` = main path, happens within days; `plausible` = documented
+path users sometimes take; `edge` = rare combination, race window, unusual environment or
+operator mistake. Impact: `severe` = unapproved/wrong-recipient outbound action, limits/credits
+burned or account-ban risk, external leak of secrets/personal data, data loss, or a guard/check
+silently stops working; `functional` = recoverable feature failure/visible wrong result;
+`cosmetic` = presentation only.
+
+| Impact / likelihood | will | plausible | edge |
+|---|---|---|---|
+| severe | block | block | block only for violated overlay invariant or production stage; else backlog |
+| functional | block | block only with verified no workaround; else backlog | backlog |
+| cosmetic | backlog | backlog | backlog |
+
+Overlay `review.stage` defaults to `pilot`, `review.invariants` to empty. A severe blocker is
+Critical, a functional blocker Major, all backlog Minor; labels never override the matrix.
+For plausible/functional, missing workaround information is unverified: blocking requires
+`workaround: none`. At most two rounds per milestone across cross-review, QA and panel;
+distinct report paths/lenses share a round, counted once. Round 2 checks fixes/new code and previous blockers only; a new blocker must be severe and satisfy the
+matrix. Before fix-up the orchestrator rechecks each scenario against code (≤5 min each) and
+records the triage reason. Minors never block: ≤15-minute fixes join that fix-up; others go to
+`<run>/backlog.md`. Say plainly when there are no findings; do not invent issues.

@@ -146,23 +146,74 @@ what, so the dashboard and a resuming runtime see it without a living session.
   done|failed|timeout|cancelled` at its end (`<d>` may be the agent id the launch returned).
   Usage you do not have stays null; never estimate it.
 
-## Cross-vendor review — once per milestone
+## Cross-vendor review — at most two rounds per milestone
 
-A unit is guarded by its tests, red evidence and tripwires; the other vendor reviews the
-**milestone** diff, where sibling units are visible (reviewed one by one, units get their
-siblings reported as missing, and each review costs a full pass). Before the milestone's gate:
+A unit is guarded by tests, red evidence and tripwires; review the **milestone** diff so sibling
+units are visible. Before the milestone gate run:
 `python3 harness/core/scripts/xreview.py --base <milestone base> --writer claude|codex --spec <spec>
---sections "<milestone headings>" --ledger <run>/xreview.jsonl --out <run>/reports/<m>-xreview.md`
-(the tier comes from `tier.py`; Astra only when the milestone touches Tier-3 paths, otherwise
-GPT-6.1 Sol or Claude Opus). Before the PR, review only the diff since the last reviewed
-milestone; skip it when nothing changed. The ledger caps critical reviews at five per run.
-Exit 0 pass; exit 1 → a fix-up with the Critical/Major findings, then another round with
-`--addressed <previous reports>`; keep alternating fix-up and review without asking the user
-until the review passes or the cap is used up — only then the gate card (or the user's word
-for more). Exit 2/3
-(refused, timeout, no verdict) is not approval: record the review as not performed.
-A diff over the 200 KB cap is split by area with `--paths` (e.g. the harness paths apart from
-the application paths); each part's context lists its siblings so they are not reported missing.
+--section "<heading, including any comma>" --section "<another heading>" --run-dir <run>
+--milestone <m> --round 1 --ledger <run>/xreview.jsonl --out <run>/reports/<m>-xreview.md`.
+Use repeated `--section` for exact headings; legacy `--sections` still splits on commas.
+`--milestone` defaults to `milestone`; give each actual milestone a stable distinct name.
+The tier comes from `tier.py`; Astra only for Tier-3 paths, otherwise GPT-6.1 Sol or Claude Opus.
+Before the PR, review only changes since the last reviewed milestone; skip an empty diff.
+Exit 0 passes review; exit 1 → triage below before fix-up. Exit 2/3 (refused, timeout, no verdict)
+is not approval: record the review as not performed. A diff over 200 KB is split by area with
+`--paths`; each part lists siblings. Splitting areas or changing lenses does not reset rounds.
+
+### Review calibration and triage
+
+Use the overlay's `project.json → review`: `stage` defaults to `pilot`, `invariants` to empty.
+Every finding is one Markdown list item with six em-dash-separated fields, parsed by the runtime:
+- [Critical|Major|Minor] path:line — defect — likelihood/impact — reachable path — failure scenario — evidence: path:line
+
+Reachable path = real caller/route; scenario = specific input/state → wrong result; evidence =
+code read in this review. Tests/measurements supplement code-read evidence. Optional trailing
+fields: `— workaround: none` or `— workaround: <specific usable workaround>`;
+`— invariant: <exact overlay invariant text>` for a proven violation, never an invented one.
+Missing ratings, reachable path, scenario or code-read evidence → Minor until verified.
+
+Likelihood in THIS product: `will` = main path within days; `plausible` = documented path users
+sometimes take; `edge` = rare combination, race window, unusual environment or operator mistake.
+Impact: `severe` = unapproved/wrong-recipient outbound action, burned limits/credits, account-ban
+risk, external secrets/personal-data leak, data loss, or a guard/check silently stops working;
+`functional` = recoverable feature failure/visible wrong result; `cosmetic` = presentation only.
+
+| Impact / likelihood | will | plausible | edge |
+|---|---|---|---|
+| severe | block | block | block only for violated overlay invariant or production stage; else backlog |
+| functional | block | block only with verified no workaround; else backlog | backlog |
+| cosmetic | backlog | backlog | backlog |
+
+Blockers: Critical for severe, Major for functional; backlog: Minor. Labels never override the
+matrix. Plausible/functional requires verified `workaround: none` to block; omission is unverified.
+
+1. Before triage, ingest every QA/panel report with `python3 harness/core/scripts/review_calibration.py
+   record --run <run> --report <role-report> --milestone <m> --round 1|2
+   [--addressed <previous blockers>]`. It reads the active overlay review config; cross-review
+   records its own findings. Distinct report paths/lenses can share a round: `rounds_used` counts
+   distinct rounds, not lenses. Repeating a report within a round or returning to round 1 after
+   round 2 is refused; use the same milestone identity across all lenses.
+2. Read `<run>/review-ledger.jsonl`, which records **all** findings, and check every blocker's
+   reachable scenario against code (≤5 min each). Verify ratings, workaround and any claimed
+   exact overlay invariant. Downgrade edge findings per the matrix, recording the reason.
+3. Record each triage decision with `python3 harness/core/scripts/review_calibration.py triage
+   --run <run> --id <finding-id> --decision block|backlog --reason "<code-grounded reason>"`.
+   Verified corrections may add `--likelihood will|plausible|edge --impact severe|functional|cosmetic
+   --workaround "<none or specific workaround>" --invariant "<exact text>" --evidence "<path:line>"`.
+   Keep unverified findings Minor; do not fabricate evidence to upgrade them.
+4. Fix verified blockers. Minors never block: include fixes costing ≤15 min in the same fix-up;
+   send the rest to `<run>/backlog.md`. Re-run checks affected by fixes. Record observed outcomes
+   with `review_calibration.py outcome --run <run> --id <id> --outcome failure|harmless|confirmed
+   --source fix-up|incident|user-report|review --reason "<observed result>"`;
+   add `--user-override block|backlog` only for an explicit user decision, never your own inference.
+   `--outcome` is optional when `--user-override` is supplied: an override alone records the
+   acceptance decision and leaves an unobserved later outcome unknown; never fabricate an outcome.
+5. If needed, run round 2 with `--round 2 --addressed <previous reports>` (`--addressed` implies
+   round 2), the same `--milestone <m>` and `--run-dir <run>`. Review only fixes/new code and previous
+   blockers. Preserve the original defect title for an unchanged round-2 blocker; current
+   evidence lines may change. A new blocker counts only if severe **and** matrix-blocking; new functional or
+   cosmetic findings go to backlog. No automatic third round; unresolved blockers go to the gate.
 
 ## Taste gates and tripwires
 
@@ -201,11 +252,15 @@ the application up yourself, then brief the `ui-design-verifier` with its URL, t
 from the project's seed or fixtures, the spec's screens, states and mockups, and
 `<run-dir>/screens/<gate>/`; it captures and assesses the screenshots, and those files are the
 gate's and the PR's evidence. Each lens briefs from the spec and the diff, not from a list:
-reviewers derive what to look for from the change. Reviewers report every issue they find with
-a severity; a Critical/Major needs a concrete failure scenario, otherwise it is Minor.
-Critical/Major → fix-up and a targeted QA re-pass; Minor → the final report. **Ship gate:** no
-open Critical/Major after at most two review iterations. A lens is waived only in the user's
-words, recorded in `run.md`.
+reviewers derive what to look for from the change. Give QA and every lens the overlay's review
+stage/invariants, milestone name, round number and previous blockers. All use the calibrated
+finding contract and matrix above; ingest their reports with `review_calibration.py record`
+for the same milestone/round before triage, so all findings enter `<run>/review-ledger.jsonl`.
+Triaged blockers → fix-up and targeted QA; Minor → cheap same-fix-up repair or backlog.
+**Ship gate:** no open verified matrix blockers, with at most two rounds per milestone shared
+by cross-review, QA and panel. Round 2 checks fixes/new code and previous blockers only; new blockers must
+be severe and matrix-blocking. Remaining blockers stop at the gate; a pass never hides failed
+required checks. A lens is waived only in the user's words, recorded in `run.md`.
 
 **Architecture.** The `architecture-reviewer` (`critical-review`, read-only) joins the panel on
 every Tier 2–3 milestone, not only the PR. When the project has a
@@ -215,6 +270,28 @@ harness/core/scripts/arch_check.py --base <milestone base>` — through the proj
 exit 2 a broken declaration to fix before the review. The reviewer gets that result, the
 overlay's `architecture.md`, the spec's `## Placement` and the milestone diff; a deviation from
 Placement is a finding unless the spec was amended.
+
+## G4 and final report — review evidence
+
+At G4 (before the PR) and in the final report, show `python3
+harness/core/scripts/review_calibration.py report --run <run>` for the review summary and
+outcome counts. Add triage/downgrade reasons and remaining blockers from the ledger and fix-up
+evidence; outcome counts alone do not prove a blocker was fixed. Repeat `--run <other-run>` for an across-run
+report; `--json` emits machine-readable results. Link `<run>/backlog.md` explicitly, including
+when empty, and distinguish outcomes not yet observed from `harmless` or `confirmed` ones.
+
+Feedback hook: export each user correction as a sanitized calibration fixture; observed
+outcomes can also become regression fixtures. Use
+`python3 harness/core/scripts/review_calibration.py fixture --run <run> --id <id>
+--case <sanitized-case.json> --out <fixture-path>`. The JSON file contains exactly `name`,
+`finding` (one canonical finding string) and `review` (`stage` plus `invariants`). Remove secrets,
+personal data and private identifiers from the case; review the generated fixture before
+including it in tests/evals.
+Keep the fixture and `report --json` as an upstream scale-change candidate. If the feedback
+branch is present at merge, pass these sanitized artifacts to its collector; otherwise use
+the documented hook in `docs/overlay.md`. Propose a concrete cell/invariant adjustment with
+before/after fixture decisions; submit upstream only with explicit user authorization.
+Show this hook in G4/final reports so later incidents and user reports update the evidence.
 
 ## Handoff
 

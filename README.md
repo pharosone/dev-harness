@@ -214,6 +214,7 @@ documents its CLI and overlay keys.
 | `tier.py --base REF` | risk tier from paths × size (`tiers.json`) |
 | `gate.py [AREA…] [--changed BASE] [--dry-run]`, `--pin-ci WORKFLOW` | the one copy of the CI gates (`gates.json`), quiet output, full logs on disk; the pin against CI |
 | `quiet.py -- CMD` | run any command, print its failures and tail, keep its exit code |
+| `review_calibration.py` | record and triage findings, link outcomes, report per-run/across-run calibration, export sanitized correction fixtures |
 | `xreview.py` | cross-vendor review of a milestone diff, report only; withholds secrets, the Codex reviewer carries the guard, `--ledger` caps critical reviews (5 per run) |
 | `worktree.py add/remove` | lane worktrees; `--deps` installs `worktree.node_dirs` |
 | `guard.py` | PreToolUse guard for both runtimes (generated hooks; `project.json → guard`) |
@@ -264,3 +265,25 @@ reviewer does not mistake them for coverage:
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
+
+## Calibrated review acceptance
+
+Review likelihood and impact against this product's normal paths. `xreview.py` recomputes
+Critical/Major blockers from the approved matrix; missing fields or code-read evidence
+make a claim Minor until verified. Configure `project.json.review` with `stage` (default
+`pilot`) and short product `invariants` (default empty). See [review policy and calibration
+loop](docs/overlay.md#review--calibrated-acceptance) for the scale and commands.
+
+Use `--section 'Limits, retries'` repeatedly for headings containing commas; legacy
+`--sections` still works. Supply `--run-dir <run> --milestone M1`; round 2 uses
+`--addressed <previous-report>`, reviews only fixes/previous blockers, and admits new
+blockers only with severe impact. Two rounds is the maximum per milestone. The computed
+verdict and downgrades also appear beside the report in `<report>.calibration.md`.
+
+The append-only `<run>/review-ledger.jsonl` retains reviewer ratings, computed decisions,
+triage reasons, user corrections and later outcomes. `<run>/backlog.md` tracks Minors.
+`python3 scripts/review_calibration.py report --run <run> --run <older-run>` shows blockers
+per milestone, over-blocked/missed rates and rounds used, with concrete policy suggestions
+above documented thresholds. G4 and final reports include this summary and backlog path.
+Sanitized corrections can become fixtures; the documented feedback hook retains them for
+an upstream proposal without automatically publishing or changing defaults.

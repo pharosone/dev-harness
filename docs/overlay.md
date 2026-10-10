@@ -489,3 +489,123 @@ a `Source:` line. Personal hooks, settings keys and untracked personal agents an
 a non-link where a skill link goes is refused. Generated files and links the sources no longer
 produce are removed. The renderer refuses to run with the core outside the checkout or on the
 core repository itself.
+
+### review — calibrated acceptance
+
+Read by `xreview.py` from `project.json`. Unknown keys, an invalid stage or malformed
+invariants cause exit 2 before any reviewer is invoked. Other project sections are ignored.
+
+```json
+"review": {
+  "stage": "pilot",
+  "invariants": ["no outbound action without approval", "no public leak"]
+}
+```
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `stage` | `"pilot"` or `"production"` | `"pilot"` | production blocks verified severe × edge findings |
+| `invariants` | array of non-empty single-line strings | `[]` | product properties that must always hold; severe × edge blocks in pilot only when a finding names an exact matching invariant |
+
+The stage and invariants enter the review context. Every finding must supply likelihood,
+impact, a reachable caller/route, failure scenario and evidence of reading the code
+(`evidence: path:line`). Missing fields or memory-only claims are Minor until verified.
+Use `workaround: none` to establish that a plausible functional failure has no workaround.
+An absent workaround statement does not establish that it cannot be worked around.
+`invariant: no public leak` must name an actual overlay invariant; an invented invariant
+cannot elevate a pilot edge case.
+
+| Impact / likelihood | will | plausible | edge |
+|---|---|---|---|
+| severe | block | block | block with an overlay invariant or production stage; otherwise backlog |
+| functional | block | block only with no workaround | backlog |
+| cosmetic | backlog | backlog | backlog |
+
+`will` means the main path will fail within days under normal operation; `plausible` means
+an occasionally used documented path; `edge` requires a rare combination, launch race,
+unusual environment or operator mistake. Severe covers unauthorized/wrong-recipient
+outbound actions, burned limits/credits or ban risk, leaked secrets/personal data, data loss,
+and silently disabled guards/checks. Functional is a recoverable feature failure or visible
+wrong result. Cosmetic affects presentation. Verified severe blockers are Critical;
+functional blockers are Major; all backlog findings are Minor.
+
+### Review calibration evidence and feedback hook
+
+`xreview.py --run-dir <run> --milestone M1` records round 1 in
+`<run>/review-ledger.jsonl`; `--ledger <run>/xreview.jsonl` also supplies the run directory.
+The two files serve different purposes: `xreview.jsonl` caps vendor review usage, while
+`review-ledger.jsonl` retains acceptance evidence. `--addressed <previous-report>` implies
+round 2 and requires the same milestone. A repeated report in the same round, a third round, or a return to round 1 is refused.
+Distinct report paths for split areas or panel lenses may share a round; they do not add rounds. Round 2 reviews
+only fixes and previous blockers; a new blocker needs severe impact. A round reservation
+includes failures/timeouts, so abandoned attempts do not create unlimited retries. Without
+a run directory the prompt and `--round` still constrain scope, but round counts cannot
+persist between invocations.
+
+Each finding record includes its stable ID (scoped to milestone, source path and normalized
+defect title; line shifts during fixes preserve identity), raw reviewer rating,
+parsed fields, matrix verdict/reason, overlay snapshot and review round. Append-only triage
+and outcome events retain corrections; reports use the latest observation of each finding
+per milestone and never count the same finding twice for a repeated round. QA/panel findings enter the same ledger with `review_calibration.py record --run <run>
+--report <role-report> --milestone M1 --round 1` (round 2 also needs `--addressed`).
+This reads the product overlay from the current checkout, or `--root <checkout>`.
+Every blocker
+must be checked against the code before fix-up (at most five minutes each):
+
+```sh
+python3 harness/core/scripts/review_calibration.py triage --run <run> --id ID \
+  --decision backlog --likelihood edge --evidence src/worker.py:42 \
+  --reason 'Code confirms only a startup race; functional × edge is backlog'
+python3 harness/core/scripts/review_calibration.py outcome --run <run> --id ID \
+  --outcome failure --source user-report --reason 'Later report reproduced the startup failure'
+python3 harness/core/scripts/review_calibration.py outcome --run <run> --id BLOCKER_ID \
+  --user-override backlog --source user-report --reason 'Owner accepts the recoverable failure'
+python3 harness/core/scripts/review_calibration.py report --run <run> --run <older-run>
+```
+
+Triage can fill missing fields with `--reachable-path`, `--scenario`, `--location`,
+`--defect` and `--evidence`, as well as corrected ratings/workaround/invariant.
+Triage must agree with the recomputed matrix; a user override is recorded separately and
+never hidden as a matrix result. Sources are `fix-up`, `incident`, `user-report`, or `review`;
+outcomes are `failure`, `harmless`, or `confirmed`. Backlog that later fails is **missed**.
+A blocker overridden to backlog or shown harmless is **over-blocked**. An overridden
+blocker that later fails can have both flags: each represents different evidence. Override
+alone does not invent a later outcome. Link an outcome to its finding ID whenever a later
+fix-up, incident or user report provides evidence; unresolved items stay unresolved.
+
+Reports show blockers per milestone, rounds used and rates per run/across runs, with
+observed outcome counts. Over-block rate is over-blocked / all computed-or-triaged
+blockers; missed rate is missed / all accepted backlog items, including override-to-backlog.
+Zero denominators yield 0. Unknown outcomes remain in the denominator and observation
+counts make that limitation visible. By default, suggestions start above 25% over-blocked
+or 10% missed, with at least three observed outcomes in the relevant group. Override with
+`--over-block-threshold`, `--missed-threshold`, `--min-outcomes`; `--json` provides data.
+Suggestions name the affected cell or propose an invariant; they never edit defaults.
+
+Minors go to `<run>/backlog.md`. The script maintains a marked section while preserving
+owner notes. The orchestrator fixes Minors costing at most 15 minutes in the same fix-up;
+remaining items and the backlog path appear in G4 and the final report along with the
+calibration summary. A missing/corrupt ledger report is an error, not a zero-error success.
+
+A correction becomes a fixture with an explicitly sanitized JSON file containing only
+`name`, a canonical `finding` string, and `review` (`stage`, `invariants`):
+
+```sh
+python3 harness/core/scripts/review_calibration.py fixture --run <run> --id ID \
+  --case sanitized-case.json --out <run>/calibration-fixtures.json
+```
+
+The exported case adds the corrected expected decision and generic `user-correction`
+provenance. Raw ledger content is never copied. Private paths, recipients, URLs and common
+credential prefixes in submitted cases are refused; synthetic relative paths and invented
+product names belong in fixtures. Keep the original defect title when re-reporting a prior blocker in round 2 so the runtime
+can distinguish it from a new defect, even if its line number shifts.
+A corrected expectation may deliberately disagree with
+the current matrix: that is evidence for a proposed default change, not automatic approval.
+
+**Feedback hook at merge:** if `feat/feedback` is present, its collector can consume the
+sanitized fixture JSON array plus `report --json`; otherwise retain these artifacts in the
+run for the feedback workflow. An upstream proposal should include a cell/invariant change,
+before/after fixture decisions and the rate evidence. Export does not send or publish
+anything. The user approves any upstream submission. Run the fixture tests and skill evals
+before adopting a new shared default, and retain the old evidence for comparison.

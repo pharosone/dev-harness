@@ -54,7 +54,7 @@ MODELS = {
 }
 
 PASS = "- [Minor] src/app.py:2 — unclear name — add(1, 1) → reader confusion\n\nVERDICT: pass\n"
-BLOCK = "- [Major] src/app.py:2 — off by one — add(2, 2) → 5\n\nVERDICT: block\n"
+BLOCK = "- [Major] src/app.py:2 — off by one — will/functional — main() -> add() — add(2, 2) → 5 — evidence: src/app.py:2\n\nVERDICT: block\n"
 
 SPEC = """# Spec
 
@@ -115,7 +115,7 @@ class XReviewTest(unittest.TestCase):
         for directory in (self.repo / "src", self.bin, self.harness / "scripts",
                           self.harness / "prompts", self.harness / "adapters"):
             directory.mkdir(parents=True)
-        for name in ("xreview.py", "project.py"):
+        for name in ("xreview.py", "project.py", "review_calibration.py"):
             shutil.copy(HARNESS / "scripts" / name, self.harness / "scripts" / name)
         shutil.copy(HARNESS / "prompts/xreview.md", self.harness / "prompts/xreview.md")
         self.models(MODELS)
@@ -154,9 +154,11 @@ class XReviewTest(unittest.TestCase):
         (self.harness / "scripts/tier.py").write_text(FAKE_TIER.format(output=output))
 
     def review(self, *args, writer="claude", cwd=None, **env):
+        self.review_count = getattr(self, "review_count", 0) + 1
+        milestone = [] if "--milestone" in args else ["--milestone", f"case-{self.review_count}"]
         return subprocess.run(
             [sys.executable, str(self.harness / "scripts/xreview.py"), "--base", "HEAD",
-             "--writer", writer, "--out", str(self.report), *args],
+             "--writer", writer, "--out", str(self.report), *milestone, *args],
             cwd=cwd or self.repo, env={**self.env, **env}, capture_output=True, text=True, timeout=60)
 
     def calls(self):
@@ -275,7 +277,7 @@ class XReviewTest(unittest.TestCase):
                 "--writer", "claude", "--tier", "3", "--ledger", str(ledger), "--max-critical", "1"]
         for attempt in range(3):
             ledger.unlink(missing_ok=True)
-            runs = [subprocess.Popen([*args, "--out", str(self.temp / "out" / f"{attempt}-{n}.md")],
+            runs = [subprocess.Popen([*args, "--out", str(self.temp / "out" / f"{attempt}-{n}.md"), "--milestone", f"part-{attempt}-{n}"],
                                      cwd=self.repo, env=self.env, stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE, text=True) for n in range(4)]
             codes = [run.wait(timeout=60) for run in runs]
@@ -523,16 +525,16 @@ class XReviewTest(unittest.TestCase):
     def test_the_last_verdict_line_decides(self):
         result = self.review(FAKE_REPORT="VERDICT: block\n\nRe-checked: fine.\n\nVERDICT: pass\n")
         self.assertEqual(result.returncode, 0, result.stderr)
-        result = self.review(FAKE_REPORT="- [Major] src/app.py:2 — x — add(2, 2) → 5\n\n**VERDICT: block**\n")
+        result = self.review(FAKE_REPORT=BLOCK.replace("VERDICT: block", "**VERDICT: block**"))
         self.assertEqual(result.returncode, 1, result.stderr)
 
     def test_pass_with_an_open_critical_or_major_finding_is_a_block(self):
         for severity in ("Critical", "Major"):
             with self.subTest(severity=severity):
-                report = f"- [{severity}] src/app.py:2 — off by one — add(2, 2) → 5\n\nVERDICT: pass\n"
+                report = f"- [{severity}] src/app.py:2 — off by one — will/functional — main() -> add() — add(2, 2) → 5 — evidence: src/app.py:2\n\nVERDICT: pass\n"
                 result = self.review(FAKE_REPORT=report)
                 self.assertEqual(result.returncode, 1)
-                self.assertIn(severity, result.stderr)
+                self.assertIn("block", result.stderr)
 
     def test_reviewer_failure_or_a_stale_report_is_not_an_approval(self):
         result = self.review(FAKE_EXIT="1")
@@ -542,9 +544,64 @@ class XReviewTest(unittest.TestCase):
         self.assertEqual(result.returncode, 3)
         self.assertNotIn("VERDICT: pass", self.report.read_text() if self.report.exists() else "")
 
+    def test_missing_fields_downgrade_even_when_reviewer_says_block(self):
+        result = self.review(FAKE_REPORT="- [Critical] src/app.py:2 — x — input -> failure\n\nVERDICT: block\n")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("downgraded to Minor", result.stdout)
+        self.assertIn("unverified", result.stdout)
+        self.assertIn("downgraded", Path(f"{self.report}.calibration.md").read_text())
+
+    def test_repeated_section_flags_preserve_commas(self):
+        spec = self.temp / "comma-spec.md"
+        spec.write_text("# Spec\n## Limits, retries\nExact body.\n## Units\nUnit body.\n## Other\nSkip.\n")
+        result = self.review("--spec", str(spec), "--section", "Limits, retries", "--section", "Units")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Exact body.", self.context())
+        self.assertIn("Unit body.", self.context())
+        self.assertNotIn("Skip.", self.context())
+
+    def test_overlay_policy_is_injected_and_controls_severe_edge(self):
+        path = self.repo / "harness/project/project.json"
+        path.parent.mkdir(parents=True)
+        path.write_text(json.dumps({"review": {"stage": "production", "invariants": ["no public leak"]}}))
+        report = "- [Minor] src/app.py:2 — leak — edge/severe — issue() -> public() — redirect text leaks path — evidence: src/app.py:2\nVERDICT: pass\n"
+        result = self.review(FAKE_REPORT=report)
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('"stage": "production"', self.context())
+        self.assertIn('no public leak', self.context())
+        self.assertIn('reclassified to Critical', result.stderr)
+        path.write_text(json.dumps({"review": {"stage": "invalid"}}))
+        self.assertEqual(self.review().returncode, 2)
+
+    def test_run_dir_round_limit_backlog_and_round_two_scope(self):
+        run = self.temp / "review-run"
+        first = self.review("--run-dir", str(run), "--milestone", "M1", FAKE_REPORT=BLOCK)
+        self.assertEqual(first.returncode, 1, first.stderr)
+        addressed = self.temp / "prior.md"
+        addressed.write_text(BLOCK)
+        new_functional = BLOCK.replace('off by one', 'new functional')
+        second = self.review("--run-dir", str(run), "--milestone", "M1", "--addressed", str(addressed), FAKE_REPORT=new_functional)
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertIn('round 2 new blocker must be severe', second.stdout)
+        self.assertIn('new functional', (run / 'backlog.md').read_text())
+        third = self.review("--run-dir", str(run), "--milestone", "M1", "--addressed", str(addressed))
+        self.assertEqual(third.returncode, 2)
+        self.assertIn('at most 2', third.stderr)
+        self.assertEqual(self.review('--round', '2').returncode, 2)
+
+    def test_round_two_keeps_previous_blocker_and_new_severe(self):
+        addressed = self.temp / 'prior.md'
+        addressed.write_text(BLOCK)
+        self.assertEqual(self.review('--addressed', str(addressed), FAKE_REPORT=BLOCK).returncode, 1)
+        severe = BLOCK.replace('will/functional', 'plausible/severe').replace('off by one', 'new severe')
+        self.assertEqual(self.review('--addressed', str(addressed), FAKE_REPORT=severe).returncode, 1)
+        # An old Minor is not a previous blocker when it becomes functional × will.
+        addressed.write_text(BLOCK.replace('will/functional', 'edge/functional'))
+        self.assertEqual(self.review('--addressed', str(addressed), FAKE_REPORT=BLOCK).returncode, 0)
+
     def test_prompt_is_short_and_states_the_contract(self):
         prompt = (HARNESS / "prompts/xreview.md").read_text()
-        self.assertLessEqual(len(prompt.splitlines()), 40)
+        self.assertLessEqual(len(prompt.splitlines()), 65)
         for text in ("[Critical|Major|Minor] path:line", "failure scenario", "VERDICT: block",
                      "VERDICT: pass", "Already addressed — do not repeat", "downgrade"):
             self.assertIn(text, prompt)

@@ -39,9 +39,9 @@ the suspects; the model ranks them.
 ## Output
 
 1. **Cost model** — the changed paths with frequency, size and the scarce resource, a few lines.
-2. **Findings**, ranked — per finding: location (file:line), severity — critical (measurable
-   cost on every request or row, or unbounded) / warning (cost under realistic growth) / info —
-   the issue, the evidence, the fix and its expected saving.
+2. **Findings**, ranked — use the calibrated finding contract below, with the real load and
+   failure scenario. Put measurements, the suggested fix and its expected saving after the item;
+   measurable cost or an unbounded input alone does not establish severe impact.
 3. **Measured and fine** — what you measured that holds.
 4. **Not measured** — what you could not run, and why.
 
@@ -49,4 +49,33 @@ No cold-path nits, nothing the compiler or planner already handles. If nothing m
 
 ## Findings
 
-Report every issue you find with its severity; filtering is a separate step. A Critical/Major names a concrete failure scenario (input or state → wrong result) — without one it is Minor. Say plainly when nothing matters.
+Report every issue as one Markdown list item with six em-dash-separated fields:
+- [Critical|Major|Minor] path:line — defect — likelihood/impact — reachable path — failure scenario — evidence: path:line
+
+The reachable path names the real caller/route; the scenario is specific input/state → wrong
+result. Evidence cites code read in this review, even when tests or measurements also prove it.
+Missing ratings, reachable path, scenario or code-read evidence → Minor until verified.
+Optional trailing fields: `— workaround: none` or `— workaround: <specific usable workaround>`;
+`— invariant: <exact overlay invariant text>` for a proven violation, never an invented invariant.
+
+Likelihood in THIS product: `will` = main path, happens within days; `plausible` = documented
+path users sometimes take; `edge` = rare combination, race window, unusual environment or
+operator mistake. Impact: `severe` = unapproved/wrong-recipient outbound action, limits/credits
+burned or account-ban risk, external leak of secrets/personal data, data loss, or a guard/check
+silently stops working; `functional` = recoverable feature failure/visible wrong result;
+`cosmetic` = presentation only.
+
+| Impact / likelihood | will | plausible | edge |
+|---|---|---|---|
+| severe | block | block | block only for violated overlay invariant or production stage; else backlog |
+| functional | block | block only with verified no workaround; else backlog | backlog |
+| cosmetic | backlog | backlog | backlog |
+
+Overlay `review.stage` defaults to `pilot`, `review.invariants` to empty. A severe blocker is
+Critical, a functional blocker Major, all backlog Minor; labels never override the matrix.
+For plausible/functional, missing workaround information is unverified: blocking requires
+`workaround: none`. At most two rounds per milestone across cross-review, QA and panel;
+distinct report paths/lenses share a round, counted once. Round 2 checks fixes/new code and previous blockers only; a new blocker must be severe and satisfy the
+matrix. Before fix-up the orchestrator rechecks each scenario against code (≤5 min each) and
+records the triage reason. Minors never block: ≤15-minute fixes join that fix-up; others go to
+`<run>/backlog.md`. Say plainly when there are no findings; do not invent issues.

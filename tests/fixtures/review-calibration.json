@@ -1,0 +1,94 @@
+[
+  {
+    "name": "failed-read-cap",
+    "finding": "- [Major] src/product.py:1 \u2014 Failed professional-network read requeued until the daily cap \u2014 plausible/severe \u2014 scheduler -> integration read -> retry queue \u2014 failed read retries consume daily cap \u2014 evidence: src/product.py:1",
+    "review": {
+      "stage": "pilot",
+      "invariants": []
+    },
+    "expected": "block",
+    "origin": "sanitized product-day 2026-10-10"
+  },
+  {
+    "name": "integration-tools-filter",
+    "finding": "- [Major] src/product.py:2 \u2014 Integration tools never admitted by tool filter \u2014 will/functional \u2014 main assistant -> tool admission -> integration \u2014 each normal call is denied \u2014 evidence: src/product.py:2",
+    "review": {
+      "stage": "pilot",
+      "invariants": []
+    },
+    "expected": "block",
+    "origin": "sanitized product-day 2026-10-10"
+  },
+  {
+    "name": "proposal-auto-approval",
+    "finding": "- [Minor] src/product.py:3 \u2014 Hidden proposal tap counts toward auto-approval threshold \u2014 plausible/severe \u2014 proposal card tap -> approval counter -> outbound send \u2014 unseen text is approved and sent \u2014 evidence: src/product.py:3",
+    "review": {
+      "stage": "pilot",
+      "invariants": []
+    },
+    "expected": "block",
+    "origin": "sanitized product-day 2026-10-10"
+  },
+  {
+    "name": "watcher-finished-lanes",
+    "finding": "- [Major] src/product.py:4 \u2014 Finished lanes never close in watcher \u2014 will/functional \u2014 watch loop -> finished lane -> close \u2014 finished lane remains open \u2014 evidence: src/product.py:4",
+    "review": {
+      "stage": "pilot",
+      "invariants": []
+    },
+    "expected": "block",
+    "origin": "sanitized product-day 2026-10-10"
+  },
+  {
+    "name": "launch-window-exit",
+    "finding": "- [Major] src/product.py:5 \u2014 False exited status during first seconds of launch \u2014 edge/functional \u2014 launch -> first watcher poll \u2014 short startup race shows exited briefly \u2014 evidence: src/product.py:5",
+    "review": {
+      "stage": "pilot",
+      "invariants": []
+    },
+    "expected": "backlog",
+    "origin": "sanitized product-day 2026-10-10"
+  },
+  {
+    "name": "public-path-leak",
+    "finding": "- [Major] src/product.py:6 \u2014 Private absolute path after redirect reaches public issue \u2014 edge/severe \u2014 operator redirect text -> public issue serializer \u2014 private path after redirect is published \u2014 evidence: src/product.py:6 \u2014 invariant: no public leak",
+    "review": {
+      "stage": "pilot",
+      "invariants": [
+        "no public leak"
+      ]
+    },
+    "expected": "block",
+    "origin": "sanitized product-day 2026-10-10"
+  },
+  {
+    "name": "shallow-issue",
+    "finding": "- [Major] src/product.py:7 \u2014 Issue selection fails in shallow clone \u2014 edge/functional \u2014 operator shallow clone -> issue command -> history lookup \u2014 issue command fails visibly; fetch history recovers \u2014 evidence: src/product.py:7",
+    "review": {
+      "stage": "pilot",
+      "invariants": []
+    },
+    "expected": "backlog",
+    "origin": "sanitized product-day 2026-10-10"
+  },
+  {
+    "name": "duplicate-check",
+    "finding": "- [Major] src/product.py:8 \u2014 Possible duplicate check blocks sending until title edited \u2014 plausible/functional \u2014 compose -> duplicate title check -> send \u2014 duplicate title prevents sending \u2014 evidence: src/product.py:8 \u2014 workaround: edit the title",
+    "review": {
+      "stage": "pilot",
+      "invariants": []
+    },
+    "expected": "backlog",
+    "origin": "sanitized product-day 2026-10-10"
+  },
+  {
+    "name": "optional-assistant-login",
+    "finding": "- [Major] src/product.py:9 \u2014 Critical path fails when optional assistant login missing \u2014 plausible/severe \u2014 main path -> optional assistant login -> execution guard \u2014 missing optional login prevents critical path from starting \u2014 evidence: src/product.py:9",
+    "review": {
+      "stage": "pilot",
+      "invariants": []
+    },
+    "expected": "block",
+    "origin": "sanitized product-day 2026-10-10"
+  }
+]

@@ -34,7 +34,30 @@ read it again.
   reads Codex usage from the session files under `$CODEX_HOME` by itself.
 - **Cross-review:** the orchestrator runs `harness/core/scripts/xreview.py`, which calls
   `codex exec --sandbox read-only` with the diff as context. As a reviewer: report only, never
-  edit; a Critical/Major needs a failure scenario; end with the `VERDICT:` line.
+  edit; use the calibrated six-field contract below; end with the matrix-derived `VERDICT:` line.
+- **Review calibration:** use `prompts/xreview.md` and the `pharos-dev` matrix: six fields
+  `[Critical|Major|Minor] path:line — defect — likelihood/impact — reachable path — failure scenario — evidence: path:line`.
+  Code-read evidence is mandatory; missing fields/evidence remain Minor until verified.
+  Overlay `review.stage` defaults to `pilot`, invariants to empty. Severe/will or plausible
+  blocks; severe/edge blocks only for a violated exact overlay invariant or production stage.
+  Functional/will blocks; functional/plausible needs verified `workaround: none` to block;
+  functional/edge and all cosmetic findings go to backlog. Optional trailing fields are
+  `— workaround: none` or `— workaround: <specific workaround>` and
+  `— invariant: <exact overlay invariant text>`. Labels never override the matrix.
+  Ingest QA/panel reports before triage with `review_calibration.py record --run <run>
+  --report <role-report> --milestone <m> --round 1|2 [--addressed <previous blockers>]`;
+  it reads the active overlay. Distinct report paths/lenses share a round; rounds count once.
+  Repeated reports in a round and returning to round 1 after round 2 are refused.
+  Before fix-up, check each blocker against code (≤5 min), record the triage reason using
+  `review_calibration.py triage`, and downgrade per the matrix. Minors never block: ≤15 min
+  fixes join the fix-up; others go to `<run>/backlog.md`. Use `--run-dir <run> --milestone <m>
+  --round 1|2`; `--addressed` implies round 2, and repeated `--section` preserves commas.
+  At most two rounds per milestone across cross-review, QA and panel; round 2 checks fixes/new code
+  and previous blockers only, and a new blocker must be severe and matrix-blocking. No automatic
+  third round. All findings live in `<run>/review-ledger.jsonl`; G4/final reports show the
+  calibration summary, backlog path, outcomes and `review_calibration.py fixture` feedback hook.
+  `outcome --user-override block|backlog` may omit `--outcome`; an explicit user override alone
+  does not fabricate a later outcome. `fixture --case` takes a sanitized JSON file path.
 - **Isolation:** a writer works in its own Git worktree (`harness/core/scripts/worktree.py add`).
 - **Hooks:** `.codex/hooks.json` runs the shared Stop wrapper and `guard.py` before shell and
   patch tools — but Codex loads a project's `.codex/` layer only for a trusted path, and every
