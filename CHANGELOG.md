@@ -3,6 +3,67 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.2.0 — 2026-10-10
+
+- The critical cross-review cap is five per run (was four); fix-up and review rounds alternate
+  without asking the user until the review passes or the cap is used up.
+- Events log: one append-only `<run>/events.jsonl` per run (`run.start`, `dispatch.start`,
+  `dispatch.end`, `gate.open`, `gate.answer`, `compare.*`), written by `task_state.py event`
+  under a file lock; a repeated id is skipped, an unreadable line is skipped and counted.
+- Claude dispatch events: the generated `PreToolUse(Agent)` and `PostToolUse(Agent)` hooks
+  record tagged dispatches; a background launch links its agent id; `tripwire.py spend
+  --dispatch ID --status S` ends a dispatch by hand (Codex, background completions).
+- `lanes.py`: `decide` picks subagent, headless CLI or herdr pane by a tested rule;
+  `start/status/wait/result/cancel` run headless and pane lanes the same way and record their
+  events. At most three live herdr agents; a `blocked` lane is surfaced, never answered; panes
+  the run did not create are never closed or reused; Codex lanes carry the guard.
+  `--max-budget-usd` caps a headless Claude lane.
+- `lanes.py start --capability candidate --scratch DIR`: one profile on both vendors for a
+  compare candidate — a shell and the source, writes only in DIR. The candidate works in a
+  candidate snapshot: an independent shallow clone of HEAD plus the working changes (no remote,
+  no alternates, no hardlinks), so a relative write never reaches the source. Claude runs under
+  its Bash sandbox (fail closed) with `--add-dir DIR`; Codex under `--sandbox workspace-write
+  --add-dir DIR`. Reads are not confined; independence rests on the brief and is stated in the
+  capability profile. `lanes.py snapshot-cleanup --task T` removes the snapshots of ended
+  candidates.
+- `compare.py design`: two competitors write approach memos from one frozen interview record;
+  an arbiter that wrote neither compares them twice, labels anonymised and order swapped
+  (`arbiter unstable` on a flip). `compare.py investigation`: two independent reports, a
+  cross-vendor critique of each and a disagreement map; a disputed answer means low confidence.
+- `dashboard.py`: the run as one self-contained local page (`<run>/dashboard.html`) — running
+  and stale lanes, pending gates, tripwires, spend per unit (unknown stays unknown), compares.
+- Vendor balancing: `balance.py usage` reads each vendor's usage windows (Claude from captured
+  stream-json logs and `observe --from LOG`, Codex from its session files, `usage set` by hand;
+  no data is unknown, never a guess) and `balance.py pick --task --profile --role
+  [--not-runtime]` picks a worker's vendor inside one profile: a window used at `stop_at`
+  excludes a vendor, a projected run-out (after `min_elapsed` of the window) steers work away
+  without ever forcing exit 6 alone, each vendor otherwise keeps `min_share` of the dispatches,
+  and `hysteresis` keeps the previous pick. Exit 6 when every allowed vendor is excluded: ask
+  the user. Each pick is a `balance.pick` event. `pharos-dev` picks every writer and reviewer
+  this way when both runtimes are available; the dashboard shows each vendor's windows, runway,
+  share and the latest pick per role. Optional overlay key `project.json → balance`.
+- Skills: `pharos-discover` and `pharos-investigate` offer compare next to the depth mode
+  (`off` by default, recommended only with its signal); `pharos-dev` starts every worker by
+  `lanes.py decide`, records events and opens the dashboard at gates. Evals `compare-offer`,
+  `compare-declined`, `lanes-boundary`.
+- No required overlay change: `compare.py` reads the overlay's `models.json` as `xreview.py`
+  does; the architecture files below are optional.
+- `architecture-reviewer`: a new core role (read-only, `critical-review`) that joins the
+  `pharos-dev` panel on every Tier 2–3 milestone, not only the PR. From the overlay's
+  `architecture.md` and `architecture.json`, the spec's `## Placement` and the diff it checks what
+  `arch_check.py` cannot see: the right module for each new piece, one responsibility per unit,
+  names, no second implementation, no layer doing another's job; a deviation from Placement is a
+  finding unless the spec was amended. The milestone runs `arch_check.py --base <milestone base>`
+  first when the project has an `architecture.json`.
+- `pharos-discover`: every spec carries `## Placement` — for each new or moved piece, its layer,
+  module and file and why — drafted from the architecture map; "not applicable: <reason>" for a
+  harness-only or docs-only spec. `pharos-dev` requires it.
+- `design-review` builds its layer stack from the same map (`architecture.md`,
+  `architecture.json`), so the PR-level pass and the milestone lens agree.
+- Overlay: optional `architecture.json` (read by `arch_check.py`; without it the check is off)
+  and `architecture.md` (the map in prose, read by the reviewer, `design-review` and discovery),
+  documented in `docs/overlay.md`.
+
 ## 1.1.1 — 2026-10-09
 
 - `task_state.py init` works without `--spec`, as `pharos-investigate` and discovery need.

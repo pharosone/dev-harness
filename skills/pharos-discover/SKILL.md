@@ -1,6 +1,6 @@
 ---
 name: pharos-discover
-description: "Use when a feature, endpoint, screen or behaviour change in this repository needs requirements, alternative approaches and an approved specification with TDD units; also when a spec lacks its Requirements interview, its Taste gates or a section a project interview row requires."
+description: "Use when a feature, endpoint, screen or behaviour change in this repository needs requirements, alternative approaches and an approved specification with TDD units; also when a spec lacks its Requirements interview, its Placement, its Taste gates or a section a project interview row requires."
 ---
 
 # pharos-discover — requirements through approved specification
@@ -47,6 +47,14 @@ A project adds the rows it asks on every feature in `harness/project/project.jso
 - `drafted_by` names a project role (`project.json → roles`) that drafts the section and its
   open questions. Without it, you draft the section and ask its questions yourself.
 
+## The run
+
+Before the first question, initialize the run:
+`python3 harness/core/scripts/task_state.py init <task>` (no `--spec`; the spec does not exist
+yet). `<run-dir>` in this skill is the directory it prints, `.harness/tasks/<task>` in the
+primary checkout (`task_state.py locate <task>` prints it again). Every `task_state.py event` and `compare.py` call below refuses a run that was not
+initialized.
+
 ## Depth
 
 Ask the mode in the first question batch, recommended option first with the signal behind it:
@@ -65,13 +73,29 @@ model and effort in the spec's interview (row Goal and user, source `user:`) and
 A feature that first needs a question answered (a bug, data for a decision) goes through
 `pharos-investigate`, and its report becomes the design's evidence.
 
+## Compare
+
+Ask `compare` in the same question as the depth mode; the default is `off`:
+
+- **`off`** (default) — one discovery as described here.
+- **`design`** — two competitors, one per vendor, each write an approach memo from the same
+  frozen interview record without seeing the other's; an arbiter that wrote neither compares
+  them twice, labels anonymised and the order swapped. Recommend it when there are two or more
+  real architectural options with different consequences: "`compare=design` (Recommended) —
+  <the options and how their consequences differ>". Without that signal recommend `off`.
+
+`compare=off` leaves the flow unchanged: in `deep`, one investigator and a second opinion, as
+before. Record the answer in `run.md` and as the run's first event:
+`python3 harness/core/scripts/task_state.py event <task> run.start --data
+'{"workflow": "discover", "depth": "<mode>", "compare": "off|design", "runtime_mode": "<mode>"}'`.
+
 ## How to run it
 
 1. Read the project's map (AGENTS.md), the applicable `harness/project/rules/*.md` and the
    touched code. Inspect the current implementation before assuming a future contract already
    exists.
-2. Map the conversation and repository rules to every row. Ask the depth mode (above) and
-   unresolved Goal, Roles, Scope and UI first, using the question mechanism and batch limit supported by the runtime adapter.
+2. Map the conversation and repository rules to every row. Ask the depth mode, compare (above)
+   and unresolved Goal, Roles, Scope and UI first, using the question mechanism and batch limit supported by the runtime adapter.
    Put the recommended option first, label it "(Recommended)", and state each option's
    consequence.
 3. Dispatch the drafting roles of the project rows in parallel, read-only, with established
@@ -87,10 +111,23 @@ A feature that first needs a question answered (a bug, data for a decision) goes
    start from the investigator's map and approaches. Compare two or three feasible approaches when there is a real architectural choice, with costs and a
    recommendation. When the user already selected an approach, document it and alternatives
    only if new evidence makes them relevant.
+   With `compare=design` the approaches come from the compare instead (in `deep` it replaces
+   the investigator's draft of them). Write the interview record, every row answered, to
+   `<run-dir>/interview.md`; it is frozen (hashed, given unchanged to both competitors). Run
+   `python3 harness/core/scripts/compare.py design --task <task> --input <run-dir>/interview.md
+   --checkout . --mode standard|deep` (the depth mode). Exit 2 is bad input or configuration and nothing
+   was launched: an empty answer in the interview (fill it), a run that was not initialized
+   (step 0) or an unusable overlay or model profile (fix it); then run it again. A stopped
+   compare continues with `--resume <id>`. Show the user the arbiter's output verbatim
+   (`<run-dir>/compare/<id>/comparison.md`) and the verdict in `judgement.json`: the ranking or
+   tie, failed mandatory requirements (such a memo cannot win), and, when they hold, `arbiter
+   unstable`, `capability-unequal` or an excluded memo. The user picks one approach memo or asks
+   for a merge. You write the merge from both memos; the merge gets one review (the other vendor
+   on `critical-review`) before it becomes the basis. Then one spec, as in step 6.
 6. Write `docs/superpowers/specs/YYYY-MM-DD-<topic>.md`: requirements table, the section of
-   every project row, chosen design, contracts and error behaviour, validation, then ordered TDD
-   units with dependencies, observable acceptance criteria and the paths each unit may change
-   (globs), followed by the Taste gates. Order units so the first end-to-end slice lands early.
+   every project row, chosen design, `## Placement` (below), contracts and error behaviour,
+   validation, then ordered TDD units with dependencies, observable acceptance criteria and the
+   paths each unit may change (globs), followed by the Taste gates. Order units so the first end-to-end slice lands early.
    There is no separate plan.
 7. In `deep` mode, give the written spec to the other vendor for its second opinion first and
    fold in what stands. Obtain approval of unresolved material design choices before
@@ -99,6 +136,25 @@ A feature that first needs a question answered (a bug, data for a decision) goes
    requesting it again. A changed scope or new consequential choice requires a new answer.
    An unanswered approval request never becomes approval through elapsed time.
 8. Hand the approved specification to `pharos-dev`.
+
+## Placement
+
+Every spec carries `## Placement`: for each new or moved piece — module, class, file, directory,
+script, table — where it goes and why: its layer, its module and its file, and the existing code
+it sits beside or extends. Draft it from the project's architecture map: the overlay's
+`architecture.md` (the map in prose) and `architecture.json` (layers and what each may depend on,
+where each kind of file lives, naming), else the project's map (AGENTS.md) and the code's own
+shape. A piece the map has no place for is a design question for the user, not a new directory
+by default. The unit paths follow Placement, the `architecture-reviewer` checks the diff against
+it at every Tier 2–3 milestone, and a deviation is a finding unless the spec was amended — so
+amend it when the placement changes during implementation. A harness-only or docs-only spec
+writes "not applicable: <reason>".
+
+```markdown
+| Piece | Layer | Module / file | Why here |
+|-------|-------|---------------|----------|
+| export of the list as CSV | api | `app/routes/export.py`, next to the list route | same query and auth as the list; the formatter is shared with `app/csv.py` |
+```
 
 ## Sources and output
 
@@ -116,6 +172,9 @@ its scope-based reason and source.
 
 ## <section of each project row>
 <drafting role's draft, updated with decisions; or not applicable: reason>
+
+## Placement
+<each new or moved piece: layer, module, file, why; or not applicable: reason>
 
 ## Taste gates
 | Gate | After unit | What the user sees (evidence) | Decision asked | Blocks |

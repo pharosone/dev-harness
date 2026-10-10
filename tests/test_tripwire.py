@@ -10,6 +10,9 @@ import unittest
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 TRIPWIRE = SCRIPTS / "tripwire.py"
 TASK_STATE = SCRIPTS / "task_state.py"
+sys.path.insert(0, str(SCRIPTS))
+sys.dont_write_bytecode = True
+from task_state import read_events  # noqa: E402
 
 
 class TripwireTest(unittest.TestCase):
@@ -217,6 +220,131 @@ class TripwireTest(unittest.TestCase):
         self.assertEqual((result.returncode, result.stdout), (0, ""), result.stderr)
         self.assertTrue((self.units / "01-spend.jsonl").is_file())
 
+
+    # Dispatch events -----------------------------------------------------------------------
+
+    def agent_hook(self, hook_event, description="[pharos task=feature unit=01] green", *,
+                   tool_use_id="toolu_01", status=None, background=False, model=None,
+                   prompt="Implement the unit.", response=None):
+        tool_input = {"description": description, "prompt": prompt,
+                      "subagent_type": "implementer", "run_in_background": background}
+        if model:
+            tool_input["model"] = model
+        payload = {"hook_event_name": hook_event, "tool_name": "Agent", "cwd": str(self.root),
+                   "session_id": "session-1", "tool_input": tool_input}
+        if tool_use_id:
+            payload["tool_use_id"] = tool_use_id
+        if hook_event == "PostToolUse":
+            payload["tool_response"] = response or (
+                {"status": "async_launched", "agentId": "a1b2", "isAsync": True}
+                if status == "async_launched" else
+                {"status": status or "completed", "totalToolUseCount": 12,
+                 "totalDurationMs": 4200, "totalTokens": 5100,
+                 "resolvedModel": "claude-opus-5-5",
+                 "usage": {"input_tokens": 10, "output_tokens": 900,
+                           "cache_read_input_tokens": 4190}})
+        result = self.tripwire("hook", stdin=json.dumps(payload))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result
+
+    def events(self, task="feature"):
+        events, unreadable = read_events(self.root / ".harness/tasks" / task)
+        self.assertEqual(unreadable, 0)
+        return events
+
+    def of_type(self, kind, task="feature"):
+        return [e for e in self.events(task) if e["type"] == kind]
+
+    def test_a_tagged_dispatch_writes_start_and_end_once_when_hooks_fire_twice(self):
+        for _ in range(2):
+            self.assertEqual(self.agent_hook("PreToolUse", model="sonnet").stdout, "")
+        for _ in range(2):
+            self.assertEqual(self.agent_hook("PostToolUse").stdout, "")
+        [start] = self.of_type("dispatch.start")
+        self.assertEqual(start["id"], "toolu_01:start")
+        self.assertEqual({k: v for k, v in start.items() if k not in ("v", "id", "at", "type")}, {
+            "dispatch": "toolu_01", "role": "implementer", "runtime": "claude", "model": "sonnet",
+            "effort": None, "launcher": "subagent", "work": "01", "report": None, "pane": None,
+            "background": False})
+        [end] = self.of_type("dispatch.end")
+        self.assertEqual(end["id"], "toolu_01:end")
+        self.assertEqual(end["dispatch"], "toolu_01")
+        self.assertEqual(end["status"], "done")
+        # The response's `usage` is the final request only: dispatch tokens are unknown, not 10/900.
+        self.assertEqual(end["usage"], {"tool_calls": 12, "input_tokens": None,
+                                        "output_tokens": None, "duration_s": 4.2})
+        self.assertEqual([e["type"] for e in self.events()], ["dispatch.start", "dispatch.end"])
+        # A repeated completion delivery does not count the dispatch twice.
+        ledger = (self.units / "01-spend.jsonl").read_text().splitlines()
+        self.assertEqual(len(ledger), 1)
+        self.assertEqual(json.loads(ledger[0])["tool_uses"], 12)
+
+    def test_a_dispatch_without_a_model_or_usage_records_unknowns(self):
+        self.agent_hook("PreToolUse")
+        self.agent_hook("PostToolUse", response={"status": "completed"})
+        [start] = self.of_type("dispatch.start")
+        self.assertIsNone(start["model"])
+        [end] = self.of_type("dispatch.end")
+        self.assertEqual(end["usage"], {"tool_calls": None, "input_tokens": None,
+                                        "output_tokens": None, "duration_s": None})
+
+    def test_a_background_launch_writes_the_start_once_and_no_end_or_spend(self):
+        self.agent_hook("PreToolUse", background=True)
+        for _ in range(2):
+            self.assertEqual(self.agent_hook("PostToolUse", status="async_launched",
+                                             background=True).stdout, "")
+        [start] = self.of_type("dispatch.start")
+        self.assertEqual((start["id"], start["background"]), ("toolu_01:start", True))
+        self.assertEqual(self.of_type("dispatch.end"), [])
+        self.assertFalse((self.units / "01-spend.jsonl").exists())
+        # Without the PreToolUse hook (older settings) the launch itself writes the start.
+        self.agent_hook("PostToolUse", status="async_launched", background=True, tool_use_id="toolu_02")
+        self.assertEqual([e["id"] for e in self.of_type("dispatch.start")],
+                         ["toolu_01:start", "toolu_02:start"])
+
+    def test_untagged_dispatches_write_no_events(self):
+        for hook_event, status in (("PreToolUse", None), ("PostToolUse", "async_launched"),
+                                   ("PostToolUse", "completed")):
+            result = self.agent_hook(hook_event, "explore the repo", status=status)
+            self.assertEqual(result.stdout, "")
+        self.assertFalse((self.root / ".harness/tasks/feature/events.jsonl").exists())
+
+    def test_a_dispatch_for_a_missing_run_writes_nothing_and_exits_zero(self):
+        for hook_event, status in (("PreToolUse", None), ("PostToolUse", "async_launched"),
+                                   ("PostToolUse", "completed")):
+            result = self.agent_hook(hook_event, "[pharos task=missing unit=01] red", status=status)
+            self.assertEqual(result.stdout, "")
+        self.assertFalse((self.root / ".harness/tasks/missing").exists())
+        self.assertFalse((self.root / ".harness/tasks/feature/events.jsonl").exists())
+        broken = self.tripwire("hook", stdin="not json")
+        self.assertEqual((broken.returncode, broken.stdout), (0, ""))
+
+    def test_without_a_tool_use_id_the_dispatch_is_a_stable_hash(self):
+        self.agent_hook("PreToolUse", tool_use_id=None)
+        self.agent_hook("PostToolUse", tool_use_id=None)
+        self.agent_hook("PreToolUse", tool_use_id=None, prompt="Fix the finding.")
+        starts = self.of_type("dispatch.start")
+        [end] = self.of_type("dispatch.end")
+        self.assertEqual(len(starts), 2)
+        self.assertEqual(starts[0]["dispatch"], end["dispatch"])
+        self.assertNotEqual(starts[0]["dispatch"], starts[1]["dispatch"])
+        self.assertEqual(end["id"], f"{end['dispatch']}:end")
+
+    def test_spend_with_a_dispatch_writes_the_end_event_once(self):
+        self.ok(self.tripwire("spend", "feature", "01", "--tool-uses", "5"))
+        self.assertEqual(self.events(), [])
+        for _ in range(2):
+            self.ok(self.tripwire("spend", "feature", "01", "--tool-uses", "9", "--model", "gpt-6",
+                                  "--dispatch", "agent-7"))
+        [end] = self.events()
+        self.assertEqual((end["type"], end["id"], end["dispatch"], end["status"]),
+                         ("dispatch.end", "agent-7:end", "agent-7", "done"))
+        self.assertEqual(end["usage"], {"tool_calls": 9, "input_tokens": None,
+                                        "output_tokens": None, "duration_s": None})
+        ledger = [json.loads(line) for line in (self.units / "01-spend.jsonl").read_text().splitlines()]
+        self.assertEqual([e["tool_uses"] for e in ledger], [5, 9])
+        self.assertEqual(self.tripwire("spend", "missing", "01", "--tool-uses", "1",
+                                       "--dispatch", "x").returncode, 2)
 
 if __name__ == "__main__":
     unittest.main()

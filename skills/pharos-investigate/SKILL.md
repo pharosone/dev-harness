@@ -15,9 +15,9 @@ evidence and an honest confidence. Not a fix, not a spec: those follow from it.
 
 ## Start: the mode question
 
-Ask once, with the question tool of the runtime adapter, together with anything else missing
-(the question, the environment, what may be touched). The recommended option goes first and
-says why:
+Ask the depth mode and compare once, with the question tool of the runtime adapter, together
+with anything else missing (the question, the environment, what may be touched). The
+recommended option goes first and says why:
 
 - **`standard`** — you investigate yourself on the session's model. Fits when the cause or the
   answer is likely one or two observations away.
@@ -29,8 +29,22 @@ says why:
   costly to reverse or needs data analysed; the code spans unfamiliar layers.
 
 Write the recommendation as "`deep` (Recommended) — <the signal you saw>" or the same for
-`standard`. Record the answer, model and effort in `run.md`
-(`python3 harness/core/scripts/task_state.py init <task>`).
+`standard`.
+
+Ask `compare` in the same question; the default is `off`:
+
+- **`off`** (default) — the investigation as described here.
+- **`investigation`** — two independent investigators, one per vendor, answer the same frozen
+  brief without seeing each other's report; then each vendor critiques the other's report, and
+  the two critiques become a disagreement map. Recommend it when the decision is costly to
+  reverse, there is conflicting evidence, or a deep pass already left low confidence:
+  "`compare=investigation` (Recommended) — <the signal>". Without that signal recommend `off`.
+
+`compare=off` leaves the flow unchanged: `deep` is one investigator and a second opinion, as
+before. Record the answers, model and effort in `run.md`
+(`python3 harness/core/scripts/task_state.py init <task>`) and as the run's first event:
+`task_state.py event <task> run.start --data '{"workflow": "investigate", "depth": "<mode>",
+"compare": "off|investigation", "runtime_mode": "<mode>"}'`.
 
 ## Run it
 
@@ -47,9 +61,20 @@ Write the recommendation as "`deep` (Recommended) — <the signal you saw>" or t
    cheaper explanation. Claude-only or Codex-only mode: a fresh context of the same vendor,
    recorded as single-vendor. Reconcile: a challenge that stands goes back to the investigator
    once, or into the report's Unknowns.
+   **`compare=investigation`** replaces step 3. Write the brief to `<run-dir>/brief.md`: a
+   `## Question` section, what is known with sources, the environment and its limits; it is
+   frozen (hashed, given unchanged to both). Run
+   `python3 harness/core/scripts/compare.py investigation --task <task> --input
+   <run-dir>/brief.md --checkout .`; exit 2 is bad input and nothing was launched; a stopped
+   compare continues with `--resume <id>`. It writes two reports, a critique of each by the
+   other vendor, and in `<run-dir>/compare/<id>/` the disagreement map (`disagreements.md`:
+   claims agreed, claims in dispute with both sides' evidence, the cheapest observation that
+   settles each) and `comparison.md` (both critiques).
+   Show the user the map and the critiques verbatim. A disputed answer means low confidence
+   until the settling observation is made; a missing report or critique is said aloud.
 4. **Report to the user:** the answer, the confidence and what would change it, the evidence in
-   short, the recommendation and the open unknowns. A confidence below high says what it would
-   cost to raise it.
+   short, the recommendation and the open unknowns (with compare: the disputed claims and their
+   settling observations). A confidence below high says what it would cost to raise it.
 
 ## Hand-off
 

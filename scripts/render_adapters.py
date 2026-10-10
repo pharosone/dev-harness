@@ -213,9 +213,17 @@ def hook_config(layout: Layout, relative: str, runtime: str) -> str:
         config["subagentPromptCacheTtl"] = "5m"
         # The orchestrator dispatches through the Agent tool; Codex runs only as a
         # herdr worker, and its orchestrator calls `tripwire.py check` itself.
+        # One command for every event: it logs dispatch.start before the Agent call and
+        # dispatch.end plus spend after it, reading hook_event_name from stdin.
         tripwire = {"type": "command", "command": f'python3 {top}/tripwire.py" hook || true',
                     "timeout": 30, "statusMessage": "Checking unit tripwires"}
+        start = {**tripwire, "timeout": 10, "statusMessage": "Logging dispatch"}
+        own_handler(path, hooks, "PreToolUse", start, owned("tripwire.py"), matcher="Agent")
         own_handler(path, hooks, "PostToolUse", tripwire, owned("tripwire.py"), matcher="Agent")
+        # PostToolUse fires only on success; a failed Agent call fires PostToolUseFailure,
+        # where the same command ends the dispatch `failed` (a user cancel fires neither).
+        own_handler(path, hooks, "PostToolUseFailure", tripwire, owned("tripwire.py"),
+                    matcher="Agent")
     return json.dumps(config, indent=2, ensure_ascii=False) + "\n"
 
 

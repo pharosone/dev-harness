@@ -1,0 +1,30 @@
+{
+  "comment": "Fixture project for the core tests: app/ (Python core), api/ (Go handlers over app), cli/ (Go client over api), ui/ (TypeScript, standalone), docs/. Every file under a root belongs to one layer; ui/ files outside ui/src/ and ui/*.ts belong to none.",
+  "layers": [
+    {"name": "app", "paths": ["app/**"], "may_depend_on": []},
+    {"name": "api", "paths": ["api/**"], "may_depend_on": ["app"]},
+    {"name": "cli", "paths": ["cli/**"], "may_depend_on": ["api"]},
+    {"name": "ui", "paths": ["ui/src/**", "ui/*.ts"], "may_depend_on": []},
+    {"name": "docs", "paths": ["docs/**"]}
+  ],
+  "imports": [
+    {"files": "**/*.go",
+     "pattern": "^\\s*(?:import\\s+)?(?:[\\w.]+\\s+)?\"(?P<target>[^\"\\s]+)\"\\s*$",
+     "resolve": {"example.com/shop/": ""}},
+    {"files": "ui/**/*.ts",
+     "pattern": "^\\s*import\\b[^'\"]*['\"](?P<target>[^'\"]+)['\"]",
+     "resolve": {"@shop/": "ui/src/"}},
+    {"files": "app/**/*.py",
+     "pattern": "^\\s*(?:from|import)\\s+(?P<target>\\.*[\\w.]*)",
+     "resolve": {"app.": "app/"}}
+  ],
+  "placement": [
+    {"kind": "migration", "files": "**/*.sql", "allowed": ["app/migrations/*.sql"],
+     "claim": "SQL migrations live in app/migrations/"}
+  ],
+  "naming": [
+    {"files": "app/migrations/*.sql", "pattern": "\\d{4}_[a-z0-9_]+\\.sql",
+     "claim": "a migration is named NNNN_snake_case.sql"}
+  ],
+  "roots": ["app/**", "api/**", "cli/**", "ui/**", "docs/**"]
+}

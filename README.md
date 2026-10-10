@@ -16,7 +16,8 @@ adapter (`harness/core/adapters/claude.md` or `codex.md`). Paths are relative to
 <product repository>
   harness/core/      this repository, a squashed git subtree, never edited in place
   harness/project/   the overlay: project.json, tiers.json, gates.json, drift.json, rules/,
-                     roles/, skills/, models.json, HARNESS_LOG.md, tests/
+                     roles/, skills/, models.json, architecture.json, architecture.md,
+                     HARNESS_LOG.md, tests/
   AGENTS.md          the project's map, written by the project
   CLAUDE.md .claude/ .codex/ .agents/   generated from core + overlay (render_adapters.py)
 ```
@@ -69,8 +70,8 @@ is never pushed. Core releases follow semver (`CHANGELOG.md`).
 
 | User task | Skill |
 |---|---|
-| Design a feature or fill missing spec decisions | `pharos-discover` |
-| Find a bug's cause, research data or options for a decision, understand unfamiliar code | `pharos-investigate` |
+| Design a feature or fill missing spec decisions (optionally `compare=design`: two approach memos and an arbiter) | `pharos-discover` |
+| Find a bug's cause, research data or options for a decision, understand unfamiliar code (optionally `compare=investigation`: two reports, cross-critiques, a disagreement map) | `pharos-investigate` |
 | Implement, fix, refactor, or resume approved work | `pharos-dev` |
 | Review architecture | `design-review` |
 | Create or update a requested PR | `submit-pr` |
@@ -85,9 +86,13 @@ tests, not the application suites.
 
 ## Roles
 
-Seven core roles: `implementer`, `simplifier` (writers), `qa-verifier` (runs gates),
-`perf-analyst`, `security-auditor`, `ui-design-verifier` (read-only; the browser stays with the
-last, which takes its own screenshots of the running application). Reviewers build a model of
+Eight core roles: `implementer`, `simplifier` (writers), `qa-verifier` (runs gates),
+`perf-analyst`, `security-auditor`, `architecture-reviewer`, `ui-design-verifier` (read-only;
+the browser stays with the last, which takes its own screenshots of the running application).
+The `architecture-reviewer` joins the panel on every Tier 2–3 milestone: from the overlay's
+`architecture.md` and `architecture.json`, the spec's `## Placement` and the diff, it checks
+what `arch_check.py` cannot — the right module, one responsibility per unit, names, no second
+implementation, no layer doing another's job. Reviewers build a model of
 the change in front of them and choose their techniques from it; project knowledge reaches them
 as context. `investigator` (read-only, `deep-reasoning`) does the deep pass of
 `pharos-investigate` and of `pharos-discover` in `deep` mode. `harness/project/roles/<role>.md` appends project specifics to a core role; a project
@@ -132,7 +137,7 @@ file lets the other runtime resume.
 
 | Mode | Orchestrator | Writers | Cross-review (`xreview.py`) |
 |---|---|---|---|
-| both (default) | Claude Code (Opus `high`) | Claude; GPT-6.1 Sol for disjoint Tier 1–2 units | the other vendor |
+| both (default) | Claude Code (Opus `high`) | either vendor on the unit's profile, by `balance.py pick` | the other vendor |
 | Claude only | Claude Code | Claude | `--reviewer claude`: Claude on `critical-review`, marked single-vendor |
 | Codex only | Codex (`gpt-6.1-sol` `high`, never Astra), within the limits in `adapters/codex.md` | Codex | `--reviewer codex`: Codex on `critical-review` (Astra reviews Sol), marked single-vendor |
 
@@ -140,15 +145,46 @@ A single-vendor review is a fresh context on a stronger profile, not an independ
 check, and the final report says so. `xreview.py` refuses to switch vendors silently: if the
 other CLI is missing, it stops and names `--reviewer`.
 
+In the both-vendors mode the orchestrator picks each writer's and reviewer's vendor by
+`balance.py pick --task T --profile P --role R [--not-runtime X]`: the profile fixes the power
+(the same profile on both vendors), the pick weighs how fast each vendor's usage windows burn —
+a window at `stop_at` excludes a vendor, a projected run-out before the reset steers work away,
+each vendor otherwise keeps a minimum share of the run's dispatches. Exit 6 means every allowed
+vendor is at its limit: ask the user. Settings: `project.json → balance` (`docs/overlay.md`).
+
 ## Delegation
 
 A brief names the role, the unit contract, the checkout, the paths, the rule files, the run
 directory and the report path. It never contains secrets. Writers and reviewers get fresh
 contexts. Read-only reviewers may write reports and build artifacts, never source, tests, index
 or HEAD. One source writer per checkout; parallel writers each get their own worktree
-(`harness/core/scripts/worktree.py add <name> [--deps]`). Codex runs as a worker (herdr or
-`codex exec`), never as the orchestrator. Without delegation, independent review is **not
+(`harness/core/scripts/worktree.py add <name> [--deps]`). Codex runs as a worker (a lane:
+subagent, headless or herdr pane), never as the orchestrator. Without delegation, independent review is **not
 performed**, and the report says so.
+
+## Lanes
+
+Every worker starts by `lanes.py decide --role R --runtime claude|codex --orchestrator
+claude|codex --minutes N [--needs-user] [--outlives-turn] [--repo PATH] [--tier N]`, which
+prints `{"launcher", "reason"}`:
+
+| Launcher | When |
+|---|---|
+| `pane` (herdr, `HERDR_ENV=1`) | the user will watch or steer (over 20 minutes, a Tier-3 writer, a compare candidate); it needs the user's answers or approvals mid-way; it must outlive the orchestrator's turn; another repository |
+| `headless` (`claude -p` / `codex exec`, log in `<run>/lanes/`) | another vendor than the orchestrator, short and report-only; or a `pane` decision without herdr |
+| `subagent` | the orchestrator's vendor, short and report-only, its result needed before the next step |
+
+`lanes.py start` launches the decision and records `dispatch.start`/`dispatch.end`; `status`,
+`wait`, `result` and `cancel` work the same for every launcher. Herdr holds at most three live
+agents, counting ones the run did not start; a `blocked` lane is shown to the user and never
+answered by the orchestrator; panes the run did not create are never closed or reused.
+
+The run directory keeps `events.jsonl`, one JSON event per line (`run.start`,
+`dispatch.start`/`dispatch.end`, `gate.open`/`gate.answer`, `compare.*`), appended only through
+`task_state.py`'s locked writer: its `event` command, the generated Claude hooks, `lanes.py`
+and `compare.py`. `run.md` stays
+the narrative; `dashboard.py` renders both, and a run without the log renders from its files
+with every missing fact shown as unknown.
 
 ## Scripts
 
@@ -158,14 +194,20 @@ documents its CLI and overlay keys.
 | Script | Use |
 |---|---|
 | `task_state.py init/locate/freeze/verify/import-legacy` | run directory in the primary checkout (`.harness/tasks/<task>`); freezes tests by Git blob hash, with the red log as evidence |
-| `tripwire.py scope/spend/flag/check/report/resolve/close/hook` | unit paths, spend ledger, stop-the-lane facts, decisions on flags |
+| `task_state.py event TASK TYPE --data JSON [--id ID]` | the only writer of the run's `events.jsonl`: one locked append, a repeated id skipped |
+| `lanes.py decide/start/status/wait/result/cancel/snapshot-cleanup` | how a worker starts (subagent, headless CLI, herdr pane) by a tested rule; starts, watches and stops headless and pane lanes and records their events; `start --capability candidate --scratch DIR` runs a compare candidate in a private snapshot with one writable directory, `--max-budget-usd` caps a headless Claude lane, `snapshot-cleanup` removes the ended candidates' snapshots |
+| `compare.py design/investigation/status` | two independent agents on one frozen input: approach memos and two order-swapped arbiter passes, or investigation reports, cross-critiques and a disagreement map |
+| `balance.py usage/observe/pick` | each vendor's usage windows (Claude from captured stream-json logs, Codex from its session files, manual `usage set`) and the pick of a worker's vendor inside one profile; each pick is a `balance.pick` event |
+| `dashboard.py TASK [--out PATH]` | the run as one self-contained local page (`<run>/dashboard.html`): lanes, pending gates, tripwires, compares, vendors (usage windows, runway, shares, latest picks), spend per unit |
+| `tripwire.py scope/spend/flag/check/report/resolve/close/hook` | unit paths, spend ledger, stop-the-lane facts, decisions on flags; `hook` and `spend --dispatch … --status …` write dispatch events |
 | `tier.py --base REF` | risk tier from paths × size (`tiers.json`) |
 | `gate.py [AREA…] [--changed BASE] [--dry-run]`, `--pin-ci WORKFLOW` | the one copy of the CI gates (`gates.json`), quiet output, full logs on disk; the pin against CI |
 | `quiet.py -- CMD` | run any command, print its failures and tail, keep its exit code |
-| `xreview.py` | cross-vendor review of a milestone diff, report only; withholds secrets, the Codex reviewer carries the guard, `--ledger` caps critical reviews (4 per run) |
+| `xreview.py` | cross-vendor review of a milestone diff, report only; withholds secrets, the Codex reviewer carries the guard, `--ledger` caps critical reviews (5 per run) |
 | `worktree.py add/remove` | lane worktrees; `--deps` installs `worktree.node_dirs` |
 | `guard.py` | PreToolUse guard for both runtimes (generated hooks; `project.json → guard`) |
 | `check_docs_drift.py --base REF` | docs and contracts follow structural changes (`drift.json`; CI too) |
+| `arch_check.py [--base REF \| --all]` | the declared architecture holds (`architecture.json`): layer dependencies, files outside every layer, misplaced kinds, names; off without the file; exit 0/1/2 |
 | `runtime_hook.py` | the Stop hook adapter for the drift check |
 | `render_adapters.py [--check] [--root REPO]` | render the native adapters from core + overlay |
 | `harness_sync.py install/status/pull/propose` | vendor, check, update and upstream the core |

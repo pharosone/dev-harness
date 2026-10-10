@@ -317,6 +317,40 @@ class SyntheticCoreTest(RenderCase):
         codex = json.loads(self.read(".codex/hooks.json"))["hooks"]
         self.assertNotIn("PostToolUse", codex)
 
+    def test_claude_records_dispatch_starts_before_the_agent_tool(self):
+        personal = {"matcher": "Agent", "hooks": [{"type": "command", "command": "notify-me"}]}
+        self.write(".claude/settings.json", json.dumps({"hooks": {"PreToolUse": [personal]}}))
+        self.rendered()
+        groups = json.loads(self.read(".claude/settings.json"))["hooks"]["PreToolUse"]
+        self.assertIn(personal, groups)
+        starts = [h["command"] for g in groups if g.get("matcher") == "Agent" for h in g["hooks"]
+                  if "harness/core/scripts/tripwire.py" in h["command"]]
+        self.assertEqual(len(starts), 1, groups)
+        post = json.loads(self.read(".claude/settings.json"))["hooks"]["PostToolUse"]
+        [completion] = [h["command"] for g in post for h in g["hooks"] if "tripwire.py" in h["command"]]
+        self.assertEqual(starts[0], completion)
+        self.assertTrue(starts[0].endswith("|| true"), starts[0])
+        guard = [g for g in groups if any("harness/core/scripts/guard.py" in h["command"] for h in g["hooks"])]
+        self.assertEqual(len(guard), 1)
+        self.assertNotIn("Agent", guard[0]["matcher"].split("|"))
+        self.rendered()
+        self.assertEqual(json.loads(self.read(".claude/settings.json"))["hooks"]["PreToolUse"], groups)
+        self.rendered("--check")
+        codex = json.loads(self.read(".codex/hooks.json"))["hooks"]["PreToolUse"]
+        self.assertFalse(any("tripwire.py" in h["command"] for g in codex for h in g["hooks"]))
+        # Removing the generated handler is drift that --check reports and a render restores.
+        settings = json.loads(self.read(".claude/settings.json"))
+        settings["hooks"]["PreToolUse"] = [g for g in groups if not any(
+            "tripwire.py" in h["command"] for h in g["hooks"])]
+        self.write(".claude/settings.json", json.dumps(settings, indent=2) + "\n")
+        result = self.render("--check")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(".claude/settings.json", result.stderr)
+        self.rendered()
+        self.assertEqual(len([h for g in json.loads(self.read(".claude/settings.json"))["hooks"]["PreToolUse"]
+                              for h in g["hooks"] if "tripwire.py" in h["command"]]), 1)
+        self.rendered("--check")
+
     def test_both_runtimes_get_the_guard_before_tools(self):
         personal = {"matcher": "Bash", "hooks": [{"type": "command", "command": "my-audit"}]}
         self.write(".codex/hooks.json", json.dumps({"hooks": {"PreToolUse": [personal]}}))
@@ -443,10 +477,14 @@ class SyntheticCoreTest(RenderCase):
         for prefix in (".agents", ".claude"):
             self.assertEqual(os.readlink(self.root / prefix / "skills/dev-flow"), "../../harness/core/skills/dev-flow")
         handlers = self.harness_handlers(".claude/settings.json")
-        for event in ("Stop", "PreToolUse", "PostToolUse"):
-            self.assertEqual(len(handlers[event]), 1, handlers[event])
-            self.assertIn("harness/core/scripts/", handlers[event][0])
-            self.assertNotIn("harness/scripts/", handlers[event][0])
+        # PreToolUse carries the guard and the dispatch-start tripwire, one handler each.
+        for event, scripts in (("Stop", ["runtime_hook.py"]), ("PreToolUse", ["guard.py", "tripwire.py"]),
+                               ("PostToolUse", ["tripwire.py"])):
+            self.assertEqual(sorted(s for s in scripts for h in handlers[event] if f"/{s}" in h),
+                             sorted(scripts), handlers[event])
+            for handler in handlers[event]:
+                self.assertIn("harness/core/scripts/", handler)
+                self.assertNotIn("harness/scripts/", handler)
         self.rendered("--check")
 
     # Locations --------------------------------------------------------------------------

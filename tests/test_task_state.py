@@ -1,12 +1,20 @@
 """Exercise durable state and frozen-test evidence across real Git worktrees."""
+from datetime import datetime, timedelta
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
+
+try:
+    import fcntl
+except ImportError:  # Windows: the events log is appended without a lock.
+    fcntl = None
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/task_state.py"
 
@@ -259,6 +267,158 @@ class TaskStateTest(unittest.TestCase):
         result = self.run_state("import-legacy", "feature", "01", *names)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("symlink", result.stderr.lower())
+
+
+    # Events log: `event <task> <type> --data JSON [--id ID]` and read_events(run).
+
+    def module(self):
+        spec = importlib.util.spec_from_file_location("task_state_under_test", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def events_file(self, task="feature"):
+        return self.root / ".harness/tasks" / task / "events.jsonl"
+
+    def lines(self, task="feature"):
+        return [json.loads(line) for line in self.events_file(task).read_text().splitlines()]
+
+    def event(self, *args, data="{}", cwd=None):
+        return self.run_state("event", "feature", *args, "--data", data, cwd=cwd)
+
+    def test_event_appends_one_line_with_envelope_first_and_prints_the_id(self):
+        self.ok(self.run_state("init", "feature", "--spec", "spec.md"))
+        data = {"dispatch": "d1", "role": "implementer", "usage": {"tool_calls": None}}
+        printed = self.ok(self.event("dispatch.start", data=json.dumps(data), cwd=self.worktree))
+        self.assertRegex(printed, r"^[0-9a-f]{32}$")
+        events = self.lines()
+        self.assertEqual(len(events), 1)
+        event = events[0]
+        self.assertEqual(list(event)[:4], ["v", "id", "at", "type"])
+        self.assertEqual(event["v"], 1)
+        self.assertEqual(event["id"], printed)
+        self.assertEqual(event["type"], "dispatch.start")
+        self.assertEqual({k: event[k] for k in list(event)[4:]}, data)
+        self.assertRegex(event["at"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:Z|\+00:00)$")
+        at = datetime.fromisoformat(event["at"])
+        self.assertEqual(at.utcoffset(), timedelta(0))
+        self.assertLess(abs((datetime.now(at.tzinfo) - at).total_seconds()), 120)
+        second = self.ok(self.event("run.start", "--id", "explicit-1"))
+        self.assertEqual(second, "explicit-1")
+        self.assertEqual([e["id"] for e in self.lines()], [printed, "explicit-1"])
+        self.assertTrue(self.events_file().read_text().endswith("\n"))
+
+    def test_event_with_a_known_id_is_skipped_as_duplicate(self):
+        self.ok(self.run_state("init", "feature", "--spec", "spec.md"))
+        self.ok(self.event("gate.open", "--id", "hook-7", data='{"gate": "G1"}'))
+        before = self.events_file().read_bytes()
+        result = self.event("gate.open", "--id", "hook-7", data='{"gate": "other"}', cwd=self.worktree)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "duplicate")
+        self.assertEqual(self.events_file().read_bytes(), before)
+        self.assertEqual(self.lines()[0]["gate"], "G1")
+
+    def test_event_requires_an_initialized_run(self):
+        result = self.event("run.start")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("init first", result.stderr)
+        self.assertFalse((self.root / ".harness/tasks/feature").exists())
+
+    def test_event_data_and_type_errors_exit_2_and_write_nothing(self):
+        self.ok(self.run_state("init", "feature", "--spec", "spec.md"))
+        bad_data = ("{bad", "[]", '"text"', "null", "1",
+                    '{"v": 2}', '{"id": "x"}', '{"at": "now"}', '{"type": "run.start"}')
+        for data in bad_data:
+            with self.subTest(data=data):
+                result = self.event("run.start", data=data)
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn("task-state:", result.stderr)
+        for kind in ("Run.start", "run.", ".run", "run..start", "run_start", "run.start1", "", "run start"):
+            with self.subTest(type=kind):
+                result = self.event(kind)
+                self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertFalse(self.events_file().exists())
+
+    def test_read_events_skips_and_counts_unreadable_lines_in_file_order(self):
+        self.ok(self.run_state("init", "feature", "--spec", "spec.md"))
+        run = self.root / ".harness/tasks/feature"
+        read_events = self.module().read_events
+        self.assertEqual(read_events(run), ([], 0))
+        first = {"v": 1, "id": "a", "at": "2026-10-09T00:00:00Z", "type": "run.start"}
+        last = {"v": 1, "id": "b", "at": "2026-10-09T00:00:01Z", "type": "run.end"}
+        self.events_file().write_bytes(
+            (json.dumps(first) + "\n[1, 2]\n\"text\"\n").encode()
+            + b"\xff\xfe not utf-8\n" + (json.dumps(last) + "\n").encode()
+            + b'{"v": 1, "id": "cut sh')
+        self.assertEqual(read_events(run), ([first, last], 4))
+
+    def test_event_after_a_cut_short_line_starts_a_new_line(self):
+        self.ok(self.run_state("init", "feature", "--spec", "spec.md"))
+        self.events_file().write_text('{"v": 1, "id": "a"}\n{"v": 1, "id": "cut sh')
+        printed = self.ok(self.event("run.start", data='{"depth": "full"}'))
+        events, unreadable = self.module().read_events(self.root / ".harness/tasks/feature")
+        self.assertEqual(unreadable, 1)
+        self.assertEqual([e["id"] for e in events], ["a", printed])
+        self.assertEqual(events[1]["depth"], "full")
+
+    @unittest.skipIf(fcntl is None, "the events log is not locked on Windows")
+    def test_event_waits_for_the_exclusive_lock_on_the_events_file(self):
+        self.ok(self.run_state("init", "feature", "--spec", "spec.md"))
+        self.events_file().touch()
+        with self.events_file().open("a") as held:
+            fcntl.flock(held, fcntl.LOCK_EX)
+            writer = subprocess.Popen(
+                [sys.executable, str(SCRIPT), "event", "feature", "run.start", "--data", "{}",
+                 "--id", "locked"], cwd=self.root, env=self.env,
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            self.addCleanup(writer.kill)
+            time.sleep(1.5)
+            self.assertIsNone(writer.poll(), "event wrote while another process held the lock")
+            self.assertEqual(self.events_file().read_text(), "")
+            fcntl.flock(held, fcntl.LOCK_UN)
+        out, err = writer.communicate(timeout=30)
+        self.assertEqual(writer.returncode, 0, err)
+        self.assertEqual(out.strip(), "locked")
+        self.assertEqual([e["id"] for e in self.lines()], ["locked"])
+
+    def test_concurrent_writers_lose_nothing_and_write_only_valid_lines(self):
+        self.ok(self.run_state("init", "feature", "--spec", "spec.md"))
+        writers, per_writer = 8, 25
+        loop = (
+            "import json, subprocess, sys\n"
+            "script, w, n = sys.argv[1], sys.argv[2], int(sys.argv[3])\n"
+            "pad = 'x' * 6000\n"
+            "ids = [f'w{w}-{i}' for i in range(n)]\n"
+            "ids.insert(n // 2, 'shared')\n"
+            "for event_id in ids:\n"
+            "    data = json.dumps({'writer': w, 'pad': pad})\n"
+            "    subprocess.run([sys.executable, script, 'event', 'feature', 'load.test',\n"
+            "                    '--data', data, '--id', event_id], check=True,\n"
+            "                   stdout=subprocess.DEVNULL)\n"
+        )
+        procs = [subprocess.Popen([sys.executable, "-c", loop, str(SCRIPT), str(w), str(per_writer)],
+                                  cwd=self.worktree if w % 2 else self.root, env=self.env,
+                                  stderr=subprocess.PIPE, text=True)
+                 for w in range(writers)]
+        for proc in procs:
+            _, err = proc.communicate(timeout=300)
+            self.assertEqual(proc.returncode, 0, err)
+        raw = self.events_file().read_text().split("\n")
+        self.assertEqual(raw[-1], "")
+        parsed = [json.loads(line) for line in raw[:-1]]
+        self.assertTrue(all(isinstance(e, dict) for e in parsed))
+        events, unreadable = self.module().read_events(self.root / ".harness/tasks/feature")
+        self.assertEqual(unreadable, 0)
+        self.assertEqual(events, parsed)
+        ids = [e["id"] for e in events]
+        expected = {f"w{w}-{i}" for w in range(writers) for i in range(per_writer)} | {"shared"}
+        self.assertEqual(len(ids), len(expected))
+        self.assertEqual(set(ids), expected)
+        for e in events:
+            self.assertEqual(e["pad"], "x" * 6000)
+        for w in range(writers):
+            own = [int(i.split("-")[1]) for i in ids if i.startswith(f"w{w}-")]
+            self.assertEqual(own, sorted(own))
 
 
 if __name__ == "__main__":

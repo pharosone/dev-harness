@@ -3,20 +3,37 @@
 
 Commands (task and unit as in task_state.py; state lives in the run directory's units/):
   scope TASK UNIT --base REF [--turn-budget N] GLOB...  declare the paths a unit may change
-  spend TASK UNIT --tool-uses N [...]                   record one finished dispatch
+  spend TASK UNIT --tool-uses N [--dispatch ID [--status S]] [...]  record one finished dispatch
   flag  TASK UNIT REASON                                 an agent cannot reconcile spec and tests
   check TASK UNIT [--record]                             exit 1 and print every tripwire
   report TASK                                           spend and status per unit (Markdown)
   resolve TASK UNIT DECISION                            archive the flag with the orchestrator's decision
   close TASK UNIT                                       the unit is done: stop checking it
-  hook                                                   Claude Code PostToolUse(Agent) adapter
+  hook                                                   Claude Code Pre/PostToolUse[Failure](Agent) adapter
 
 Globs are checkout-relative: `*` stays inside one directory, `**` crosses directories.
+
+Dispatch events go to the run's events.jsonl through task_state.py's writer, for dispatches
+tagged `[pharos task=T unit=U]` only: `dispatch.start` (id `<dispatch>:start`) on PreToolUse
+and on a background launch, `dispatch.end` (id `<dispatch>:end`, with the unit as `work`) on completion, on a
+PostToolUseFailure (status `failed`, tool calls unknown, duration from `duration_ms`) and on
+`spend --dispatch ID`. Every ledger line written with an end carries its `dispatch` id, so the
+dashboard counts it once. The dispatch is the hook's tool_use_id, else a hash of session,
+description and prompt. A background launch also writes `dispatch.link` {dispatch, agent_id}
+(id `<dispatch>:link`) from the response's agentId, the id the orchestrator sees: `spend
+--dispatch` takes either id and ends the original dispatch. `--status` (done, failed, timeout,
+cancelled; default done) is the end's status. A repeated delivery is skipped by id, and so is
+its spend line; a failed frozen-test verification counts once per dispatch id (the ids counted
+are kept in `units/<unit>-trips.json`). After writing an event the hook (and `spend --dispatch`)
+regenerates the run's default dashboard (dashboard.py) best effort: a failure is a note on
+stderr, never a failed hook.
+Claude's Agent `usage` covers the final request only, so dispatch tokens stay null.
 Exit codes: 0 clean, 1 tripped, 2 error.
 """
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -25,8 +42,10 @@ import sys
 
 # Importing must not write __pycache__ into a read-only installed harness.
 sys.dont_write_bytecode = True
-from task_state import StateError, checkouts, evidence_path, git, identifier, locate, verify
+from task_state import (StateError, append_event, checkouts, event_record, evidence_path, git,
+                        identifier, locate, read_events, verify)
 
+END_STATUSES = ("done", "failed", "timeout", "cancelled")
 DISPATCH_TOOL_LIMIT = 80  # pharos-dev: a unit that needs more is two units
 TAG = re.compile(r"\[pharos task=([A-Za-z0-9][A-Za-z0-9_.-]*) unit=([A-Za-z0-9][A-Za-z0-9_.-]*)\]")
 
@@ -75,6 +94,31 @@ def spend(run, primary, unit, entry: dict) -> None:
         stream.write(json.dumps(entry, sort_keys=True) + "\n")
 
 
+def record_event(run: Path, primary: Path, kind: str, event_id: str, fields: dict) -> bool:
+    """Append one event through task_state's writer; False when its id is already logged."""
+    if not (run / "run.md").is_file():
+        raise StateError(f"Task is not initialized; run task_state.py init first: {run.name}")
+    record = event_record(kind, json.dumps(fields), event_id)
+    return append_event(evidence_path(run / "events.jsonl", primary), record)
+
+
+def end_fields(dispatch: str, tool_calls, duration_ms=None, status: str = "done",
+               work: str | None = None) -> dict:
+    duration = duration_ms / 1000 if isinstance(duration_ms, (int, float)) else None
+    return {"dispatch": dispatch, "status": status, "work": work,
+            "usage": {"tool_calls": tool_calls if isinstance(tool_calls, int) else None,
+                      "input_tokens": None, "output_tokens": None, "duration_s": duration}}
+
+
+def linked_dispatch(run: Path, name: str) -> str:
+    """The dispatch id for name: a logged dispatch, else the dispatch an agent id links to."""
+    events, _ = read_events(run)
+    if any(e.get("type") == "dispatch.start" and e.get("dispatch") == name for e in events):
+        return name
+    return next((str(e["dispatch"]) for e in events if e.get("type") == "dispatch.link"
+                 and e.get("agent_id") == name and e.get("dispatch")), name)
+
+
 def ledger_entries(path: Path) -> tuple[list[dict], int]:
     """The ledger's readable entries and how many lines could not be read (a write cut short)."""
     if not path.is_file():
@@ -100,8 +144,10 @@ def usage(known: int, unknown: int) -> str:
     return f"{known} + unknown" if unknown else str(known)
 
 
-def check(run, primary, unit, record: bool) -> tuple[list[str], list[str]]:
-    """Return (tripwires, notes)."""
+def check(run, primary, unit, record: bool,
+          dispatch: str | None = None) -> tuple[list[str], list[str]]:
+    """Return (tripwires, notes). With record a failed verification counts once per dispatch:
+    the trips file lists the dispatch ids already counted (a repeated delivery adds nothing)."""
     trips, notes = [], []
     flag = unit_file(run, primary, unit, "flag.md")
     if unit_file(run, primary, unit, "closed").is_file():
@@ -128,8 +174,11 @@ def check(run, primary, unit, record: bool) -> tuple[list[str], list[str]]:
         try:
             verify(manifest, Path(declared["checkout"]) if declared else checkouts()[1])
         except StateError as exc:
-            if record:
+            counted = state.setdefault("counted", [])
+            if record and (dispatch is None or dispatch not in counted):
                 state["verify_failures"] += 1
+                if dispatch is not None:
+                    counted.append(dispatch)
                 write_json(counter, state)
             notes.append(f"Frozen tests changed: {exc}")
         if state["verify_failures"] >= 2:
@@ -177,13 +226,35 @@ def report(run, primary) -> list[str]:
     return rows
 
 
+def regenerate_dashboard(run: Path, primary: Path) -> None:
+    """Best effort after an event: rewrite the run's default dashboard; never fails the caller."""
+    try:
+        import dashboard  # imported here: dashboard imports this module
+        dashboard.regenerate(run, primary)
+    except Exception as exc:  # noqa: BLE001 - a dashboard must never break a hook
+        print(f"tripwire: dashboard not regenerated: {exc}", file=sys.stderr)
+
+
+def dispatch_id(event: dict, tool_input: dict) -> str:
+    if event.get("tool_use_id"):
+        return str(event["tool_use_id"])
+    key = json.dumps([event.get("session_id"), tool_input.get("description"),
+                      tool_input.get("prompt")])
+    return "h" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:24]
+
+
 def hook() -> int:
-    """PostToolUse(Agent): record the dispatch, return tripwires to the orchestrator."""
+    """Pre/PostToolUse/PostToolUseFailure(Agent): log the dispatch, record its spend, return
+    tripwires."""
+    trips = []
     try:
         event = json.load(sys.stdin)
         tool_input, response = event.get("tool_input") or {}, event.get("tool_response") or {}
         match = TAG.search(f"{tool_input.get('description', '')}\n{tool_input.get('prompt', '')}")
-        if not match or response.get("status") != "completed":
+        name = event.get("hook_event_name")
+        phase = ("start" if name == "PreToolUse" else "failed" if name == "PostToolUseFailure"
+                 else response.get("status"))
+        if not match or phase not in ("start", "async_launched", "completed", "failed"):
             return 0
         task, unit = match.groups()
         os.chdir(event.get("cwd") or ".")
@@ -191,15 +262,38 @@ def hook() -> int:
         run = locate(primary, task)
         if not (run / "run.md").is_file():
             return 0
-        spend(run, primary, unit, {
-            "tool_uses": response.get("totalToolUseCount"),
-            "duration_ms": response.get("totalDurationMs") or event.get("duration_ms"),
-            "final_request_tokens": response.get("totalTokens"),
-            "model": response.get("resolvedModel"),
-            "agent": tool_input.get("subagent_type"),
-        })
-        trips, _ = check(run, primary, unit, record=True)
-    except (StateError, OSError, ValueError, KeyError) as exc:
+        dispatch = dispatch_id(event, tool_input)
+        if phase in ("start", "async_launched"):
+            wrote = record_event(run, primary, "dispatch.start", f"{dispatch}:start", {
+                "dispatch": dispatch, "role": tool_input.get("subagent_type"), "runtime": "claude",
+                "model": tool_input.get("model"), "effort": None, "launcher": "subagent",
+                "work": unit, "report": None, "pane": None,
+                "background": bool(tool_input.get("run_in_background"))})
+            agent = response.get("agentId")
+            if phase == "async_launched" and agent:
+                wrote = record_event(run, primary, "dispatch.link", f"{dispatch}:link",
+                                     {"dispatch": dispatch, "agent_id": str(agent)}) or wrote
+            if wrote:
+                regenerate_dashboard(run, primary)
+            return 0
+        duration = response.get("totalDurationMs") or event.get("duration_ms")
+        status = "failed" if phase == "failed" else "done"
+        wrote = record_event(run, primary, "dispatch.end", f"{dispatch}:end",
+                             end_fields(dispatch, response.get("totalToolUseCount"), duration,
+                                        status, work=unit))
+        if wrote:
+            spend(run, primary, unit, {
+                "dispatch": dispatch, "status": status,
+                "tool_uses": response.get("totalToolUseCount"),
+                "duration_ms": duration,
+                "final_request_tokens": response.get("totalTokens"),
+                "model": response.get("resolvedModel"),
+                "agent": tool_input.get("subagent_type"),
+            })
+        trips, _ = check(run, primary, unit, record=True, dispatch=dispatch)
+        if wrote:
+            regenerate_dashboard(run, primary)
+    except (StateError, OSError, ValueError, KeyError, AttributeError, TypeError) as exc:
         # A broken tripwire must not break the session; say so on stderr only.
         print(f"tripwire: {exc}", file=sys.stderr)
         return 0
@@ -208,7 +302,7 @@ def hook() -> int:
                   "\nStop this lane: write its gate card and ask the user before any further "
                   "dispatch for this unit (pharos-dev, Taste gates).")
         print(json.dumps({"decision": "block", "reason": reason,
-                          "hookSpecificOutput": {"hookEventName": "PostToolUse",
+                          "hookSpecificOutput": {"hookEventName": name,
                                                  "additionalContext": reason}}))
     return 0
 
@@ -230,6 +324,10 @@ def main() -> int:
     commands.choices["spend"].add_argument("--tool-uses", type=int, required=True)
     commands.choices["spend"].add_argument("--model")
     commands.choices["spend"].add_argument("--agent")
+    commands.choices["spend"].add_argument(
+        "--dispatch", help="also log dispatch.end for this dispatch or linked agent id")
+    commands.choices["spend"].add_argument("--status", choices=END_STATUSES,
+                                           help="the end's status with --dispatch (default done)")
     commands.choices["flag"].add_argument("reason")
     commands.choices["resolve"].add_argument("decision")
     commands.choices["check"].add_argument("--record", action="store_true")
@@ -240,8 +338,19 @@ def main() -> int:
         if args.command == "scope":
             scope(run, primary, current, args.unit, args.base, args.globs, args.turn_budget)
         elif args.command == "spend":
-            spend(run, primary, args.unit,
-                  {"tool_uses": args.tool_uses, "model": args.model, "agent": args.agent})
+            unit_file(run, primary, args.unit, "spend.jsonl")
+            if args.status and args.dispatch is None:
+                raise ValueError("--status needs --dispatch")
+            dispatch = args.dispatch and linked_dispatch(run, args.dispatch)
+            if dispatch is None or record_event(
+                    run, primary, "dispatch.end", f"{dispatch}:end",
+                    end_fields(dispatch, args.tool_uses, status=args.status or "done",
+                               work=args.unit)):
+                spend(run, primary, args.unit,
+                      {"tool_uses": args.tool_uses, "model": args.model, "agent": args.agent,
+                       **({"dispatch": dispatch} if dispatch is not None else {})})
+                if dispatch is not None:
+                    regenerate_dashboard(run, primary)
         elif args.command == "resolve":
             flag = unit_file(run, primary, args.unit, "flag.md")
             if not flag.is_file():

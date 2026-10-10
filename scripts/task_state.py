@@ -7,9 +7,21 @@ files in the current checkout, so an implementation cannot inherit another lane'
 successful verification. `freeze` also requires a red log (`--red-log FILE`, resolved
 against the current directory) that shows a failing test; its path and sha256 are kept
 in the manifest as evidence and are not checked by `verify`.
+
+`event TASK TYPE --data JSON [--id ID]` appends one line
+`{"v": 1, "id", "at", "type", ...data}` to the run's `events.jsonl` and prints the id
+(`id` defaults to a new uuid4 hex, `at` is UTC to the second). It is the only writer of
+that log. The append holds an exclusive `fcntl.flock` on the events file; an id already
+present is skipped (exit 0, prints `duplicate`), so a repeated hook delivery is harmless.
+Windows has no `fcntl`: there the append is unlocked, and concurrent writers may race on
+the duplicate check. `--data` must be a JSON object without the envelope keys and TYPE
+must be dot-separated lower-case words (`dispatch.start`); either error exits 2.
+`read_events(run)` returns the events in file order and the number of lines that are not
+JSON objects (a write cut short); a later append starts on a fresh line after such a line.
 """
 
 import argparse
+from datetime import datetime, timezone
 import hashlib
 import json
 import os
@@ -17,10 +29,24 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import uuid
+
+try:
+    import fcntl
+except ImportError:  # Windows: appends to the events log are not locked.
+    fcntl = None
 
 
 class StateError(Exception):
     """Invalid or unavailable durable task evidence."""
+
+
+class EventDataError(StateError):
+    """An event whose type or data is malformed (exit 2)."""
+
+
+EVENT_TYPE = re.compile(r"[a-z]+(?:\.[a-z]+)*")
+EVENT_ENVELOPE = ("v", "id", "at", "type")
 
 
 # Output of a failing Go, Python, Node or TypeScript run; a passing log matches none of them.
@@ -242,12 +268,79 @@ def verify(manifest: Path, current: Path) -> None:
         raise StateError("\n".join(failures))
 
 
+def event_record(kind: str, data: str, event_id: str | None) -> dict:
+    if not EVENT_TYPE.fullmatch(kind):
+        raise EventDataError(f"Invalid event type: {kind!r}")
+    try:
+        fields = json.loads(data)
+    except ValueError as exc:
+        raise EventDataError(f"--data is not JSON: {exc}") from None
+    if not isinstance(fields, dict):
+        raise EventDataError("--data must be a JSON object")
+    reserved = [key for key in EVENT_ENVELOPE if key in fields]
+    if reserved:
+        raise EventDataError(f"--data must not set envelope keys: {', '.join(reserved)}")
+    at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return {"v": 1, "id": event_id or uuid.uuid4().hex, "at": at, "type": kind, **fields}
+
+
+def parse_events(text: str) -> tuple[list[dict], int]:
+    events, unreadable = [], 0
+    for line in text.split("\n"):
+        if not line.strip():
+            continue
+        try:
+            value = json.loads(line)
+        except ValueError:
+            value = None
+        if isinstance(value, dict):
+            events.append(value)
+        else:
+            unreadable += 1
+    return events, unreadable
+
+
+def read_events(run: Path) -> tuple[list[dict], int]:
+    """Events of a run in file order, and the count of lines that are not JSON objects."""
+    path = Path(run) / "events.jsonl"
+    if not path.is_file():
+        return [], 0
+    return parse_events(path.read_bytes().decode("utf-8", errors="replace"))
+
+
+def append_event(path: Path, record: dict) -> bool:
+    """Append under an exclusive lock; False when the id is already in the log."""
+    line = json.dumps(record) + "\n"
+    with path.open("a+b") as stream:
+        if fcntl is not None:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+        try:
+            stream.seek(0)
+            existing = stream.read()
+            events, _ = parse_events(existing.decode("utf-8", errors="replace"))
+            if any(event.get("id") == record["id"] for event in events):
+                return False
+            # A write cut short leaves no newline; never glue the new event onto it.
+            prefix = b"\n" if existing and not existing.endswith(b"\n") else b""
+            stream.write(prefix + line.encode("utf-8"))
+            stream.flush()
+            os.fsync(stream.fileno())
+        finally:
+            if fcntl is not None:
+                fcntl.flock(stream, fcntl.LOCK_UN)
+    return True
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
-    for command in ("locate", "init", "freeze", "verify", "import-legacy"):
+    for command in ("locate", "init", "freeze", "verify", "import-legacy", "event"):
         sub = commands.add_parser(command)
         sub.add_argument("task")
+        if command == "event":
+            sub.add_argument("type", help="event type, e.g. dispatch.start")
+            sub.add_argument("--data", required=True, help="the event's fields, a JSON object")
+            sub.add_argument("--id", help="idempotency key; defaults to a new uuid4 hex")
         if command == "init":
             sub.add_argument("--spec", help="the approved spec; omit it for an investigation or "
                              "a discovery that has no spec yet")
@@ -261,6 +354,14 @@ def main() -> int:
     try:
         primary, current = checkouts()
         run = locate(primary, args.task)
+        if args.command == "event":
+            record = event_record(args.type, args.data, args.id)
+            ledger = evidence_path(run / "run.md", primary)
+            if not ledger.is_file():
+                raise StateError(f"Task is not initialized; run init first: {run.name}")
+            appended = append_event(evidence_path(run / "events.jsonl", primary), record)
+            print(record["id"] if appended else "duplicate")
+            return 0
         if args.command == "init":
             initialize(run, primary, current, args.spec)
         elif args.command in ("freeze", "verify", "import-legacy"):
@@ -286,7 +387,7 @@ def main() -> int:
         return 0
     except (StateError, OSError, ValueError) as exc:
         print(f"task-state: {exc}", file=sys.stderr)
-        return 1
+        return 2 if isinstance(exc, EventDataError) else 1
 
 
 if __name__ == "__main__":

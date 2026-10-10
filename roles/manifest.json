@@ -62,7 +62,7 @@
     ]
   },
   "ui-design-verifier": {
-    "description": "UX review of user-facing changes: captures its own screenshots of every state the change can show in the running application and judges them against the user's task, the design system and the mockups.",
+    "description": "UX review of user-facing changes: captures its own screenshots of every state the change can show in the running application and assesses them against the user's task, the design system and the mockups.",
     "profile": "routine",
     "sandbox": "read-only"
   },
@@ -77,5 +77,17 @@
       "Write"
     ],
     "sandbox": "read-only"
+  },
+  "architecture-reviewer": {
+    "description": "Keeps the codebase readable after a change: each new piece in the layer, module and file a newcomer would look in, one responsibility per unit, names that say what things are, no second implementation, no layer doing another's job; reads the project's architecture map and the spec's Placement, and confirms arch_check.py passed.",
+    "profile": "critical-review",
+    "sandbox": "read-only",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash",
+      "Write"
+    ]
   }
 }

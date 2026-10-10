@@ -383,8 +383,8 @@ def main() -> int:
     parser.add_argument("--reviewer", choices=("claude", "codex"),
                         help="override the reviewer runtime (single-vendor when it equals --writer)")
     parser.add_argument("--ledger", help="JSONL ledger of this run's reviews (e.g. <run>/xreview.jsonl)")
-    parser.add_argument("--max-critical", type=int, default=4,
-                        help="cap on critical-review/escalation reviews recorded in --ledger (default 4)")
+    parser.add_argument("--max-critical", type=int, default=5,
+                        help="cap on critical-review/escalation reviews recorded in --ledger (default 5)")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--timeout", type=float, default=900.0)
     args = parser.parse_args()

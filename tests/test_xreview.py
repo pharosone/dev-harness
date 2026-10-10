@@ -296,6 +296,14 @@ class XReviewTest(unittest.TestCase):
         self.assertIn("cap", result.stderr.lower())
         self.assertEqual(len(self.calls()), 3)
 
+    def test_the_default_cap_is_five_critical_reviews_per_run(self):
+        ledger = self.temp / "run" / "xreview.jsonl"
+        for _ in range(5):
+            self.assertEqual(self.review("--tier", "3", "--ledger", str(ledger)).returncode, 0)
+        result = self.review("--tier", "3", "--ledger", str(ledger))
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("5/5", result.stderr)
+
     def test_claude_code_is_reviewed_by_codex_on_the_implementation_profile(self):
         result = self.review("--tier", "2", cwd=self.repo / "src")
         self.assertEqual(result.returncode, 0, result.stderr)

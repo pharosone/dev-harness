@@ -33,11 +33,15 @@ A finding about a boundary needs both sides of it, and the diff shows one. Read 
    earlier reviews (`gh pr view <n> --json comments,reviews`). A rejected idea is not a finding;
    a deviation from a taken decision is, and so is a taken decision's unstated consequence —
    name the decision and propose the smallest change that keeps its goal, never a revert.
-3. **Name the layer stack** the change lives in, from the project's map (AGENTS.md) and the
-   code — entry points, domain logic, data access, schema, side channels (events, storage, auth,
-   external services), client layers and their wire types, whatever this project has — and read
-   each layer's contract in full.
-4. **Build the ownership grid** before judging: one row per aspect (state, status writers,
+3. **Name the layer stack** the change lives in, from the project's architecture map — the
+   overlay's `architecture.md` (the map in prose) and `architecture.json` (declared layers and
+   what each may depend on, where each kind of file lives), the same map the
+   `architecture-reviewer` reads at each milestone — then AGENTS.md and the code: entry points,
+   domain logic, data access, schema, side channels (events, storage, auth, external services),
+   client layers and their wire types, whatever this project has. Read each layer's contract in
+   full, and the spec's `## Placement` for where the new pieces were meant to land. Where the
+   map and the code disagree, the code is what you review and the disagreement is a finding.
+4. **Build the ownership grid** before assessing: one row per aspect (state, status writers,
    errors, scope predicate, auth mode, side effects, what each layer swallows vs passes up),
    one column per layer or sibling implementation, every cell a file:line. About ten rows.
 5. **Walk each public operation end to end** through every layer and check where consumers get

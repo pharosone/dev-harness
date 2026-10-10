@@ -21,6 +21,13 @@
       {"name": "build", "cwd": ".", "cmd": ["python3", "-c", "print(4)"]}
     ]
   },
+  "architecture": {
+    "paths": ["app/", "web/", "docs/", "harness/project/architecture.json", ".github/workflows/"],
+    "steps": [
+      {"name": "arch", "cwd": ".",
+       "cmd": ["python3", "harness/core/scripts/arch_check.py", "--base", "{base}"]}
+    ]
+  },
   "drift": {
     "paths": ["**"],
     "steps": [

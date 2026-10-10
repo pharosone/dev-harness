@@ -1,0 +1,25 @@
+{
+  "comment": "The declared architecture of a small web app, checked by arch_check.py: app/ (the API, Python) and web/ (the UI, TypeScript) never import each other; migrations live in one place with one naming scheme. Every file under a root belongs to a layer.",
+  "layers": [
+    {"name": "api", "paths": ["app/**"], "may_depend_on": []},
+    {"name": "web", "paths": ["web/**"], "may_depend_on": []},
+    {"name": "docs", "paths": ["docs/**"], "may_depend_on": []}
+  ],
+  "imports": [
+    {"files": "app/**/*.py",
+     "pattern": "^\\s*(?:from|import)\\s+(?P<target>\\.*[\\w.]*)",
+     "resolve": {"app.": "app/"}},
+    {"files": "web/**/*.ts",
+     "pattern": "^\\s*import\\b[^'\"]*['\"](?P<target>[^'\"]+)['\"]",
+     "resolve": {"@/": "web/src/"}}
+  ],
+  "placement": [
+    {"kind": "migration", "files": "**/*.sql", "allowed": ["app/migrations/*.sql"],
+     "claim": "SQL migrations live in app/migrations/"}
+  ],
+  "naming": [
+    {"files": "app/migrations/*.sql", "pattern": "\\d{4}_[a-z0-9_]+\\.sql",
+     "claim": "a migration is named NNNN_snake_case.sql"}
+  ],
+  "roots": ["app/**", "web/**"]
+}

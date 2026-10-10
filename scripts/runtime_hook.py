@@ -5,6 +5,13 @@ The check is check_docs_drift.py's, with the mappings of the checkout's overlay
 (drift.json in $HARNESS_PROJECT, else harness/project; without it only the harness-log
 rule runs). It adds no overlay keys. An unusable overlay file blocks (exit 2) like any
 failed check: it is never reported clean.
+
+A compare candidate's snapshot (no remote, the source's branch detached) has neither
+origin/main nor main to diff against. lanes sets HARNESS_CANDIDATE_SNAPSHOT=1 in the
+environment of every candidate it starts; with that variable and no base the hook exits 0 with
+a one-line note on stderr instead of blocking. Any other checkout without a base fails (exit 2),
+and with a base the variable changes nothing. CI always passes an explicit --base, so drift is
+still checked there.
 """
 
 import argparse
@@ -14,6 +21,7 @@ import json
 import os
 from pathlib import Path
 import stat
+import subprocess
 import sys
 
 # Importing must not write __pycache__ into a read-only installed harness.
@@ -62,6 +70,21 @@ def already_reported(root, runtime, session, findings):
     return False
 
 
+BASE_REFS = ("refs/remotes/origin/main", "refs/heads/main")
+CANDIDATE_SNAPSHOT_ENV = "HARNESS_CANDIDATE_SNAPSHOT"  # lanes.py sets it to "1" for candidates
+
+
+def has_base_ref(root) -> bool:
+    """Whether default_base has a ref to start from; a git failure other than "missing" is
+    left to default_base, which reports it."""
+    for ref in BASE_REFS:
+        result = subprocess.run(["git", "show-ref", "--verify", "--quiet", ref], cwd=root,
+                                capture_output=True, text=True)
+        if result.returncode != 1:
+            return True
+    return False
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runtime", choices=("claude", "codex"), required=True)
@@ -74,6 +97,12 @@ def main():
             print("{}")
             return 0
         root = repository(event.get("cwd") or Path.cwd())
+        if os.environ.get(CANDIDATE_SNAPSHOT_ENV) == "1" and not has_base_ref(root):
+            print("Documentation drift not checked here: a candidate snapshot with no "
+                  "origin/main or main base (CI checks it with an explicit --base).",
+                  file=sys.stderr)
+            print("{}")
+            return 0
         findings = check(root, default_base(root))
         if findings:
             session = event.get("session_id")

@@ -14,11 +14,13 @@ dialect (`tripwire.py`): `*` and `?` stay inside one directory, `**` crosses dir
 
 | File | Read by | Without it |
 |---|---|---|
-| `project.json` | `guard.py`, `harness_sync.py`, `worktree.py`, `render_adapters.py`, the skills | core guard rules only; no pin (`harness_sync.py` refuses); no project roles or interview rows |
+| `project.json` | `guard.py`, `harness_sync.py`, `worktree.py`, `render_adapters.py`, `balance.py`, the skills | core guard rules only; no pin (`harness_sync.py` refuses); no project roles or interview rows |
 | `tiers.json` | `tier.py` (and `xreview.py` through it) | every changed path is tier 2 (`no tiers.json`) |
 | `gates.json` | `gate.py` | `gate.py` exits 2: nothing to run is never reported as a pass |
 | `drift.json` | `check_docs_drift.py`, the Stop hook (`runtime_hook.py`) | only the harness-log rule, with its defaults |
-| `models.json` | `render_adapters.py`, `xreview.py` | the core profiles (`harness/core/adapters/models.json`) |
+| `models.json` | `render_adapters.py`, `xreview.py`, `compare.py` | the core profiles (`harness/core/adapters/models.json`) |
+| `architecture.json` | `arch_check.py`; `architecture-reviewer`, `design-review`, `pharos-discover` (Placement) | the check is off (exit 0, and it says so); reviewers take the layers from `architecture.md`, AGENTS.md and the code |
+| `architecture.md` | `architecture-reviewer`, `design-review`, `pharos-discover` (Placement) | the map comes from AGENTS.md and the code's own shape; the reviewer reports it under Not covered |
 | `rules/*.md` | `render_adapters.py`; agents by path | no path rules |
 | `roles/*.md` | `render_adapters.py` | core roles as shipped |
 | `skills/` | `render_adapters.py`; the core skills | core skills as shipped |
@@ -27,7 +29,7 @@ dialect (`tripwire.py`): `*` and `?` stay inside one directory, `**` crosses dir
 | `tests/` | `harness_sync.py pull`; your `gates.json` | no project harness tests |
 
 An overlay file that exists but cannot be used (bad JSON, wrong type, unknown key, invalid entry)
-is an error for `tier.py`, `gate.py` and `check_docs_drift.py` (exit 2) and for the renderer
+is an error for `tier.py`, `gate.py`, `check_docs_drift.py` and `arch_check.py` (exit 2) and for the renderer
 (exit 1), never a clean result. The guard is the exception: it prints a note to stderr, skips the
 bad part and keeps every core rule, because a broken guard must not lock a session.
 
@@ -44,7 +46,8 @@ One JSON object. Each script reads only its own section; other top-level keys ar
                                 "drafted_by": "a11y-reviewer"}]},
   "roles": {"a11y-reviewer": {"description": "…", "profile": "routine", "sandbox": "read-only",
                               "panel": {"min_tier": 2, "paths_exist": ["web/"]}}},
-  "worktree": {"node_dirs": ["web"]}
+  "worktree": {"node_dirs": ["web"]},
+  "balance": {"min_share": 0.3, "stop_at": 0.85, "hysteresis": 0.15, "min_elapsed": 0.25}
 }
 ```
 
@@ -126,6 +129,22 @@ Each key is a role name (`[a-z0-9]+(-[a-z0-9]+)*`) that is not a core role, with
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `node_dirs` | [string] | none | checkout-relative directories, in order, where `worktree.py add NAME --deps` runs `npm ci` in the new lane (absolute paths and `..` are rejected; `--deps` with no entries exits 1) |
+
+### balance — vendor balancing
+
+Read by `balance.py pick`, which picks a worker's vendor inside one profile (the same profile on
+both vendors) from how fast each vendor's usage windows burn. Optional; each key replaces its
+default. Any other key, a non-number or a value out of range is exit 2.
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `min_share` | number in [0, 1] | `0.3` | each vendor keeps at least this share of the run's dispatches (`dispatch.start` by runtime; compare candidates are not counted; no rule before the first dispatch) |
+| `stop_at` | number in (0, 1] | `0.85` | a vendor with any current window used at or above this is excluded; when every allowed vendor is excluded the pick exits 6 and the orchestrator asks the user |
+| `hysteresis` | number ≥ 0 | `0.15` | the previous pick's vendor stays unless the other's runway is larger by more than this |
+| `min_elapsed` | number in [0, 1] | `0.25` | a projected run-out (runway < 1: the window would be used up before its reset) counts only once this fraction of that window has passed; it is soft — it steers work to the other vendor, ahead of `min_share`, but never by itself makes the pick exit 6 |
+
+Runway of a window is (1 − used) / (1 − elapsed fraction); a vendor's runway is its smallest
+current window's. A vendor without a current observation is unknown and counts as neutral.
 
 ## tiers.json
 
@@ -255,13 +274,79 @@ untracked files under `.claude/` (personal agents and skills).
  "mirrors": [{"paths": ["app/schemas.py", "web/src/types.ts"], "claim": "the wire types"}]}
 ```
 
+## architecture.json
+
+The project's declared architecture, checked by `arch_check.py [--base REF | --all]` (the module
+docstring documents the CLI): `--base REF` checks the files changed against REF — committed,
+staged, unstaged and untracked, like the other checks — and `--all` the whole tree. Findings print
+as `path:line — claim` (or `path — claim` for a file as a whole). Exit `0` clean, `1` findings,
+`2` a configuration or usage error. No file: the check is off — exit `0` with a note saying so;
+a file that exists but cannot be used is exit `2`, never clean. Add the check to a `gates.json`
+area so CI runs it; `pharos-dev` runs it with `--base <milestone base>` at every Tier 2–3
+milestone and gives the result to the `architecture-reviewer`.
+
+One JSON object; every key is optional, unknown keys are an error. Globs are the core dialect on
+checkout-relative paths.
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `layers` | [{`name`, `paths`, `may_depend_on`?}] | `[]` | the layers; a file belongs to the layer whose `paths` match it, and a file matching two layers is an error |
+| `layers[].name` | string, required | — | the layer's name, unique, used by `may_depend_on` and in findings |
+| `layers[].paths` | [glob], required | — | the files of the layer |
+| `layers[].may_depend_on` | [layer name] | `[]` | the other layers this one may import (each must be declared); a dependency on any other layer is a finding at its line |
+| `imports` | [{`files`, `pattern`, `resolve`?}] | `[]` | how a file's dependencies read in its language; without an entry for a language, its files have no dependencies to check |
+| `imports[].files` | glob, required | — | the files this reader applies to |
+| `imports[].pattern` | regex, required | — | a Python regular expression (multi-line mode) with a named group `target`; each match is one dependency at the line where `target` starts |
+| `imports[].resolve` | {prefix: path} | `{}` | import prefix → checkout path prefix (the longest prefix wins; a prefix ending in `.` turns the dotted rest into a path); a target starting with `.` is relative to the importing file; a target no prefix matches (a standard or third-party library) is ignored |
+| `placement` | [{`kind`, `files`, `allowed`, `claim`}] | `[]` | where a kind of file may live |
+| `placement[].kind` | string, required | — | what the rule is about (`migration`, `route`, `test`) |
+| `placement[].files` | glob, required | — | the files of that kind |
+| `placement[].allowed` | [glob], required | — | where such a file may live; a file outside all of them is a finding |
+| `placement[].claim` | string, required | — | the text the finding prints |
+| `naming` | [{`files`, `pattern`, `claim`}] | `[]` | how files are named |
+| `naming[].files` | glob, required | — | the files the rule is about |
+| `naming[].pattern` | regex, required | — | the basename must match it in full |
+| `naming[].claim` | string, required | — | the text the finding prints |
+| `roots` | [glob] | `[]` | every file under a root must belong to some layer; one in none is a finding |
+| `comment` | string | — | ignored |
+
+```json
+{"layers": [{"name": "api", "paths": ["app/**"], "may_depend_on": []},
+            {"name": "web", "paths": ["web/**"], "may_depend_on": []}],
+ "imports": [{"files": "app/**/*.py",
+              "pattern": "^\\s*(?:from|import)\\s+(?P<target>\\.*[\\w.]*)",
+              "resolve": {"app.": "app/"}}],
+ "placement": [{"kind": "migration", "files": "**/*.sql", "allowed": ["app/migrations/*.sql"],
+                "claim": "SQL migrations live in app/migrations/"}],
+ "naming": [{"files": "app/migrations/*.sql", "pattern": "\\d{4}_[a-z0-9_]+\\.sql",
+             "claim": "a migration is named NNNN_snake_case.sql"}],
+ "roots": ["app/**", "web/**"]}
+```
+
+The script sees what a declaration can state: dependency direction, files outside every layer,
+misplaced kinds, names. Whether a new piece is in the right module, does one thing, has a name
+that says what it is or re-implements something that exists is the `architecture-reviewer`'s.
+The example overlay (`examples/project/architecture.json`) passes the check.
+
+## architecture.md
+
+The project's architecture in prose: its layers and what each owns, where a newcomer finds each
+kind of thing, the modules that already exist for shared concerns (so a second one is visible
+as such), naming conventions, and structure decisions with their reasons. Free Markdown; no
+script reads it. The `architecture-reviewer` reads it with `architecture.json` at each Tier 2–3
+milestone, `design-review` builds its layer stack from it, and `pharos-discover` drafts every
+spec's `## Placement` from it. Keep it to what `architecture.json` cannot say; AGENTS.md may link
+to it instead of restating it.
+
 ## models.json
 
 Optional profile overrides, the same shape as `harness/core/adapters/models.json`:
 `{"<runtime>": {"<profile>": {"model", "effort"}}}` for runtimes `claude` and `codex`. It is
 deep-merged over the core table (nested objects merge, other values replace), so an overlay
 changes one value or adds a profile without restating the rest. The renderer uses the merged
-table for every agent file; `xreview.py` uses the reviewed checkout's merged table.
+table for every agent file; `xreview.py` uses the reviewed checkout's merged table, and
+`compare.py` the compared checkout's, for its competitors, arbiter and critics. `lanes.py` and
+`dashboard.py` read no overlay file.
 
 ```json
 {"claude": {"routine": {"effort": "high"}}}
@@ -286,7 +371,8 @@ Every route validates its body with a model from `app/schemas.py`.
 ## roles/
 
 - `roles/<core-role>.md` (one of `implementer`, `simplifier`, `qa-verifier`, `perf-analyst`,
-  `security-auditor`, `ui-design-verifier`): the project's specifics for that role, appended to
+  `security-auditor`, `ui-design-verifier`, `investigator`, `architecture-reviewer`): the
+  project's specifics for that role, appended to
   the core role under `## Project specifics`. Write the body only, without that heading. Write
   context the role's model of a change needs — what the product holds, its users, its trust
   boundaries and where they are enforced, its hot paths and limits, the commands and tests that
@@ -345,12 +431,15 @@ class GatesTest(unittest.TestCase):
 |---|---|---|
 | `guard` lists | core rules and defaults | added; nothing is removed |
 | `interview.extra_rows` | nine core rows | inserted after Contracts, in order |
-| `roles` in `project.json` | six core roles | added; a core role name is an error |
+| `roles` in `project.json` | eight core roles | added; a core role name is an error |
 | `roles/<core-role>.md` | the core role | appended under `## Project specifics` |
 | `skills/<name>/` | core skills | added; the same name replaces the core skill |
 | `rules/` | none | the whole set |
 | `models.json` | `adapters/models.json` | deep-merged |
 | `tiers.json`, `gates.json`, `worktree.node_dirs` | none | the whole table |
+| `balance` in `project.json` | `min_share` 0.3, `stop_at` 0.85, `hysteresis` 0.15, `min_elapsed` 0.25 | each key given replaces its default |
+| `architecture.json` | none | the whole declaration; without it `arch_check.py` is off |
+| `architecture.md` | none | the whole map, read as context; the core adds nothing to it |
 | `drift.json` | the harness-log rule | `harness_log.path` / `paths` replace its defaults; the other rules are the project's |
 
 ## What is rendered where
@@ -363,7 +452,7 @@ class GatesTest(unittest.TestCase):
 | `.codex/agents/<role>.toml` | the same: `model`, `model_reasoning_effort`, `sandbox_mode`, `developer_instructions` |
 | `.claude/skills/<name>`, `.agents/skills/<name>` | symlinks to `harness/core/skills/<name>` or `harness/project/skills/<name>` |
 | `.claude/rules/<name>.md` | `rules/<name>.md` |
-| `.claude/settings.json` | hooks: Stop → `runtime_hook.py`; PreToolUse (Bash, Read, Grep, Edit, Write, NotebookEdit) → `guard.py`; PostToolUse(Agent) → `tripwire.py hook`; `subagentPromptCacheTtl` |
+| `.claude/settings.json` | hooks: Stop → `runtime_hook.py`; PreToolUse (Bash, Read, Grep, Edit, Write, NotebookEdit) → `guard.py`; PreToolUse(Agent) and PostToolUse(Agent) → `tripwire.py hook` (dispatch events, tripwires); `subagentPromptCacheTtl` |
 | `.codex/hooks.json` | hooks: Stop → `runtime_hook.py`; PreToolUse (Bash, apply_patch, Edit, Write) → `guard.py` |
 | `.codex/config.toml` | created with a comment when missing; kept (and validated) when present |
 | `CLAUDE.md` | `@AGENTS.md` added at the top when missing; the rest is kept |

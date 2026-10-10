@@ -16,7 +16,8 @@ read it again.
     comes first; the next session resumes from `run.md`;
   - wait for a worker with the blocking wait, never a polling loop (each status call re-sends
     the whole context and a loop of them can spend a weekly limit);
-  - after each worker report: `tripwire.py spend` and `check --record`; at each milestone:
+  - after each worker report: `tripwire.py spend <task> <unit> --tool-uses N --dispatch <d>
+    [--status …]` and `check --record`; at each milestone:
     `xreview.py --writer codex --reviewer codex`;
   - the guard: the trusted primary clone loads `.codex/hooks.json`; any worktree needs the `-c`
     override below.
@@ -28,7 +29,9 @@ read it again.
   `workspace-write`. Permission to run tests is not permission to edit sources.
 - **Models:** from `harness/core/adapters/models.json` (`gpt-6.1-sol` by default, `gpt-6-astra` for
   Tier-3 review, science and the `deep-reasoning` investigator, `gpt-6-luna` only with a deterministic check of its output). Check
-  availability; never claim a model ran that the session did not resolve.
+  availability; never claim a model ran that the session did not resolve. With both runtimes,
+  the orchestrator picks each worker's vendor inside its profile by `balance.py pick`, which
+  reads Codex usage from the session files under `$CODEX_HOME` by itself.
 - **Cross-review:** the orchestrator runs `harness/core/scripts/xreview.py`, which calls
   `codex exec --sandbox read-only` with the diff as context. As a reviewer: report only, never
   edit; a Critical/Major needs a failure scenario; end with the `VERDICT:` line.
@@ -40,8 +43,22 @@ read it again.
   `codex -c 'hooks.PreToolUse=[{matcher="Bash|apply_patch|Edit|Write",hooks=[{type="command",command="python3 <checkout>/harness/core/scripts/guard.py --runtime codex || true",timeout=10}]}]' …`.
   Trusting a path (`/hooks`) stays the user's decision; never bypass trust on your own.
   Hooks are a guardrail, not a boundary: the sandbox and CI still apply. There is no dispatch
-  tripwire hook on Codex: the orchestrator runs `tripwire.py spend` and `check --record` on each
-  report.
+  tripwire hook on Codex: the orchestrator runs `tripwire.py spend <task> <unit> --tool-uses N --dispatch <d>
+  [--status …]` and `check --record` on each report.
+- **Events:** with no hook, a Codex orchestrator records its own subagent dispatches in the
+  run's `events.jsonl`: `task_state.py event <task> dispatch.start --id <d>:start --data
+  '{"dispatch": "<d>", "role": …, "runtime": "codex", "launcher": "subagent", "work": "<unit>"}'`
+  at launch, and at the end `tripwire.py spend <task> <unit> --tool-uses N --dispatch <d>
+  --status done|failed|timeout|cancelled` (the spend line and `dispatch.end` together). Run
+  start and gates go through `task_state.py event`. A count you do not have stays null.
+- **Lanes:** `lanes.py decide --orchestrator codex` picks the launcher; `headless` and `pane`
+  start through `lanes.py start`, which records `dispatch.start`/`dispatch.end` itself and
+  carries the guard override into every Codex lane (headless and pane). Wait with `lanes.py
+  wait`, the blocking wait, never a status loop. A pane needs `HERDR_ENV=1`; a `blocked` lane is
+  the user's to answer.
+- **Dashboard:** `python3 harness/core/scripts/dashboard.py <task>` writes
+  `<run>/dashboard.html` and prints its path; `lanes.py` and `tripwire.py spend --dispatch`
+  regenerate it. Give the user the path at each gate.
 
 Verified references (2026-10-09): learn.chatgpt.com/docs — skills, agent-configuration/subagents,
 hooks, non-interactive-mode, config-file/config-reference.

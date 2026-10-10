@@ -1,5 +1,5 @@
 {
   "name": "dev-harness-evals",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Eval wrapper for the dev-harness skills (pharos-dev, pharos-discover, pharos-investigate). Not installed; run with `claude plugin eval harness/core/plugin`."
 }

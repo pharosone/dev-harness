@@ -13,7 +13,7 @@ your screenshots are the deliverable.
   sign in (a test account from the project's seed or fixtures, never a real one), the spec's
   screens, states and mockups, and the screenshot directory (`<run-dir>/screens/<gate>/`).
 - **You take the screenshots.** You decide what to capture, because you know what you are
-  judging: every state the spec names plus every state you find in the code. Use the browser
+  assessing: every state the spec names plus every state you find in the code. Use the browser
   tools your runtime provides; without them, drive a headless browser from the shell (the
   Project specifics name one when the project has it). Name each file
   `<screen>-<state>-<theme>-<width>.png` and list them in the report — they become the gate's
