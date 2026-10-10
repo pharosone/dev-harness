@@ -62,3 +62,24 @@ text; pass the rule paths to agents of other runtimes.
   single-vendor); Codex workers are replaced by Claude dispatches on the same profiles.
 - **Headless:** `claude -p` in a checkout loads its hooks and agents (not with `--bare`); the
   cross-review runner uses it with read-only tools when Codex wrote the code.
+
+## Harness feedback
+
+Offer once per distinct script error/docs contradiction, rule workaround/manual step,
+session tool the harness should own, user-corrected profile/tier/gate decision, or process
+complaint. At a natural pause after the unit/gate/turn, check the full `feedback.py list`
+including declined/sent drafts; compare the problem even when its title differs. Use
+`list --offerable` only for existing unoffered drafts. Create a harness-only draft, and use
+`offer <slug>` to ask exactly: **Offer harness feedback
+“<drafted title>” for your review?** Never interrupt a running decision. The user decides;
+`decline <slug>` records a refusal and prevents repeated offers. Use the same `--task` or
+`--run-dir` queue for every command (omit both when there is no run).
+
+The upstream is public: no product data. `send` previews sanitized text and checks duplicates.
+Show candidate issue links; `--not-a-duplicate` requires the user to confirm they are distinct;
+`--yes` requires the user's explicit go for that text. Core fixes offer `harness_sync.py
+propose --feedback-file <draft>` instead; review code and body before publication. Missing
+`gh`/auth prints a bounded browser URL; long drafts require copying the sanitized preview
+into the form and stay unsent. At each taste gate and run end, show
+`feedback.py list --summary`: “2 harness feedback drafts waiting: …”. Full procedure and
+privacy rules: README “Feedback”.

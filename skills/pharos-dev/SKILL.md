@@ -212,6 +212,8 @@ Record the card as `task_state.py event <task> gate.open --data '{"gate": "<gate
 <task>`, which prints the page's path) and give the user that path with the card: running and
 stale lanes, pending gates, tripwires, spend per unit and compare status on one local page.
 With herdr, also point to the live `📊 <task>` tab, where the gate shows as pending.
+At each taste gate, include `python3 harness/core/scripts/feedback.py list --run-dir <run-dir>
+--summary` as one line in the card (Harness feedback below).
 Ask through the runtime's question tool and send a push notification when the runtime has one.
 Record the answer (continue / redirect with notes / stop) in `run.md` and as `gate.answer`
 {gate, answer, source: the user's words} before dependent work.
@@ -249,7 +251,9 @@ Placement is a finding unless the spec was amended.
 ## Handoff
 
 Every "works" claim cites a command run in this session; UI-visible changes ship with the
-design verifier's screenshots. A PR goes through `submit-pr` when the user asks. Deploys go through CD only.
+design verifier's screenshots. At run end, include `python3 harness/core/scripts/feedback.py
+list --run-dir <run-dir> --summary` as one line, retaining unsent drafts for the next session.
+A PR goes through `submit-pr` when the user asks. Deploys go through CD only.
 
 ## Stop and ask
 
@@ -259,3 +263,34 @@ design verifier's screenshots. A PR goes through `submit-pr` when the user asks.
 - The implementer flagged that the spec and a frozen test cannot both hold.
 - A required capability (second vendor, browser, independent context) is unavailable: record
   the step as not performed; self-review is never relabelled as independent review.
+
+## Harness feedback
+
+Offer feedback when a harness script errors or contradicts its docs; a harness rule forces a
+workaround or manual step; a session-built tool belongs in the harness; the user corrects a
+profile, tier or gate decision; or the user complains about the harness process. Check the
+queue first: `python3 harness/core/scripts/feedback.py list --run-dir <run>`
+(or omit `--run-dir` when there is no run). Compare the underlying problem with all
+recorded drafts, including declined/sent ones; a new title does not make it a new issue.
+Use `list --offerable` only to find existing drafts that still need their first offer.
+Draft each distinct issue once with `draft --kind
+bug|friction|feature --title "<drafted title>" [--from-file <harness-only evidence>]` using the
+same queue selector. At a natural pause after the unit, gate or turn, use `offer <slug>` to
+record and ask exactly: **Offer harness feedback “<drafted title>” for your review?** Never
+interrupt a running decision. The user decides; reuse their answer. A refusal is `decline
+<slug>` in that queue, so it is never offered again; `offer` remembers earlier offers too.
+
+The repository `pharosone/dev-harness` is public. Include only minimal harness reproductions
+and sanitized evidence; no product data. `send <slug>` previews the final sanitized text and
+checks duplicates before creating anything. Show candidate issue links; only use
+`--not-a-duplicate` when the user confirms they are distinct. Publication still needs approval.
+The user must see that text before approval;
+`--yes` is only for their explicit go for that exact text, never an agent's default. If local
+vendored-core edits implement the fix, offer the printed `harness_sync.py propose
+--feedback-file <draft>` command instead; it prepares a PR with the reviewed draft attached.
+Review its code and body before the user authorizes publishing. `--issue` explicitly chooses
+an issue instead. Missing `gh`/auth prints a bounded browser URL; for long drafts, copy
+the full sanitized preview into the form. It stays unsent until
+publication is verified. At a gate and run end, show `feedback.py list --run-dir <run>
+--summary` in one line: **“2 harness feedback drafts waiting: <title>; <title>”**. Declined and
+sent drafts remain recorded, without counting as waiting.

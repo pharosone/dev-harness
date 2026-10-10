@@ -29,6 +29,34 @@ with defaults; a major release may require an overlay change and says which.
   same turn: answer spec-resolved questions, escalate material and permission decisions,
   recover frozen/exited lanes, accept reports, stop repeating product failures through the
   product's `watch.stop_command`, and tell the user what was done. The script is observational.
+## 1.6.0 — 2026-10-10
+
+- Public harness feedback: `scripts/feedback.py draft/list/offer/decline/send` queues local
+  harness-only drafts, remembers offers and declines, previews sanitized titles/bodies,
+  checks open/closed issue duplicates and creates an issue only with user approval. Missing
+  `gh`/auth prints a prefilled URL without marking the draft sent.
+- Mandatory redaction reuses the dashboard/xreview secret patterns, scrubs product/overlay
+  names, non-core absolute paths, emails, IPs and private URLs, and refuses unresolved secret
+  patterns. Optional `project.json → feedback.redact` adds literal private terms; no required
+  overlay change.
+- Local vendored-core edits offer `harness_sync.py propose --feedback-file <draft>` instead;
+  the small optional attachment extension links the reviewed draft in the PR body and
+  sanitizes the PR title/body, and records the URL after authorized publication. Preparing
+  feedback never publishes code.
+- `pharos-dev`, `pharos-discover` and both runtime adapters offer feedback once per distinct
+  harness failure, workaround, session tool, user-corrected decision or process complaint at
+  a natural pause. `pharos-dev` lists waiting drafts at every taste gate and run end.
+- Review fixes: sanitize redirected/tagged paths while preserving placeholders and link
+  punctuation; redact checkout names at word boundaries while preserving harness terms;
+  allow `send --issue` without subtree history and user-confirmed `--not-a-duplicate` with
+  candidate links. Keep secret prose usable, distinguish Unicode/truncated draft slugs,
+  refuse declined/sent PR attachments, and tighten the decline eval grader.
+- Second review fixes: redact product/checkout names inside separated or digit-delimited
+  tokens without changing ordinary words or harness vocabulary; inspect declined/sent
+  drafts before drafting a reworded complaint; bound browser fallback URLs and direct
+  long evidence to the full sanitized preview.
+- Six owner-reported examples are synthetic test fixtures, never real issues. Renumber this
+  entry at merge if the parallel release branches require a different version.
 
 ## 1.3.0 — 2026-10-10
 

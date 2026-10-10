@@ -14,7 +14,7 @@ dialect (`tripwire.py`): `*` and `?` stay inside one directory, `**` crosses dir
 
 | File | Read by | Without it |
 |---|---|---|
-| `project.json` | `guard.py`, `harness_sync.py`, `worktree.py`, `render_adapters.py`, `balance.py`, `lanes.py`, `dashboard_herdr.py`, `watch.py`, the skills | core guard rules only; no pin (`harness_sync.py` refuses); no project roles or interview rows |
+| `project.json` | `guard.py`, `harness_sync.py`, `worktree.py`, `render_adapters.py`, `balance.py`, `lanes.py`, `dashboard_herdr.py`, `watch.py`, `feedback.py`, the skills | core guard rules only; no pin (`harness_sync.py` refuses); no project roles or interview rows |
 | `tiers.json` | `tier.py` (and `xreview.py` through it) | every changed path is tier 2 (`no tiers.json`) |
 | `gates.json` | `gate.py` | `gate.py` exits 2: nothing to run is never reported as a pass |
 | `drift.json` | `check_docs_drift.py`, the Stop hook (`runtime_hook.py`) | only the harness-log rule, with its defaults |
@@ -59,7 +59,11 @@ it configures the guard itself.
 
 ### name
 
-String, optional, informational. No core script reads it.
+String, optional. `feedback.py` redacts it from public feedback, along with the product checkout
+name, case-insensitively as whole words or token parts separated by `-`, `_`, `.`, `/`
+or digits. Ordinary words stay intact (`app` does not match `application`). Names shared with
+harness scripts or commands preserve those harness terms; `feedback.redact` remains available
+for explicit literal private terms.
 
 ### core — the pin
 
@@ -73,6 +77,23 @@ Written by `harness_sync.py install`; `pull` updates `ref` once the subtree merg
 
 Values reach Git as arguments and may not start with `-`. `status --strict` (the project's CI
 check) fails while the tree at `prefix` differs from the tree of `ref`.
+
+### feedback
+
+Optional, read by `feedback.py` and feedback-attached `harness_sync.py propose`. The only key
+is `redact`: a list of nonempty literal strings, default `[]`. These terms are removed
+case-insensitively from titles and bodies in addition to the mandatory product name, path,
+email, IP, URL and secret redaction. Add customer names, person names and private identifiers.
+Unknown keys or invalid entries refuse feedback rather than silently dropping privacy rules.
+
+```json
+"feedback": {"redact": ["Example Customer", "Example Person", "private-account-id"]}
+```
+
+This list never leaves the checkout. Run evidence and drafts stay local in `<run>/feedback`
+(`feedback.py --task` or `--run-dir`), else `.harness/feedback`. The sanitizer cannot identify
+arbitrary product facts: use only synthetic harness evidence and review the displayed final
+text before authorizing an issue or PR. See [Feedback](../README.md#feedback).
 
 ### guard
 
@@ -536,6 +557,7 @@ class GatesTest(unittest.TestCase):
 | `rules/` | none | the whole set |
 | `models.json` | `adapters/models.json` | deep-merged |
 | `tiers.json`, `gates.json`, `worktree.node_dirs` | none | the whole table |
+| `feedback.redact` in `project.json` | mandatory privacy patterns | added literal terms; nothing removes built-in redaction |
 | `balance` in `project.json` | `min_share` 0.3, `stop_at` 0.85, `hysteresis` 0.15, `min_elapsed` 0.25 | each key given replaces its default |
 | `lanes` in `project.json` | `herdr_max_agents` 3, `count` `workspace` | each key given replaces its default |
 | `dashboard.panes` in `project.json` | the status and events views | added to their zones, in order |
