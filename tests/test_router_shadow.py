@@ -116,6 +116,22 @@ class ShadowTest(unittest.TestCase):
                                      profile="routine", role="implementer", tier=None)
         self.assertIn("explicit profile and tier", result["reason"])
 
+    def test_codex_only_never_launches_claude_classifier(self):
+        self.configure()
+        self.record("run.start", runtime_mode="codex-only")
+        with self.fake_scorer(CONFIG), patch.object(shadow, "invoke_classifier", side_effect=AssertionError):
+            result = self.evaluate(capsule=self.capsule())
+        self.assertEqual(result["status"], "skipped")
+        self.assertIn("runtime mode", result["reason"])
+
+    def test_non_claude_classifier_is_not_sent_to_claude_cli(self):
+        self.configure()
+        with self.fake_scorer({**CONFIG, "model": "gpt-6-luna"}), patch.object(
+                shadow, "invoke_classifier", side_effect=AssertionError):
+            result = self.evaluate(capsule=self.capsule())
+        self.assertEqual(result["status"], "skipped")
+        self.assertIn("no subscription adapter", result["reason"])
+
     def test_bad_manual_weights_are_not_a_paid_repair(self):
         self.configure()
         with self.fake_scorer(), patch.object(shadow, "invoke_classifier", side_effect=AssertionError):

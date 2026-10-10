@@ -86,6 +86,10 @@ The process uses `--safe-mode`, a replacement compact system prompt, empty tools
 empty MCP configuration, disabled skills, no persistent session, and a temporary working
 directory. `--bare` is not used because it disables subscription authentication. These flags
 were checked against local CLI help and the [CLI reference](https://code.claude.com/docs/en/cli-reference).
+The classifier adapter in Part B supports pinned Claude models only. In Codex-only mode,
+or with an unavailable Claude runtime, classification skips; manual weights still support
+offline shadow scoring. A configured non-Claude classifier is never sent to the Claude CLI.
+Its adapter and validation are separate from the present Haiku subscription path.
 
 The API-equivalent per-call ceiling is a CLI guard, not a measured subscription quota cap;
 the last request can overshoot it. Timeout kills the classifier process group. Failure,

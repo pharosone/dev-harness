@@ -392,8 +392,19 @@ def evaluate(root: Path, run: Path, primary: Path, *, actual: dict, profile: str
             config = policy["classifier"]
             if not config.get("enabled"):
                 raise ShadowError("classifier disabled; provide weights or explicitly enable it")
+            if not config["model"].startswith("claude-"):
+                raise ShadowError("configured classifier has no subscription adapter; shadow skipped")
+            allowed = runtime_mode(run)
+            if allowed is not None and "claude" not in allowed:
+                raise ShadowError("Claude classifier unavailable in this runtime mode; provide weights")
+            claude = policy.get("runtimes", {}).get("claude", {})
+            if (claude.get("enabled") is False or claude.get("implemented") is False
+                    or claude.get("availability", "available") != "available"
+                    or claude.get("account_status") == "unavailable"):
+                raise ShadowError("Claude classifier runtime unavailable; shadow skipped")
             event["classifier"] = {"status": "failed", "validation": "UNVALIDATED",
-                                   "model": config["model"], "effort": config["effort"]}
+                                   "model": config["model"], "effort": config["effort"],
+                                   "usage": None, "api_equivalent_usd": None}
             value = capsule if capsule is not None else capsule_from_brief(Path(brief)) if brief else {}
             safe_capsule = sanitize_capsule(value, role=role, profile=profile, tier=tier)
             event["capsule_hash"] = digest(safe_capsule)
