@@ -54,13 +54,26 @@ read it again.
 - **Lanes:** `lanes.py decide --orchestrator codex` picks the launcher; `headless` and `pane`
   start through `lanes.py start`, which records `dispatch.start`/`dispatch.end` itself and
   carries the guard override into every Codex lane (headless and pane). Wait with `lanes.py
-  wait`, the blocking wait, never a status loop. A pane needs `HERDR_ENV=1`; a `blocked` lane is
-  the user's to answer. The agent limit is `project.json → lanes` (default three).
+  wait`, the blocking wait, never a status loop. A pane needs `HERDR_ENV=1`; answer a blocked
+  question only when the spec resolves it; material decisions and trust/permission reviews
+  belong to the user. The agent limit is `project.json → lanes` (default three).
 - **Dashboard:** `python3 harness/core/scripts/dashboard.py <task>` writes
   `<run>/dashboard.html` and prints its path; `lanes.py` and `tripwire.py spend --dispatch`
   regenerate it. Give the user the path at each gate. With `HERDR_ENV=1`, `lanes.py dashboard
   --task <task> --open` at run start opens the live tab `📊 <task>` (status and events views,
   project panes, the run's lane panes, which then start there); `--close` closes its own panes.
+- **Watch (when orchestrating):** at run start run
+  `python3 harness/core/scripts/watch.py --task <task>` as a background process with stdout
+  captured under the run directory; read new lines every turn and before going idle, and
+  restart it if it exits while the run is active. Alternatively run
+  `python3 harness/core/scripts/watch.py --task <task> --once` at every turn and before going
+  idle. This is one poll at turn boundaries, not a model-driven status loop. Act on every line
+  in that same turn: answer spec-resolved questions; escalate material decisions and
+  trust/permission reviews; nudge or cancel frozen lanes; inspect exited/ended-no-report lanes;
+  accept done reports. Stop repeating product failures through the product's own
+  `project.json → watch.stop_command` from its checkout (or escalate if missing), before
+  diagnosing another retry. Tell the user in 2–3 lines what was done; silence when nothing
+  fires. The script observes; it never sends answers or executes the stop command.
 
 Verified references (2026-10-09): learn.chatgpt.com/docs — skills, agent-configuration/subagents,
 hooks, non-interactive-mode, config-file/config-reference.

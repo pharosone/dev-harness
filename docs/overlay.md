@@ -14,7 +14,7 @@ dialect (`tripwire.py`): `*` and `?` stay inside one directory, `**` crosses dir
 
 | File | Read by | Without it |
 |---|---|---|
-| `project.json` | `guard.py`, `harness_sync.py`, `worktree.py`, `render_adapters.py`, `balance.py`, `lanes.py`, `dashboard_herdr.py`, the skills | core guard rules only; no pin (`harness_sync.py` refuses); no project roles or interview rows |
+| `project.json` | `guard.py`, `harness_sync.py`, `worktree.py`, `render_adapters.py`, `balance.py`, `lanes.py`, `dashboard_herdr.py`, `watch.py`, the skills | core guard rules only; no pin (`harness_sync.py` refuses); no project roles or interview rows |
 | `tiers.json` | `tier.py` (and `xreview.py` through it) | every changed path is tier 2 (`no tiers.json`) |
 | `gates.json` | `gate.py` | `gate.py` exits 2: nothing to run is never reported as a pass |
 | `drift.json` | `check_docs_drift.py`, the Stop hook (`runtime_hook.py`) | only the harness-log rule, with its defaults |
@@ -29,7 +29,7 @@ dialect (`tripwire.py`): `*` and `?` stay inside one directory, `**` crosses dir
 | `tests/` | `harness_sync.py pull`; your `gates.json` | no project harness tests |
 
 An overlay file that exists but cannot be used (bad JSON, wrong type, unknown key, invalid entry)
-is an error for `tier.py`, `gate.py`, `check_docs_drift.py`, `arch_check.py` and `lanes.py` (exit 2) and for the renderer
+is an error for `tier.py`, `gate.py`, `check_docs_drift.py`, `arch_check.py`, `watch.py` and `lanes.py` (exit 2) and for the renderer
 (exit 1), never a clean result. The guard is the exception: it prints a note to stderr, skips the
 bad part and keeps every core rule, because a broken guard must not lock a session.
 
@@ -169,6 +169,54 @@ Optional; any other key, an empty label or command, or another zone is exit 2.
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `panes` | [{`label`, `command`, `zone`}] | none | `label` (string): the pane's title; `command` (string): run in the pane through `herdr pane run`, e.g. a product's live status loop or a log tail; `zone`: `status` (left column, below the status view), `events` (left column, below the events view) or `side` (top of the right column, above the lanes; the default) |
+
+### watch — lane and product observations
+
+Read by `watch.py --task T [--once] [--every S] [--quiet-repeat S]`. Unknown keys in `watch`
+or a check, wrong types and invalid values exit 2. Other top-level project keys are ignored.
+
+| Key | Type | Default | Meaning |
+|---|---|---|---|
+| `checks` | [check] | `[]` | product commands; each prints zero or more anomaly lines, empty stdout and exit 0 is quiet |
+| `checks[].name` | string, required | — | unique single word using letters, digits, `_`, `.`, `-`; starts with a letter or digit |
+| `checks[].command` | nonempty string, required | — | shell command run in the product checkout; 60-second timeout kills its process group; nonzero/timeout emits `CHECK <name> failed` |
+| `checks[].every` | finite number > 0 | `120` | seconds between executions, persisted across `--once` and re-arming; cached anomalies stay open between executions |
+| `frozen_minutes` | finite number > 0 | `15` | unchanged visible screen while the lane is not working; missing screen evidence is not a freeze |
+| `stop_command` | nonempty string | absent | the product's own command to stop live work on repeating failures; the orchestrator runs it from the product checkout; the watcher never runs it |
+
+An Outbound-style product supplies its own checks, including worker halt, retry loops and
+stale heartbeat detection. Keep commands and anomaly output free of secrets; the output becomes
+durable run evidence. Check scripts must print current anomalies on every invocation, allowing
+the harness to suppress repeats and detect recovery; they should not deduplicate internally.
+
+```json
+{"watch": {
+  "checks": [{"name": "pilot-worker", "command": "python3 scripts/pilot_health.py", "every": 120}],
+  "frozen_minutes": 15,
+  "stop_command": "python3 scripts/pilot_worker.py stop"
+}}
+```
+
+These example commands belong to the product; replace them with its real health and stop
+commands. Watch output is `CHECK pilot-worker <anomaly>` and `CHECK pilot-worker failed` on
+nonzero exit. Lane observations include Codex question dialogs, trust/hook reviews, Claude
+permission prompts, Herdr blocked state, frozen screens, exits and completed/missing reports.
+No Herdr: only persisted dispatch facts and headless process state are available for lanes;
+product checks still execute. The watcher does not call lane status (which can submit a brief
+or end a dispatch), answer dialogs, close panes or stop the product.
+
+Every new or repeated condition is a `watch` event with `line`, `condition`, `key`, `repeat`
+and either `dispatch`/`work` or `check`. State at `<run>/lanes/_watch.json` persists open
+conditions and cadence. Default poll: 30 s; default quiet repeat: 600 s. A cleared condition
+re-arms; frozen durations share one key so a changing minute count does not defeat suppression.
+The dashboards show the events and `Watch: ✅ quiet` / `Watch: 🚨 N open` (or `not armed`).
+
+Claude Code arms Monitor at run start and re-arms on expiry; Codex reads a background watch's
+output or polls `--once` each turn and before going idle. Each line gets an action in the same
+turn: answer spec-resolved questions or escalate material/permission decisions, nudge/cancel a
+frozen lane, inspect an exit/missing report, accept a report, or stop repeating live product
+failures through `stop_command`. The absence of a stop command requires escalation for the
+product's stop procedure. Report actions in 2–3 lines; no output needs no message.
 
 ## tiers.json
 
@@ -465,6 +513,7 @@ class GatesTest(unittest.TestCase):
 | `balance` in `project.json` | `min_share` 0.3, `stop_at` 0.85, `hysteresis` 0.15, `min_elapsed` 0.25 | each key given replaces its default |
 | `lanes` in `project.json` | `herdr_max_agents` 3, `count` `workspace` | each key given replaces its default |
 | `dashboard.panes` in `project.json` | the status and events views | added to their zones, in order |
+| `watch` in `project.json` | no product checks; freeze after 15 minutes | each key given replaces its default; stop command is for the orchestrator |
 | `architecture.json` | none | the whole declaration; without it `arch_check.py` is off |
 | `architecture.md` | none | the whole map, read as context; the core adds nothing to it |
 | `drift.json` | the harness-log rule | `harness_log.path` / `paths` replace its defaults; the other rules are the project's |

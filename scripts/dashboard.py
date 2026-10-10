@@ -716,6 +716,10 @@ def render(run: Path, primary: Path, out: Path, now: datetime, stale: timedelta)
         f"<li><span class=\"muted\">{label}:</span> {text(run_start.get(key))}</li>"
         for key, label in (("workflow", "workflow"), ("depth", "depth"), ("compare", "compare"),
                            ("runtime_mode", "runtime mode")))
+    import watch
+    watch_summary = watch.summary(run)
+    watch_rows = [f'<li>{text(e.get("at"))} — {text(e.get("line"))}</li>'
+                  for e in events if e.get("type") == "watch"]
     dispatch_head = ["Dispatch", "Role", "Runtime", "Model", "Effort", "Launcher", "Pane", "Work",
                      "Since", "Running for", "Last activity", "State", "Report"]
     return f"""<!doctype html>
@@ -736,6 +740,10 @@ Unreadable event lines skipped: <span id="unreadable-count">{unreadable}</span>.
 <ul class="facts">{facts}</ul>
 {log_note}
 {waiting_note}
+<section id="watch">
+<h2>{text(watch_summary)}</h2>
+<ul>{''.join(watch_rows) or '<li>No watch conditions emitted.</li>'}</ul>
+</section>
 <section id="running">
 <h2>Running and stale dispatches</h2>
 {table(dispatch_head, running, "No dispatch is running.")}

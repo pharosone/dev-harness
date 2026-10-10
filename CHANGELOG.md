@@ -3,6 +3,21 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.5.0 — 2026-10-10
+
+- `watch.py --task T [--once] [--every S] [--quiet-repeat S]` watches the run's lane dialogs,
+  blocked states, unchanged non-working screens, exits and completed/missing reports, plus
+  overlay `watch.checks` shell commands. Cadence, open conditions and repeat suppression live
+  in `<run>/lanes/_watch.json`; cleared conditions re-arm. No Herdr: persisted dispatch state
+  and product checks still work. Unknown watch/check keys and bad values exit 2.
+- Every emitted line becomes a locked `watch` event. The Herdr events pane and HTML dashboard
+  show those lines; both status views show `Watch: ✅ quiet` / `Watch: 🚨 N open`.
+- `pharos-dev` and both adapters arm the watch at run start (Claude Monitor, re-armed on expiry;
+  Codex background process or one poll per turn). Each condition requires an action in the
+  same turn: answer spec-resolved questions, escalate material and permission decisions,
+  recover frozen/exited lanes, accept reports, stop repeating product failures through the
+  product's `watch.stop_command`, and tell the user what was done. The script is observational.
+
 ## 1.3.0 — 2026-10-10
 
 - `lanes.py`: the herdr agent limit is configurable — `project.json → lanes`
