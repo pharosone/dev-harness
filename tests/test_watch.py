@@ -92,6 +92,13 @@ class WatchTest(unittest.TestCase):
         self.live("Busy", "blocked")
         self.assertEqual(self.poll(), ["LANE implement needs-input agent_status: blocked"])
 
+    def test_changed_prompt_kind_is_a_new_condition_without_a_quiet_poll(self):
+        self.live("1 question")
+        self.assertEqual(self.poll(), ["LANE implement needs-input question dialog"])
+        self.live("Trust this folder?")
+        self.assertEqual(self.poll(1001), ["LANE implement needs-input trust/hook review"])
+        self.assertEqual(self.poll(1002), [])
+
     def test_frozen_clock_and_stable_repeat_key(self):
         self.assertEqual(self.poll(), [])
         self.assertEqual(self.poll(1899), [])

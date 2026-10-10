@@ -126,7 +126,10 @@ def lane_conditions(run: Path, memory: dict, config: dict, now: float,
         work = safe_text(" ".join(str(state.get("work") or dispatch).split()))
 
         def add(kind, detail=""):
-            conditions[f"lane:{dispatch}:{kind}"] = {
+            key = f"lane:{dispatch}:{kind}"
+            if kind == "needs-input":
+                key += f":{detail}"
+            conditions[key] = {
                 "line": f"LANE {work} {kind}" + (f" {detail}" if detail else ""),
                 "dispatch": dispatch, "work": work, "condition": kind}
 
@@ -181,7 +184,7 @@ def lane_conditions(run: Path, memory: dict, config: dict, now: float,
                 for key, condition in memory.get("open", {}).items():
                     if (condition.get("dispatch") == dispatch
                             and condition.get("condition") in ("needs-input", "frozen")
-                            and key not in conditions):
+                            and not any(c.get("dispatch") == dispatch for c in conditions.values())):
                         conditions[key] = dict(condition)
     memory["screens"] = {d: s for d, s in screens.items() if d in present}
     return conditions
