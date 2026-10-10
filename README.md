@@ -316,6 +316,7 @@ documents its CLI and overlay keys.
 | `feedback.py draft/list/offer/decline/send` | sanitized public harness feedback queue, one-time offers, duplicate check and reviewed issue/PR handoff |
 | `harness_sync.py install/status/pull/propose` | vendor, check, update and upstream the core |
 | `project.py` | where the core and the overlay live; how scripts read the overlay |
+| `skill_evals.py check/run/report` | paired core/product skill measurements, tracked history and the cheap freshness/acceptance gate |
 
 Claude Code loads the rules in `harness/project/rules/*.md` by path; pass their paths to agents
 of other runtimes. Run evidence must let another runtime resume without a living session.
@@ -330,11 +331,15 @@ python3 harness/core/scripts/check_docs_drift.py --base origin/main
 python3 harness/core/scripts/harness_sync.py status --strict
 # this repository (CI also renders examples/project in a scratch repository and checks it)
 python3 -m unittest discover -s tests -p 'test_*.py'
-claude plugin eval plugin --trust-plugin --model sonnet --max-cost-usd 2
+python3 scripts/skill_evals.py run --skill pharos-dev --model sonnet --max-cost-usd 2 --run-dir .harness/skill-evals --base origin/main
+python3 scripts/skill_evals.py run --skill pharos-discover --model sonnet --max-cost-usd 2 --run-dir .harness/skill-evals --base origin/main
+python3 scripts/skill_evals.py check --base origin/main
+python3 scripts/skill_evals.py report
 ```
 
-Run the skill evals after editing a skill and on a model release; a case (`plugin/evals/`, each
-from a recorded failure) whose delta over the no-skill baseline stays 0 does not test the skill.
+Run the affected skill suites after editing instructions and on a model release. Each case
+comes from the skill's purpose or a recorded failure; store paired measured evidence and run
+the cheap gate before acceptance (see [Skill evals](#skill-evals)).
 After an overlay change run `render_adapters.py` and commit the reviewed output; every harness
 change gets a row in `harness/project/HARNESS_LOG.md` (what, where, the failure that caused it).
 
@@ -357,3 +362,85 @@ reviewer does not mistake them for coverage:
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
+
+## Skill evals
+
+A new skill, or a change to a skill's instructions, ships with at least one added or changed
+eval case: a scenario from its purpose or a recorded failure, with graders for required
+behaviour. The unit is not done without score with the skill, score without it (baseline),
+Δ, model, cost and run date. Require Δ > 0 on every new or changed case and no regression on
+existing cases beyond the overlay tolerance (default 0.05). A case whose Δ stays 0 does not
+test the skill: fix it. This applies to harness and product skills, including Hermes.
+
+`skill_evals.py run --skill <name or SKILL.md path> --model <model> --max-cost-usd <usd>
+--run-dir <run> --base <unit base>` writes `<run>/evals/<skill>.json` and a timestamped,
+committed history under `<eval dir>/history/<skill name>-<path hash>/`. The unit report
+quotes the paired scores, Δ, model, cost and run date. `report` shows latest evidence and
+flags stale skill or case hashes. Case ownership is explicit: `<eval dir>/cases.json` maps
+checkout-relative `SKILL.md` paths to lists of case-directory names; the core registry uses
+core-relative paths. Each harness case has `prompt.md` and `graders/*.md`. Keep history in
+Git so the next change can compare existing-case scores to the previous accepted evidence.
+Missing historical scores are reported as a coverage gap; they are not invented.
+
+`check --base REF` compares REF to committed, staged, unstaged and untracked files. For each
+added/changed skill it requires an added/changed registered case and evidence matching the
+current SHA-256 of the whole skill directory, declared references and every case file. It validates new-case Δ
+and existing-case regressions against the latest accepted history at REF. It makes no model calls.
+Case-only edits also require refreshed evidence. Reference-only changes also require a changed case and fresh evidence for each dependent skill. Deleted skills need no eval. Registry-only edits do not count as a new scenario or grader.
+Exit codes: 0 clean, 1 unmet acceptance, 2 configuration/invalid evidence. Review histories
+as evidence: the gate checks the writer's recorded measurements, not their authenticity.
+
+Product `project.json` may declare `skills` (see docs/overlay.md). Add this area to the
+product's `gates.json` and the identical command to CI:
+
+```json
+"skill_evals": {"paths": ["**"], "steps": [{"name": "skill-evals", "cwd": ".",
+  "cmd": ["python3", "harness/core/scripts/skill_evals.py", "check", "--base", "{base}"]}]}
+```
+
+Harness evals wrap `claude plugin eval` with `--ablation with-without` in an isolated plugin
+containing only the selected skill and its registered cases. Reports stay local
+(`--no-publish`); no real servers or author scaffold scripts run. Product runners receive
+`--skill <checkout-relative SKILL.md> --out <JSON path>` plus requested `--model` and
+`--max-cost-usd`. The command is split into argv, never interpreted as shell code. It must
+run each registered case with and without the skill and write:
+
+```json
+{"model": "actual-model", "cost_usd": 0.12, "partial": false,
+ "cases": [{"name": "voice-tone", "score_with": 1.0, "score_without": 0.4}]}
+```
+
+Scores are finite 0..1; every registered case must appear exactly once. The wrapper computes
+Δ, adds hashes/date, saves evidence and checks acceptance. Runner failure, missing arms,
+partial output, changed input during the run or an exceeded ceiling cannot create fresh
+evidence. A cost ceiling is forwarded to the runner; Claude checks between launches, so a
+single in-flight run may overshoot and its evidence is rejected.
+
+Codex-only equivalent: configure `skills.eval_command` as a paired Codex runner (or the
+product's Hermes runner), register its cases and use `run --runtime codex` plus the same
+`check` and `report` commands. `--runtime codex` also routes core skills through the overlay
+runner; their registered cases remain the core's cases. The runner should use fresh `codex exec` contexts for the with-skill and
+no-skill arms and apply the same graders. The default built-in harness runner requires Claude;
+`--runtime codex` explicitly selects the configured paired runner and never silently substitutes
+a different vendor. In Claude-only mode use the built-in
+runner unchanged. On a model release, rerun the affected suites and record the model.
+
+The skill content hash covers every directory file (assets and scripts too), symlink targets,
+and transitive local references declared as literal file paths or Markdown links in `.md`/`.txt`
+inputs. `harness/core/` paths resolve against the actual core; `harness/project/` paths use the
+active overlay. Both runtime adapters are inputs when a core skill declares the active adapter.
+Declare dynamically selected files or script imports in `<skill dir>/eval-inputs.json`, a JSON
+list of skill-relative paths/globs, for example `["../../shared/*.md"]`. Directories recurse.
+The manifest itself is hashed. Paths must stay in the checkout; `.env` inputs are refused.
+Only `.git` metadata and `__pycache__` are excluded. Deleted references remain hash inputs;
+addition/deletion and changes during a run invalidate evidence. Schema 2 records `input_hashes`
+alongside the composite `content_hash`; legacy SKILL.md-only evidence is stale and must rerun.
+Product overlays therefore affect freshness when a skill declares them; an evaluation in the
+bare core does not claim evidence for a different overlay. `run` requires an explicit `--base`.
+
+Changed case content requires positive Δ; score tolerance compares identical case content.
+An initial/new case cannot acquire an accepted history with Δ ≤ 0 even after it was committed.
+External runners also receive `HARNESS_SKILL_EVAL_MANIFEST` in their environment: the path to
+a JSON manifest containing `skill`, `content_hash`, the registered `cases` (`name` and absolute
+`path`), and `input_files` (canonical labels to absolute paths). Use these case paths directly
+instead of duplicating registry/core-vendoring resolution. Existing runner argv stays compatible.

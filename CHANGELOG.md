@@ -58,6 +58,24 @@ with defaults; a major release may require an overlay change and says which.
 - Six owner-reported examples are synthetic test fixtures, never real issues. Renumber this
   entry at merge if the parallel release branches require a different version.
 
+## 1.7.0 — 2026-10-10
+
+- Every new or changed core/product skill ships with purpose/failure-based cases and paired
+  measured scores, positive new-case Δ, model, cost, date and stored history; existing cases
+  may regress at most 0.05 by default. Discovery includes "eval cases + Δ" in Done when;
+  both runtime adapters and implementer briefs carry the same acceptance rule.
+- New stdlib `skill_evals.py check/run/report`: cheap CI checks skill and case hashes,
+  case changes, deltas and historical scores; Claude runs isolated paired plugin evals,
+  while products can supply a Hermes/Codex runner via validated `project.json → skills`.
+- Two new product-skill acceptance scenarios cover pharos-dev and pharos-discover. Existing
+  coverage gaps remain follow-ups. No required overlay migration. Renumber at merge if
+  parallel release branches require a different version.
+- Review fixes: gate and hash the complete skill directory and transitive declared inputs;
+  record a schema-2 input manifest, reject input changes during evaluation, compare regression
+  only for identical cases, and require an explicit run base. External runners receive exact
+  registered case paths in an environment manifest. Shared-context changes require purpose
+  coverage and fresh measurements for all seven core skills; their instructions are unchanged.
+
 ## 1.3.0 — 2026-10-10
 
 - `lanes.py`: the herdr agent limit is configurable — `project.json → lanes`

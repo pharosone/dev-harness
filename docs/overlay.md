@@ -586,3 +586,40 @@ a `Source:` line. Personal hooks, settings keys and untracked personal agents an
 a non-link where a skill link goes is refused. Generated files and links the sources no longer
 produce are removed. The renderer refuses to run with the core outside the checkout or on the
 core repository itself.
+
+## Skill eval runner configuration
+
+Optional `project.json → skills`, read by `skill_evals.py`. Unknown keys, invalid types,
+absolute/traversing paths and non-finite or out-of-range tolerance are exit 2.
+
+```json
+{"skills": {"dirs": ["skills/**", "hermes/**/skills/**"],
+            "eval_dirs": ["evals/skills/"],
+            "eval_command": "python3 tools/skill_eval_runner.py",
+            "tolerance": 0.05}}
+```
+
+`dirs` selects checkout-relative product skill directories/globs holding `SKILL.md` (default
+`[]`). Harness skills are always included. `eval_dirs` contains checkout-relative directories
+(default `[]`); each `cases.json` maps skill paths to case directories, for example
+`{"hermes/agents/skills/voice/SKILL.md": ["voice-tone"]}`. A skill's cases live in one eval
+directory. `eval_command` is a command string split into argv without a shell; it receives
+`--skill`, `--out` and requested `--model`/`--max-cost-usd`. It must run both arms and output
+scores, actual model and total cost according to README "Skill evals". No command is the
+default: product `run` errors rather than pretending it evaluated a skill. `tolerance` is a
+finite number in 0..1, default 0.05, the largest allowed existing-case score drop.
+
+The cheap product gate step is
+`{"name": "skill-evals", "cwd": ".", "cmd": ["python3", "harness/core/scripts/skill_evals.py", "check", "--base", "{base}"]}`.
+Include it in an area with `"paths": ["**"]` and pin the same command in product CI.
+Keep result history tracked so regressions can be measured against the gate's base ref.
+
+In Codex-only mode, `skill_evals.py run --runtime codex` explicitly uses `eval_command` for
+core skills too, with their core-registered cases. No vendor fallback is implicit.
+
+The runner receives `HARNESS_SKILL_EVAL_MANIFEST`, an environment variable pointing to a JSON
+file with the checkout-relative skill key, content hash, `cases` (`name` plus absolute `path`),
+and `input_files` (canonical labels to absolute paths). Use those registered paths directly,
+including for vendored core cases. `run --base` is required. The hash covers the complete skill
+directory and transitive declared references; `<skill dir>/eval-inputs.json` declares dynamic
+references as skill-relative paths/globs. See README "Skill evals" for the schema-2 contract.

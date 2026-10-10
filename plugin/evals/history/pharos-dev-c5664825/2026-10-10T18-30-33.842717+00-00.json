@@ -1,0 +1,111 @@
+{
+  "acceptance_findings": [],
+  "case_hashes": {
+    "codex-only": "f972d77bc3743287d0c8dee3b631ac40b3c188b760152632bf6318ea3ddcb353",
+    "codex-worker": "cc35dfdb58516a0745746a070668e2b1db629bbb57297869f47fd37810789ef2",
+    "gate-wait": "d653e8aed0f46b024036ee9abc31778eb10f006903b256d32d9d6aeaaada7236",
+    "lanes-boundary": "df4a15091c7c247a0db561d2abeae9ef0a709ebbf65e1e585ef56f4a8b84a579",
+    "skill-evals-unit": "3fac42aeafd213b5f6faf1cad3e91c232fa26dee32a3ffc6cfadb4b4285b867b",
+    "tier0-docs": "f96a2e8d8571486e5d8fd00f1a2b56ec5e20ace4e6de0685cfda26ea1d3d2148",
+    "tier3-process": "3f8f4a1d27c006044324c6d131a119b321384611f7fdb7184f8568fb943715dc"
+  },
+  "cases": [
+    {
+      "delta": 0.6666666666666667,
+      "name": "codex-only",
+      "score_with": 1.0,
+      "score_without": 0.3333333333333333
+    },
+    {
+      "delta": 1.0,
+      "name": "codex-worker",
+      "score_with": 1.0,
+      "score_without": 0.0
+    },
+    {
+      "delta": 0.0,
+      "name": "gate-wait",
+      "score_with": 1.0,
+      "score_without": 1.0
+    },
+    {
+      "delta": 0.33333333333333337,
+      "name": "lanes-boundary",
+      "score_with": 1.0,
+      "score_without": 0.6666666666666666
+    },
+    {
+      "delta": 0.8888888888888888,
+      "name": "skill-evals-unit",
+      "score_with": 1.0,
+      "score_without": 0.1111111111111111
+    },
+    {
+      "delta": 0.5,
+      "name": "tier0-docs",
+      "score_with": 1.0,
+      "score_without": 0.5
+    },
+    {
+      "delta": 0.5,
+      "name": "tier3-process",
+      "score_with": 1.0,
+      "score_without": 0.5
+    }
+  ],
+  "content_hash": "222b3c50989221b5bebb4cd1a8c6516ef03e7bf434b5db3ee4579314518df71b",
+  "cost_usd": 0.5434445000000001,
+  "input_hashes": {
+    "core:.github/workflows/ci.yml": "c79c13395d069df460a326429dedc3537839625c5b7091487f212a313ce779c4",
+    "core:CHANGELOG.md": "2a03c619b6363388639ed97e44b52502f8608e261e0cd5163a9d9e0e22742273",
+    "core:LICENSE": "a7d00bfd54525bc694b6e32f64c7ebcf5e6b7ae3657be5cc12767bce74654a47",
+    "core:README.md": "c787ebfddc28b32e7e27f86a0a515defdad80897b2f6a997a60c0a8361de499f",
+    "core:adapters/.claude/settings.json": null,
+    "core:adapters/.codex/hooks.json": null,
+    "core:adapters/CLAUDE.md": "a433bf83c9feb2320e786e896d1c11a613649ee82fa9c3f7d306a985acb87a5e",
+    "core:adapters/claude.md": "a433bf83c9feb2320e786e896d1c11a613649ee82fa9c3f7d306a985acb87a5e",
+    "core:adapters/codex.md": "76e1817b9edc9f59b27db58f6bf543425e932ec97d1aad32f7d2fdb96ed026fa",
+    "core:adapters/models.json": "3fcf6752c9586da46d9f803333c626b383657ad2a1632510e7b99bd75e446a1d",
+    "core:docs/.claude/settings.json": null,
+    "core:docs/.codex/config.toml": null,
+    "core:docs/.codex/hooks.json": null,
+    "core:docs/overlay.md": "e0fbbcc8db101a0622d7325dc7ba7349279f20390906bf31eb5034946ea3bf20",
+    "core:docs/references/qa-gotchas.md": null,
+    "core:docs/skills/pharos-dev.md": null,
+    "core:docs/skills/submit-pr.md": null,
+    "core:examples/project/architecture.json": "e99f71addef17473bff911bb5cfc21d91072c90b8dae4350ef1ca5796f4d9e0f",
+    "core:harness/project/HARNESS_LOG.md": null,
+    "core:harness/project/architecture.json": null,
+    "core:harness/project/models.json": null,
+    "core:harness/project/project.json": null,
+    "core:harness/project/references/qa-gotchas.md": null,
+    "core:harness/project/skills/pharos-dev.md": null,
+    "core:harness/project/tiers.json": null,
+    "core:roles/manifest.json": "4e9ea66bcd909c79c9968c99fb9fcaa13a4f71417518be2f3d98fa2b8a8e01da",
+    "core:scripts/arch_check.py": "3cb66656cbe0582432b3eef48ed717b2e76172191ff034f4b7ddae2508be2bc8",
+    "core:scripts/balance.py": "37637e3952f803889ded12605e4c08e03a8271dd79f453fbbdde0089e4b3a772",
+    "core:scripts/dashboard.py": "a1419b824aae706af9ad6b2c5011f2a459ac6583e256104d4cb8836ef6e219b1",
+    "core:scripts/guard.py": "25fd2a7c874a725da955d7aa66ff92dc39a9ccf6d37f193bd5536bc786d6d1d5",
+    "core:scripts/lanes.py": "94ffe5950324c110b3dccb63387359c87ce9f18da26d69111b838465aba8dfd5",
+    "core:scripts/project.py": "441ed1c0497cefefd2baba33238438b85fe908f358e9af72065e554ca41754ec",
+    "core:scripts/render_adapters.py": "8f739d6287c2df12aa4925a6f9d9d7d00d2d11d336e2cda04ca64986656d1cc6",
+    "core:scripts/skill_evals.py": "007c33b83890569e50663115d11438afd8d57f3e33ed41a4c8ffc02a2e254311",
+    "core:scripts/task_state.py": "000da315438e7d657e868edddfec551fca99a60dcac716a529249f33259e914c",
+    "core:scripts/tier.py": "659858caed8778a2366734a75cca0348b0a9ce610cac79aebbbbdd32d97d5369",
+    "core:scripts/tripwire.py": "732233407f27d1364fccdc651fc0ec959428577b630cbaa165dd26108aaa1e25",
+    "core:scripts/worktree.py": "0e3afefe3735d8cbd962c9066f5d2355fa90cae6d256da2a99d958fc4fee5701",
+    "core:scripts/xreview.py": "f0bc44658e573a35337677e594f69644bdc9b343cfc7b9ab01fa8fbc04f71c4c",
+    "core:skills/pharos-dev/SKILL.md": "47ba8aef65ec8cf162d48fc2d2f744dd18593b71ea457adff957538405da0faa",
+    "core:skills/pharos-dev/references/.claude/launch.json": null,
+    "core:skills/pharos-dev/references/qa-gotchas.md": "224b2bbadb7affc1e3a707bf360f744c70b390d7b66b734cd18b4d7d4ebb3c6c"
+  },
+  "model": "sonnet",
+  "run_date": "2026-10-10T18:30:33.842717+00:00",
+  "runner": {
+    "ablation": "with-without",
+    "name": "claude plugin eval",
+    "version": "2.1.296"
+  },
+  "schema_version": 2,
+  "skill": "skills/pharos-dev/SKILL.md"
+}
