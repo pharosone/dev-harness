@@ -94,8 +94,16 @@ class LanesInDevTest(unittest.TestCase):
 
     def test_blocked_lanes_and_foreign_panes(self):
         text = skill("pharos-dev")
-        self.assertRegex(text, r"`blocked`[^\n]{0,160}(never answer|not answer)")
+        self.assertIn("spec and earlier authorizations", text)
+        self.assertIn("never answer trust/permission reviews", text)
+        self.assertIn("escalate material decisions to the user", text)
         self.assertRegex(text, r"panes? the run did not create[^\n]{0,60}never closed")
+
+    def test_blocked_rule_agrees_with_spec_and_wait_message(self):
+        spec = (CORE / "docs/specs/2026-10-09-v1.2.0-compare-lanes-dashboard.md").read_text()
+        for phrase in ("spec and earlier authorizations", "never answer trust/permission reviews",
+                       "escalate material decisions to the user"):
+            self.assertIn(phrase, spec)
 
 
 class AdaptersTest(unittest.TestCase):

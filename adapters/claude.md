@@ -34,11 +34,15 @@ text; pass the rule paths to agents of other runtimes.
   and events views, project panes, the run's lane panes); `--close` closes its own panes.
 - **Watch:** at run start arm `Monitor` with
   `python3 harness/core/scripts/watch.py --task <task>` as an unbounded command, using the
-  maximum timeout the tool supports; re-arm it on expiry while the run is active. If Monitor
+  maximum timeout the tool supports; re-arm it on expiry or any unexpected exit while the run is active. If Monitor
   is unavailable, run the watcher as a background process and read its output every turn and
-  before going idle. Its lines and `watch` events require action in the same turn: answer
-  spec-resolved questions; escalate material decisions and trust/permission reviews to the
-  user; nudge or cancel frozen lanes; inspect exited/ended-no-report lanes; accept done reports.
+  before going idle. Its lines and `watch` events require action in the same turn: read the
+  actual dialog; answer questions you can decide from the spec and earlier authorizations;
+  never answer trust/permission reviews; escalate material decisions to the user. Nudge or
+  cancel frozen lanes; inspect exited/ended-no-report lanes; accept done reports. As part of
+  report acceptance or handling an ended-no-report dispatch, run
+  `python3 harness/core/scripts/watch.py --task <task> --ack <dispatch>` to close its terminal
+  alert permanently. New work uses a new dispatch id; live input/freeze alerts cannot be acknowledged.
   For repeating product failures, run the product's own `watch.stop_command` from its checkout
   (or escalate if it is absent), preventing another retry while diagnosing. Tell the user in
   2–3 lines what was done; stay silent when no condition fires. Checks come from `project.json →

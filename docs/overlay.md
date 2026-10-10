@@ -172,14 +172,14 @@ Optional; any other key, an empty label or command, or another zone is exit 2.
 
 ### watch — lane and product observations
 
-Read by `watch.py --task T [--once] [--every S] [--quiet-repeat S]`. Unknown keys in `watch`
+Read by `watch.py --task T [--once] [--every S] [--quiet-repeat S] [--ack D]`. Unknown keys in `watch`
 or a check, wrong types and invalid values exit 2. Other top-level project keys are ignored.
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `checks` | [check] | `[]` | product commands; each prints zero or more anomaly lines, empty stdout and exit 0 is quiet |
 | `checks[].name` | string, required | — | unique single word using letters, digits, `_`, `.`, `-`; starts with a letter or digit |
-| `checks[].command` | nonempty string, required | — | shell command run in the product checkout; 60-second timeout kills its process group; nonzero/timeout emits `CHECK <name> failed` |
+| `checks[].command` | nonempty string, required | — | shell command run in the product checkout; 60-second timeout kills its process group, with at most 2 seconds for stdout draining and bounded reaping; nonzero/timeout emits `CHECK <name> failed` |
 | `checks[].every` | finite number > 0 | `120` | seconds between executions, persisted across `--once` and re-arming; cached anomalies stay open between executions |
 | `frozen_minutes` | finite number > 0 | `15` | unchanged visible screen while the lane is not working; missing screen evidence is not a freeze |
 | `stop_command` | nonempty string | absent | the product's own command to stop live work on repeating failures; the orchestrator runs it from the product checkout; the watcher never runs it |
@@ -210,10 +210,36 @@ and either `dispatch`/`work` or `check`. State at `<run>/lanes/_watch.json` pers
 conditions and cadence. Default poll: 30 s; default quiet repeat: 600 s. A cleared condition
 re-arms; frozen durations share one key so a changing minute count does not defeat suppression.
 The dashboards show the events and `Watch: ✅ quiet` / `Watch: 🚨 N open` (or `not armed`).
+HTML shows only the latest 50 watch events; all events remain in `events.jsonl`. A changing
+frozen duration does not regenerate the page until an emission or an open-condition change.
+
+After accepting a report, or handling/recovering an ended-no-report lane, acknowledge that
+dispatch with `python3 harness/core/scripts/watch.py --task T --ack D`. This is part of lane
+acceptance/recovery: it permanently closes its terminal conditions and writes `watch.ack`.
+Acknowledgment is idempotent and cannot hide input/frozen alerts. New work uses a new dispatch
+id. Poll errors are logged to stderr and `watch.error` and the continuous watcher retries;
+`--once` returns 1 on a poll failure. Startup/configuration errors still exit 2. Lane files
+briefly unreadable during writes retain prior alerts while other lanes/checks are observed.
+New pane starts set `launch_pending` and `launch_pid`; an absent/unrecognized agent while the
+launcher is alive does not prove exit, even if registration takes longer than five minutes.
+The flag clears after startup completes, allowing immediate detection of later exits. A dead
+launcher is an exit; old states without a launcher PID get five minutes of registration grace.
+
+For changing counts or timestamps, emit one JSON object per anomaly instead of plain text:
+
+```json
+{"key": "worker-retry-loop", "message": "retry loop: 37 attempts"}
+```
+
+Only `key` identifies this condition; changing `message` retains repeat suppression. The
+message appears as `CHECK <name> retry loop: 37 attempts`. A quiet check clears the condition
+and re-arms it. Plain lines remain supported and their complete text is their identity;
+checks with changing numbers should use stable keys. Keep both keys and messages free of secrets.
 
 Claude Code arms Monitor at run start and re-arms on expiry; Codex reads a background watch's
 output or polls `--once` each turn and before going idle. Each line gets an action in the same
-turn: answer spec-resolved questions or escalate material/permission decisions, nudge/cancel a
+turn: read the actual dialog; answer questions you can decide from the spec and earlier authorizations;
+never answer trust/permission reviews; escalate material decisions to the user. Nudge/cancel a
 frozen lane, inspect an exit/missing report, accept a report, or stop repeating live product
 failures through `stop_command`. The absence of a stop command requires escalation for the
 product's stop procedure. Report actions in 2–3 lines; no output needs no message.

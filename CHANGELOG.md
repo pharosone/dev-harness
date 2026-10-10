@@ -5,6 +5,18 @@ with defaults; a major release may require an overlay change and says which.
 
 ## 1.5.0 — 2026-10-10
 
+- Review fixes: `watch.py --ack D` permanently closes accepted/handled terminal lane alerts;
+  live alerts cannot be acknowledged. Only Herdr status or an agent working indicator suppresses
+  freeze checks; prose/prompt quotations from working agents do not trigger input alerts.
+  Transient poll/lane errors are logged and retried; pane registration is protected while its
+  recorded launcher is alive (legacy states have a bounded grace window).
+- Check timeouts handle an exit race and bounded stdout draining; optional JSON `{key, message}`
+  anomaly lines suppress changing counters by stable identity. HTML keeps the latest 50 watch
+  events and does not regenerate for un-emitted frozen-minute changes. Full events stay on disk.
+- Blocked-lane rule reconciled with the owner amendment, skill, adapters and wait messages:
+  read the dialog, answer questions decidable from the spec and earlier authorizations,
+  never answer trust/permission reviews, and escalate material decisions to the user.
+
 - `watch.py --task T [--once] [--every S] [--quiet-repeat S]` watches the run's lane dialogs,
   blocked states, unchanged non-working screens, exits and completed/missing reports, plus
   overlay `watch.checks` shell commands. Cadence, open conditions and repeat suppression live

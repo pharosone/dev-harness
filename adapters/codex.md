@@ -54,9 +54,10 @@ read it again.
 - **Lanes:** `lanes.py decide --orchestrator codex` picks the launcher; `headless` and `pane`
   start through `lanes.py start`, which records `dispatch.start`/`dispatch.end` itself and
   carries the guard override into every Codex lane (headless and pane). Wait with `lanes.py
-  wait`, the blocking wait, never a status loop. A pane needs `HERDR_ENV=1`; answer a blocked
-  question only when the spec resolves it; material decisions and trust/permission reviews
-  belong to the user. The agent limit is `project.json → lanes` (default three).
+  wait`, the blocking wait, never a status loop. A pane needs `HERDR_ENV=1`; read its blocked
+  dialog; answer questions you can decide from the spec and earlier authorizations;
+  never answer trust/permission reviews; escalate material decisions to the user.
+  The agent limit is `project.json → lanes` (default three).
 - **Dashboard:** `python3 harness/core/scripts/dashboard.py <task>` writes
   `<run>/dashboard.html` and prints its path; `lanes.py` and `tripwire.py spend --dispatch`
   regenerate it. Give the user the path at each gate. With `HERDR_ENV=1`, `lanes.py dashboard
@@ -68,9 +69,13 @@ read it again.
   restart it if it exits while the run is active. Alternatively run
   `python3 harness/core/scripts/watch.py --task <task> --once` at every turn and before going
   idle. This is one poll at turn boundaries, not a model-driven status loop. Act on every line
-  in that same turn: answer spec-resolved questions; escalate material decisions and
-  trust/permission reviews; nudge or cancel frozen lanes; inspect exited/ended-no-report lanes;
-  accept done reports. Stop repeating product failures through the product's own
+  in that same turn: read the actual dialog; answer questions you can decide from the spec and earlier authorizations;
+  never answer trust/permission reviews; escalate material decisions to the user. Nudge or
+  cancel frozen lanes; inspect exited/ended-no-report lanes; accept done reports. As part of
+  report acceptance or handling an ended-no-report dispatch, run
+  `python3 harness/core/scripts/watch.py --task <task> --ack <dispatch>` to close its terminal
+  alert permanently. New work uses a new dispatch id; live input/freeze alerts cannot be acknowledged.
+  Stop repeating product failures through the product's own
   `project.json → watch.stop_command` from its checkout (or escalate if missing), before
   diagnosing another retry. Tell the user in 2–3 lines what was done; silence when nothing
   fires. The script observes; it never sends answers or executes the stop command.

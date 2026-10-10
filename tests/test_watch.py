@@ -7,7 +7,9 @@ import sys
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+import io
+from contextlib import redirect_stderr
 
 CORE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(CORE / "scripts"))
@@ -263,6 +265,151 @@ class WatchTest(unittest.TestCase):
             result = subprocess.run([*command, "--quiet-repeat", "0"], cwd=self.root, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("needs-input", result.stdout)
+
+    def test_terminal_conditions_close_after_explicit_acknowledgment(self):
+        for kind in ("done", "ended-no-report"):
+            with self.subTest(kind=kind):
+                if kind == "done":
+                    Path(self.state["report"]).write_text("accepted")
+                else:
+                    Path(self.state["report"]).unlink()
+                    task_state.append_event(self.run / "events.jsonl", task_state.event_record(
+                        "dispatch.end", '{"dispatch":"unit1","status":"failed"}', None))
+                    (self.run / "lanes/_watch.json").unlink()
+                self.assertEqual(self.poll(), [f"LANE implement {kind}"])
+                command = [sys.executable, str(CORE / "scripts/watch.py"), "--task", "demo", "--ack", "unit1"]
+                result = subprocess.run(command, cwd=self.root, text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(watch.summary(self.run), "Watch: ✅ quiet")
+                self.assertEqual(self.poll(1700), [])
+                result = subprocess.run(command, cwd=self.root, text=True, capture_output=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_ack_cannot_hide_an_input_dialog(self):
+        self.live("1 question")
+        self.poll()
+        result = subprocess.run([sys.executable, str(CORE / "scripts/watch.py"), "--task", "demo",
+                                 "--ack", "unit1"], cwd=self.root, text=True, capture_output=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("terminal", result.stderr)
+        self.assertEqual(watch.summary(self.run), "Watch: 🚨 1 open")
+
+    def test_prose_containing_working_does_not_disable_freeze_detection(self):
+        for screen in ("nothing to commit, working tree clean", "Working directory: /tmp"):
+            self.live(screen)
+            self.poll(1000)
+            self.assertEqual(self.poll(1900), ["LANE implement frozen 15"])
+            self.live("reset")
+            self.poll(1901)
+
+    def test_agent_working_indicator_line_prevents_false_prompts_and_freezes(self):
+        self.live("• Working (23s • esc to interrupt)\nI have 2 questions\nlog: (y/n)")
+        self.assertEqual(self.poll(), [])
+        self.assertEqual(self.poll(2000), [])
+
+    def test_working_agent_prose_does_not_trigger_input(self):
+        self.live("I have 2 questions about the spec\nlog: (y/n)", "working")
+        self.assertEqual(self.poll(), [])
+
+    def test_partial_lane_state_is_logged_without_losing_other_checks(self):
+        (self.run / "lanes/unit1.json").write_text('{"dispatch":')
+        self.config["checks"] = [{"name": "worker", "command": "echo anomaly", "every": 120}]
+        with redirect_stderr(io.StringIO()) as err:
+            self.assertEqual(self.poll(), ["CHECK worker anomaly"])
+        self.assertIn("unit1", err.getvalue())
+        self.save_lane()
+        self.live("1 question")
+        self.assertEqual(self.poll(1001), ["LANE implement needs-input question dialog"])
+
+    def test_continuous_watch_retries_poll_errors_but_bad_config_exits_two(self):
+        for failure in (json.JSONDecodeError("partial", "", 0), OSError("temporary")):
+            with patch.object(task_state, "checkouts", return_value=(self.root, self.root)), \
+                 patch.object(watch, "poll", side_effect=[failure, [], KeyboardInterrupt]) as polling, \
+                 patch.object(watch.time, "sleep"), redirect_stderr(io.StringIO()) as err:
+                self.assertEqual(watch.main(["--task", "demo"]), 0)
+                self.assertEqual(polling.call_count, 3)
+                self.assertIn("retry", err.getvalue())
+                self.assertTrue(any(e["type"] == "watch.error" for e in task_state.read_events(self.run)[0]))
+
+    def test_launch_window_does_not_report_exit_before_agent_registration(self):
+        self.state.update(launch_pending=True, started="1970-01-01T00:16:40Z", pane_id=None)
+        self.save_lane()
+        self.fake.write_text('{"agents":[],"screen":""}')
+        self.assertEqual(self.poll(1000), [])
+        self.state["pane_id"] = "w1:p2"
+        self.save_lane()
+        self.assertEqual(self.poll(1100), [])
+        self.fake.write_text(json.dumps({"agents": [{**self.agent, "agent": None}], "screen": ""}))
+        self.assertEqual(self.poll(1101), [])
+        self.assertEqual(self.poll(1301), ["LANE implement exited"])
+
+    def test_completed_launch_can_exit_immediately(self):
+        self.state.update(launch_pending=False, started="1970-01-01T00:16:40Z")
+        self.save_lane()
+        self.fake.write_text('{"agents":[],"screen":""}')
+        self.assertEqual(self.poll(1001), ["LANE implement exited"])
+
+    def test_live_launcher_keeps_registration_window_open_even_after_five_minutes(self):
+        self.state.update(launch_pending=True, launch_pid=os.getpid(), started="1970-01-01T00:16:40Z")
+        self.save_lane()
+        self.fake.write_text('{"agents":[],"screen":""}')
+        self.assertEqual(self.poll(2000), [])
+
+    def test_dead_launcher_is_an_exit_without_waiting_a_fixed_window(self):
+        self.state.update(launch_pending=True, launch_pid=999999999, started="1970-01-01T00:16:40Z")
+        self.save_lane()
+        self.fake.write_text('{"agents":[],"screen":""}')
+        self.assertEqual(self.poll(1001), ["LANE implement exited"])
+
+    def test_check_timeout_exit_race_is_a_check_failure(self):
+        child = MagicMock()
+        child.__enter__.return_value = child
+        child.communicate.side_effect = [subprocess.TimeoutExpired("check", 60), ("", None)]
+        child.returncode = 0
+        with patch.object(watch.subprocess, "Popen", return_value=child), \
+             patch.object(watch.os, "killpg", side_effect=ProcessLookupError):
+            self.assertEqual(watch.check_command("check", self.root), ("", 1))
+
+    def test_check_timeout_cannot_wait_forever_for_inherited_stdout(self):
+        child = MagicMock()
+        child.__enter__.return_value = child
+        child.communicate.side_effect = [subprocess.TimeoutExpired("check", 60),
+                                        subprocess.TimeoutExpired("check", 2, output=b"partial\n")]
+        child.wait.return_value = 0
+        with patch.object(watch.subprocess, "Popen", return_value=child), patch.object(watch.os, "killpg"):
+            self.assertEqual(watch.check_command("check", self.root), ("partial\n", 1))
+        self.assertTrue(all(call.kwargs.get("timeout") for call in child.communicate.call_args_list))
+        self.assertTrue(all(call.kwargs.get("timeout") for call in child.wait.call_args_list))
+        child.stdout.close.assert_called()
+
+    def test_stable_product_key_suppresses_changing_counts_and_rearms(self):
+        self.config["checks"] = [{"name": "worker", "command": "check", "every": 120}]
+        with patch.object(watch, "check_command", side_effect=[
+            ('{"key":"retry-loop","message":"retry loop: 37 attempts"}', 0),
+            ('{"key":"retry-loop","message":"retry loop: 38 attempts"}', 0),
+            ("", 0), ('{"key":"retry-loop","message":"retry loop: 39 attempts"}', 0)]):
+            self.assertEqual(self.poll(), ["CHECK worker retry loop: 37 attempts"])
+            self.assertEqual(self.poll(1120), [])
+            self.assertEqual(self.poll(1240), [])
+            self.assertEqual(self.poll(1360), ["CHECK worker retry loop: 39 attempts"])
+
+    def test_frozen_minute_changes_do_not_rewrite_html_without_emission(self):
+        self.poll()
+        self.poll(1900)
+        with patch.object(lanes, "regenerate_dashboard") as render:
+            self.assertEqual(self.poll(1960), [])
+            render.assert_not_called()
+
+    def test_html_watch_history_is_bounded_and_full_events_remain_on_disk(self):
+        for i in range(70):
+            task_state.append_event(self.run / "events.jsonl", task_state.event_record(
+                "watch", json.dumps({"line": f"CHECK worker anomaly-{i:03}"}), None))
+        page = dashboard.render(self.run, self.root, self.run / "dashboard.html",
+                                datetime.now(timezone.utc), timedelta(minutes=15))
+        self.assertNotIn("anomaly-000", page)
+        self.assertIn("anomaly-069", page)
+        self.assertEqual(page.count("CHECK worker anomaly-"), 50)
+        self.assertEqual(len(task_state.read_events(self.run)[0]), 70)
 
 
 if __name__ == "__main__":

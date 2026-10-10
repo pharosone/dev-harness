@@ -51,7 +51,8 @@ read their evidence, own the final report.
   decision: short report-only work on your own vendor is still a subagent (your agent tool),
   not a pane. Without herdr it is a no-op.
 - **Run watch.** At run start arm `python3 harness/core/scripts/watch.py --task <task>`:
-  Claude Code uses `Monitor`, unbounded with the tool's maximum timeout, and re-arms on expiry;
+  Claude Code uses `Monitor`, unbounded with the tool's maximum timeout, and re-arms on expiry
+  or any unexpected exit while the run remains active;
   if unavailable, use a background process and read its output every turn and before going
   idle. Codex uses a background process with captured output read at those boundaries, or
   `watch.py --task <task> --once` at every turn and before going idle. Restart a background
@@ -62,10 +63,15 @@ read their evidence, own the final report.
 ## Act on watch output
 
 Every emitted line gets an action in the same turn. `LANE … needs-input`: read the dialog,
-answer questions the spec already resolves, and escalate material decisions and trust/hook or
-permission reviews to the user. `frozen`: inspect, nudge or cancel the lane. `exited` or
+answer questions you can decide from the spec and earlier authorizations; never answer trust/permission reviews;
+escalate material decisions to the user. A watch category is an alert, not the question text:
+read the actual dialog and those authorizations before deciding. `frozen`: inspect, nudge or cancel the lane. `exited` or
 `ended-no-report`: inspect its logs and recover or report the failed dispatch. `done`: read and
-accept the report promptly, with the unit's checks and spend recording. For a `CHECK` indicating
+accept the report promptly, with the unit's checks and spend recording. As part of acceptance,
+or after recovering/handling an `ended-no-report` dispatch, run
+`python3 harness/core/scripts/watch.py --task <task> --ack <dispatch>`. Acknowledgment closes
+that dispatch's terminal alert permanently; new work must use a new dispatch id. It cannot
+hide needs-input or frozen conditions. For a `CHECK` indicating
 a repeating failure or retry loop, stop the product's live process using its own
 `watch.stop_command` from the product checkout before another retry; when no stop command is
 configured, escalate immediately for the product's stop procedure. A repeated generic check
@@ -155,8 +161,8 @@ what, so the dashboard and a resuming runtime see it without a living session.
   (`queued`, at the herdr agent limit: three by default, `project.json → lanes`): start it
   again after a lane ends. `wait` exit 5: the
   lane is `blocked` — never answer trust/permission reviews yourself. Read its dialog and
-  apply «Act on watch output»: answer only spec-resolved questions; show material decisions
-  and trust/permission reviews to the user.
+  apply «Act on watch output»: answer questions you can decide from the spec and earlier authorizations;
+  escalate material decisions to the user.
 - **Panes:** the run's own panes stay open after the work;
   panes the run did not create are never closed or reused, and `cancel` refuses a pane that
   is no longer the run's. With the dashboard open, a lane pane whose agent has exited is
