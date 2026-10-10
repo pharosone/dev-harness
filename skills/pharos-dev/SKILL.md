@@ -47,7 +47,9 @@ read their evidence, own the final report.
 - **Run dashboard (herdr).** With `HERDR_ENV=1`, right after `run.start` open the run's tab:
   `python3 harness/core/scripts/lanes.py dashboard --task <task> --open` (`📊 <task>`: live
   status and events on the left, the run's lane panes on the right; project panes from
-  `project.json → dashboard`). Pane lanes then start there. Without herdr it is a no-op.
+  `project.json → dashboard`). It changes only where a `pane` decision opens, never the
+  decision: short report-only work on your own vendor is still a subagent (your agent tool),
+  not a pane. Without herdr it is a no-op.
 
 ## Tier decides the process
 
