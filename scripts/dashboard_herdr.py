@@ -389,7 +389,7 @@ def prepare(pane: str, cwd: Path, env: dict, previous: list[str]) -> None:
 # --- views -------------------------------------------------------------------------------
 
 def clip(line: str, width: int) -> str:
-    line = dashboard.router_calibration.safe_text(line, cap=10000)
+    line = dashboard.redact(line)
     return line if len(line) <= width else line[: max(width - 1, 1)] + "…"
 
 

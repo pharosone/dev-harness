@@ -59,7 +59,7 @@ class ShadowDashboardTest(unittest.TestCase):
         self.assertNotIn('\x1b', lines)
         self.assertNotIn('\x07', lines)
         self.assertNotIn('\u202e', lines)
-        self.assertNotIn('\x1b', views.clip('unsafe\x1b[2J', 100))
+        self.assertNotIn('\x1b', views.event_line(malicious))
 
     def test_skipped_null_recommendation_never_shows_as_a_pick(self):
         skipped = event(); skipped.update(status='skipped', recommendation=None, reason='missing comparable evidence')
