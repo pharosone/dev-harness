@@ -37,27 +37,33 @@ text; pass the rule paths to agents of other runtimes.
   name paths.
 - **Review calibration:** use `prompts/xreview.md` and the `pharos-dev` matrix: six fields
   `[Critical|Major|Minor] path:line — defect — likelihood/impact — reachable path — failure scenario — evidence: path:line`.
-  Code-read evidence is mandatory; missing fields/evidence remain Minor until verified.
-  Overlay `review.stage` defaults to `pilot`, invariants to empty. Severe/will or plausible
-  blocks; severe/edge blocks only for a violated exact overlay invariant or production stage.
-  Functional/will blocks; functional/plausible needs verified `workaround: none` to block;
-  functional/edge and all cosmetic findings go to backlog. Optional trailing fields are
-  `— workaround: none` or `— workaround: <specific workaround>` and
-  `— invariant: <exact overlay invariant text>`. Labels never override the matrix.
-  Ingest QA/panel reports before triage with `review_calibration.py record --run <run>
-  --report <role-report> --milestone <m> --round 1|2 [--addressed <previous blockers>]`;
-  it reads the active overlay. Distinct report paths/lenses share a round; rounds count once.
-  Repeated reports in a round and returning to round 1 after round 2 are refused.
-  Before fix-up, check each blocker against code (≤5 min), record the triage reason using
-  `review_calibration.py triage`, and downgrade per the matrix. Minors never block: ≤15 min
-  fixes join the fix-up; others go to `<run>/backlog.md`. Use `--run-dir <run> --milestone <m>
-  --round 1|2`; `--addressed` implies round 2, and repeated `--section` preserves commas.
-  At most two rounds per milestone across cross-review, QA and panel; round 2 checks fixes/new code
-  and previous blockers only, and a new blocker must be severe and matrix-blocking. No automatic
-  third round. All findings live in `<run>/review-ledger.jsonl`; G4/final reports show the
-  calibration summary, backlog path, outcomes and `review_calibration.py fixture` feedback hook.
-  `outcome --user-override block|backlog` may omit `--outcome`; an explicit user override alone
-  does not fabricate a later outcome. `fixture --case` takes a sanitized JSON file path.
+  Code-read evidence is mandatory. Normalize backticks/bold and line ranges for parsing; retain
+  explicit malformed/partial findings verbatim in `<report>.calibration.md` and the run ledger.
+  Missing fields remain Minor until verified, but cannot approve a reviewer's block: exit 4
+  requires triage; exit 1 is a computed blocker; only exit 0 approves. Fully verified matrix
+  backlogs may override a reviewer's block to pass. Overlay defaults: `pilot`, empty invariants.
+  Severe/will or plausible blocks; severe/edge blocks only for violated exact overlay invariant
+  or production. Functional/will blocks; functional/plausible requires `workaround: none`;
+  functional/edge and cosmetic backlog. Optional fields: `— workaround: none` or specific
+  workaround, `— invariant: <exact overlay invariant text>`, `— id: <prior stable ledger finding ID>`.
+  Ingest QA/panel before triage with `review_calibration.py record --run <run> --report <role-report>
+  --milestone <m> [--round 1|2] [--addressed <previous blockers>]`; it reads the active overlay.
+  Both CLIs leave `--round` unspecified by default: `--addressed` implies 2 only without an
+  explicit round. `--round 1 --addressed <external-report>` imports context only, remaining round 1.
+  Persisted xreview calls require explicit `--milestone`; standalone report-stem fallback is
+  informational. Repeated `--section` preserves commas. Distinct lenses share at most two rounds;
+  counts include active/completed logical rounds, not failed attempts. Failed/timeout reviewer
+  attempts release reservations for at most 3 attempts of the same review input across `--out`
+  changes; running/completed reviews cannot duplicate. Returning to round 1 after round 2 is refused.
+  Round 2 checks fixes/new code and previous blockers only; match source path, reachable caller
+  and failure scenario plus ledger triage, not title alone. Lines may move; optional `id` references
+  the same prior stable finding. Known same-site but uncertain identity needs triage (exit 4).
+  New blockers must be severe and matrix-blocking; no automatic third round.
+  Before fix-up check each blocker against code (≤5 min), record triage reasons and downgrade
+  per matrix. Minors never block: ≤15 min fixes join fix-up; others go to `<run>/backlog.md`.
+  G4/final reports show calibration summary, triage needs, backlog path, outcomes and feedback hook.
+  `outcome --user-override block|backlog` may omit `--outcome`; override alone fabricates no outcome.
+  `fixture --case` takes a sanitized JSON file path.
 - **Isolation:** native worktree isolation starts from the session's checkout, not the run's
   branch; use `harness/core/scripts/worktree.py add` instead. Durable reports stay in the run dir.
 - **Browser:** use the session's browser tools; derive startup from tracked compose files and

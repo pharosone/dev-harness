@@ -154,12 +154,25 @@ units are visible. Before the milestone gate run:
 --section "<heading, including any comma>" --section "<another heading>" --run-dir <run>
 --milestone <m> --round 1 --ledger <run>/xreview.jsonl --out <run>/reports/<m>-xreview.md`.
 Use repeated `--section` for exact headings; legacy `--sections` still splits on commas.
-`--milestone` defaults to `milestone`; give each actual milestone a stable distinct name.
+Persisted calls (`--run-dir` or `--ledger`) require an explicit stable `--milestone <m>`;
+there is no shared default. Standalone reviews may use the report stem as an informational fallback.
+`--round` defaults to unspecified: it resolves to 2 with `--addressed`, otherwise 1.
+An explicit round always wins.
+An explicit `--round 1 --addressed` imports earlier external findings as context only:
+`xreview.py --base <base> --writer claude|codex --run-dir <run> --milestone <m> --round 1
+--addressed <external-report> --out <run>/reports/<m>-xreview.md`. It remains a first-round review.
 The tier comes from `tier.py`; Astra only for Tier-3 paths, otherwise GPT-6.1 Sol or Claude Opus.
 Before the PR, review only changes since the last reviewed milestone; skip an empty diff.
-Exit 0 passes review; exit 1 → triage below before fix-up. Exit 2/3 (refused, timeout, no verdict)
-is not approval: record the review as not performed. A diff over 200 KB is split by area with
+Only exit 0 approves review. Exit 1 means a computed matrix blocker; exit 4 means findings need
+triage (malformed/partial blocking claims or uncertain prior-blocker identity), not a verified
+blocker. Both require the triage step before dependent work. Exit 2/3 (refused, failed reviewer,
+timeout or no verdict) is not approval: record the review as not performed. Fully verified matrix
+backlogs may override a reviewer's block to pass; an unverified blocking claim cannot. A diff over 200 KB is split by area with
 `--paths`; each part lists siblings. Splitting areas or changing lenses does not reset rounds.
+A failed/timeout reviewer attempt releases its reservation for a bounded retry: at most three
+attempts for the same review input, including retries with a different `--out`. Running or completed
+reviews cannot duplicate. Reports count active/completed logical rounds; failed attempts do not
+consume a successful round. Do not retry a completed review to evade its result or round cap.
 
 ### Review calibration and triage
 
@@ -170,8 +183,12 @@ Every finding is one Markdown list item with six em-dash-separated fields, parse
 Reachable path = real caller/route; scenario = specific input/state → wrong result; evidence =
 code read in this review. Tests/measurements supplement code-read evidence. Optional trailing
 fields: `— workaround: none` or `— workaround: <specific usable workaround>`;
-`— invariant: <exact overlay invariant text>` for a proven violation, never an invented one.
-Missing ratings, reachable path, scenario or code-read evidence → Minor until verified.
+`— invariant: <exact overlay invariant text>` for a proven violation, never an invented one;
+`— id: <prior stable ledger finding ID>` only to reference that prior finding.
+The parser normalizes backticks/bold and line ranges. Explicit malformed/partial findings are
+retained verbatim in the sidecar `<report>.calibration.md` and `<run>/review-ledger.jsonl`.
+Missing ratings, reachable path, scenario or code-read evidence remain Minor until verified;
+they never establish approval of a reviewer's block. Exit 4 requires triage before proceeding.
 
 Likelihood in THIS product: `will` = main path within days; `plausible` = documented path users
 sometimes take; `edge` = rare combination, race window, unusual environment or operator mistake.
@@ -191,17 +208,22 @@ matrix. Plausible/functional requires verified `workaround: none` to block; omis
 1. Before triage, ingest every QA/panel report with `python3 harness/core/scripts/review_calibration.py
    record --run <run> --report <role-report> --milestone <m> --round 1|2
    [--addressed <previous blockers>]`. It reads the active overlay review config; cross-review
-   records its own findings. Distinct report paths/lenses can share a round: `rounds_used` counts
-   distinct rounds, not lenses. Repeating a report within a round or returning to round 1 after
-   round 2 is refused; use the same milestone identity across all lenses.
-2. Read `<run>/review-ledger.jsonl`, which records **all** findings, and check every blocker's
-   reachable scenario against code (≤5 min each). Verify ratings, workaround and any claimed
+   records its own findings. The record CLI also leaves `--round` unspecified by default;
+   `--addressed` implies 2 only when no explicit round is supplied. For external context use
+   `review_calibration.py record --run <run> --report <role-report> --milestone <m> --round 1
+   --addressed <external-report>`; this remains round 1. Distinct report paths/lenses share a round;
+   `rounds_used` counts active/completed logical rounds, not lenses or failed attempts. Repeating
+   a running/completed review or returning to round 1 after round 2 is refused.
+2. Read `<run>/review-ledger.jsonl` and the calibration sidecar, including every verbatim
+   malformed/partial finding. Resolve exit-4 triage needs and check every blocker's reachable
+   scenario against code (≤5 min each). Verify ratings, workaround and any claimed
    exact overlay invariant. Downgrade edge findings per the matrix, recording the reason.
 3. Record each triage decision with `python3 harness/core/scripts/review_calibration.py triage
    --run <run> --id <finding-id> --decision block|backlog --reason "<code-grounded reason>"`.
    Verified corrections may add `--likelihood will|plausible|edge --impact severe|functional|cosmetic
    --workaround "<none or specific workaround>" --invariant "<exact text>" --evidence "<path:line>"`.
-   Keep unverified findings Minor; do not fabricate evidence to upgrade them.
+   Keep unverified findings Minor; do not fabricate evidence to upgrade them or treat the
+   downgrade as approval. Resolve the incomplete blocking claim or identity before dependent work.
 4. Fix verified blockers. Minors never block: include fixes costing ≤15 min in the same fix-up;
    send the rest to `<run>/backlog.md`. Re-run checks affected by fixes. Record observed outcomes
    with `review_calibration.py outcome --run <run> --id <id> --outcome failure|harmless|confirmed
@@ -209,11 +231,14 @@ matrix. Plausible/functional requires verified `workaround: none` to block; omis
    add `--user-override block|backlog` only for an explicit user decision, never your own inference.
    `--outcome` is optional when `--user-override` is supplied: an override alone records the
    acceptance decision and leaves an unobserved later outcome unknown; never fabricate an outcome.
-5. If needed, run round 2 with `--round 2 --addressed <previous reports>` (`--addressed` implies
-   round 2), the same `--milestone <m>` and `--run-dir <run>`. Review only fixes/new code and previous
-   blockers. Preserve the original defect title for an unchanged round-2 blocker; current
-   evidence lines may change. A new blocker counts only if severe **and** matrix-blocking; new functional or
-   cosmetic findings go to backlog. No automatic third round; unresolved blockers go to the gate.
+5. If needed, run round 2 with `--round 2 --addressed <previous reports>`, the same explicit
+   `--milestone <m>` and `--run-dir <run>`. Review only fixes/new code and previous blockers.
+   Match source path + reachable caller + failure scenario against prior ledger findings and triage;
+   a defect title alone is insufficient, and source/evidence lines may move. An optional trailing
+   `— id: <prior stable ledger finding ID>` can reference the same prior finding. Known same-site
+   findings with uncertain identity require triage (exit 4); never silently treat them as new backlog.
+   A new blocker counts only if severe **and** matrix-blocking; new functional/cosmetic findings go
+   to backlog. No automatic third round; unresolved blockers or triage needs go to the gate.
 
 ## Taste gates and tripwires
 
@@ -257,7 +282,7 @@ stage/invariants, milestone name, round number and previous blockers. All use th
 finding contract and matrix above; ingest their reports with `review_calibration.py record`
 for the same milestone/round before triage, so all findings enter `<run>/review-ledger.jsonl`.
 Triaged blockers → fix-up and targeted QA; Minor → cheap same-fix-up repair or backlog.
-**Ship gate:** no open verified matrix blockers, with at most two rounds per milestone shared
+**Ship gate:** no open verified matrix blockers or unresolved triage needs, with at most two rounds per milestone shared
 by cross-review, QA and panel. Round 2 checks fixes/new code and previous blockers only; new blockers must
 be severe and matrix-blocking. Remaining blockers stop at the gate; a pass never hides failed
 required checks. A lens is waived only in the user's words, recorded in `run.md`.
@@ -275,7 +300,8 @@ Placement is a finding unless the spec was amended.
 
 At G4 (before the PR) and in the final report, show `python3
 harness/core/scripts/review_calibration.py report --run <run>` for the review summary and
-outcome counts. Add triage/downgrade reasons and remaining blockers from the ledger and fix-up
+outcome counts. Add unresolved triage needs, verbatim malformed/partial claims, triage/downgrade
+reasons and remaining blockers from the ledger and fix-up
 evidence; outcome counts alone do not prove a blocker was fixed. Repeat `--run <other-run>` for an across-run
 report; `--json` emits machine-readable results. Link `<run>/backlog.md` explicitly, including
 when empty, and distinguish outcomes not yet observed from `harmless` or `confirmed` ones.

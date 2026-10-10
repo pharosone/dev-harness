@@ -269,21 +269,36 @@ Apache-2.0. See [LICENSE](LICENSE).
 ## Calibrated review acceptance
 
 Review likelihood and impact against this product's normal paths. `xreview.py` recomputes
-Critical/Major blockers from the approved matrix; missing fields or code-read evidence
-make a claim Minor until verified. Configure `project.json.review` with `stage` (default
-`pilot`) and short product `invariants` (default empty). See [review policy and calibration
-loop](docs/overlay.md#review--calibrated-acceptance-projectjson) for the scale and commands.
+Critical/Major blockers from the approved matrix. Missing fields or code-read evidence remain
+Minor until verified; they cannot approve a reviewer's blocking claim. Exit **1** means a
+computed blocker, **4** means needs triage, **0** alone approves; **2/3** mean refused/failed,
+timeout or missing verdict, never approval. Fully verified matrix backlogs can override a
+reviewer's block to pass. Backticks/bold and line ranges are normalized; explicit malformed
+or partial findings remain verbatim in `<report>.calibration.md` and `<run>/review-ledger.jsonl`.
+Configure `project.json.review` with `stage` (default `pilot`) and short product `invariants`
+(default empty). See [review policy and calibration loop](docs/overlay.md#review--calibrated-acceptance-projectjson).
 
-Use `--section 'Limits, retries'` repeatedly for headings containing commas; legacy
-`--sections` still works. Supply `--run-dir <run> --milestone M1`; round 2 uses
-`--addressed <previous-report>`, reviews only fixes/previous blockers, and admits new
-blockers only with severe impact. Two rounds is the maximum per milestone. The computed
-verdict and downgrades also appear beside the report in `<report>.calibration.md`.
+Use repeated `--section 'Limits, retries'` for headings containing commas; legacy `--sections`
+still works. Persisted xreview calls (`--run-dir` or `--ledger`) require explicit `--milestone M1`;
+standalone reviews may use the report stem as informational fallback. `--round` is unspecified
+by default: `--addressed <previous-report>` implies 2 only without an explicit round.
+`--round 1 --addressed <external-report>` imports earlier findings as context only.
+`review_calibration.py record` follows the same round semantics for QA/panel ingestion before triage.
 
-The append-only `<run>/review-ledger.jsonl` retains reviewer ratings, computed decisions,
-triage reasons, user corrections and later outcomes. `<run>/backlog.md` tracks Minors.
+Round 2 reviews fixes/new code and previous blockers only. Match source path, reachable caller
+and failure scenario against prior ledger findings and recorded triage, not defect title alone;
+line moves preserve a match. Optional `— id: <prior stable ledger finding ID>` references that
+prior finding. Known same-site findings with uncertain identity require triage rather than
+silently passing. New blockers require severe impact **and** a blocking matrix cell.
+Two rounds is the maximum per milestone, shared across lenses. Reports count active/completed
+logical rounds. Failed/timeout reviewer attempts release their reservation for bounded retry:
+at most **3 attempts** for the same review input, across `--out` changes. Failed attempts do not
+consume a successful round; running/completed reviews cannot duplicate.
+
+The append-only ledger retains raw findings, reviewer ratings, computed decisions, triage
+reasons, user corrections and later outcomes. `<run>/backlog.md` tracks Minors.
 `python3 scripts/review_calibration.py report --run <run> --run <older-run>` shows blockers
 per milestone, over-blocked/missed rates and rounds used, with concrete policy suggestions
-above documented thresholds. G4 and final reports include this summary and backlog path.
-Sanitized corrections can become fixtures; the documented feedback hook retains them for
-an upstream proposal without automatically publishing or changing defaults.
+above documented thresholds. G4/final reports include summary, unresolved triage needs and
+backlog path. Sanitized corrections can become fixtures; the documented feedback hook retains
+them for an upstream proposal without automatically publishing or changing defaults.

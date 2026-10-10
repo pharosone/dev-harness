@@ -153,9 +153,9 @@ class XReviewTest(unittest.TestCase):
     def tier_script(self, output):
         (self.harness / "scripts/tier.py").write_text(FAKE_TIER.format(output=output))
 
-    def review(self, *args, writer="claude", cwd=None, **env):
+    def review(self, *args, writer="claude", cwd=None, omit_milestone=False, **env):
         self.review_count = getattr(self, "review_count", 0) + 1
-        milestone = [] if "--milestone" in args else ["--milestone", f"case-{self.review_count}"]
+        milestone = [] if omit_milestone or "--milestone" in args else ["--milestone", f"case-{self.review_count}"]
         return subprocess.run(
             [sys.executable, str(self.harness / "scripts/xreview.py"), "--base", "HEAD",
              "--writer", writer, "--out", str(self.report), *milestone, *args],
@@ -539,17 +539,135 @@ class XReviewTest(unittest.TestCase):
     def test_reviewer_failure_or_a_stale_report_is_not_an_approval(self):
         result = self.review(FAKE_EXIT="1")
         self.assertEqual(result.returncode, 3)
+        self.assertIn("exited 1", Path(f"{self.report}.calibration.md").read_text().split("## Reviewer findings", 1)[0])
         self.report.write_text(PASS)
         result = self.review(FAKE_SKIP_WRITE="1")
         self.assertEqual(result.returncode, 3)
         self.assertNotIn("VERDICT: pass", self.report.read_text() if self.report.exists() else "")
 
+    def test_block_never_passes_when_findings_have_markdown_or_bad_fields(self):
+        canonical = "- [Critical] src/db.py:40 — drops rows — will/severe — sync() -> flush() — empty batch -> deleted rows — evidence: src/db.py:40"
+        variants = [
+            canonical.replace('src/db.py:40', '`src/db.py:40`').replace('will/severe', '`will/severe`'),
+            canonical.replace('src/db.py:40', 'src/db.py:40-48'),
+            canonical.replace('[Critical]', '**[Critical]**'),
+            canonical.replace('will/severe', 'likely/severe'),
+            canonical.replace(' — evidence: src/db.py:40', ''),
+            'A Critical finding: the flush deletes rows; the fields are not formatted.',
+            '- [Minor] src/ui.py:2 — spacing — will/cosmetic — render() — dense text — evidence: src/ui.py:2\nA Critical finding: flush deletes rows; malformed fields.',
+        ]
+        for raw in variants:
+            with self.subTest(raw=raw):
+                result = self.review(FAKE_REPORT=raw + '\n\nVERDICT: block\n')
+                self.assertIn(result.returncode, (1, 4), result.stdout + result.stderr)
+                sidecar = Path(f'{self.report}.calibration.md').read_text()
+                self.assertIn(raw, sidecar)
+                self.assertNotIn('VERDICT: pass', sidecar)
+
+    def test_partial_blocking_claims_are_retained_in_run_ledger(self):
+        run = self.temp/'run'
+        raw = '- **[Critical]** src/db.py:40 — drops rows — likely/severe — sync() -> flush() — empty batch deletes rows'
+        result = self.review('--run-dir', str(run), '--milestone', 'M1', FAKE_REPORT=raw+'\nVERDICT: block\n')
+        self.assertEqual(result.returncode, 4, result.stderr)
+        events = [json.loads(line) for line in (run/'review-ledger.jsonl').read_text().splitlines()]
+        stored, = [event for event in events if event['type']=='finding']
+        self.assertEqual(stored['raw'], raw)
+        self.assertTrue(stored['needs_triage'])
+        self.assertIn(raw, Path(f'{self.report}.calibration.md').read_text())
+
+    def test_missing_workaround_cannot_clear_a_plausible_functional_block(self):
+        report = BLOCK.replace('will/functional', 'plausible/functional')
+        result = self.review(FAKE_REPORT=report)
+        self.assertEqual(result.returncode, 4, result.stderr)
+        result = self.review(FAKE_REPORT=report.replace('evidence: src/app.py:2', 'evidence: src/app.py:2 — workaround: edit title'))
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_round_one_can_import_external_addressed_context(self):
+        addressed = self.temp / 'external.md'
+        addressed.write_text(BLOCK)
+        result = self.review('--run-dir', str(self.temp / 'new-run'), '--milestone', 'M1',
+                             '--round', '1', '--addressed', str(addressed),
+                             FAKE_REPORT=BLOCK.replace('off by one', 'new functional'))
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('## Review round\n\n1', self.context())
+
     def test_missing_fields_downgrade_even_when_reviewer_says_block(self):
         result = self.review(FAKE_REPORT="- [Critical] src/app.py:2 — x — input -> failure\n\nVERDICT: block\n")
+        self.assertEqual(result.returncode, 4, result.stderr)
+        self.assertIn("needs triage", result.stderr)
+        self.assertIn("unverified", result.stderr)
+        self.assertIn("input -> failure", Path(f"{self.report}.calibration.md").read_text())
+
+    def test_rephrased_previous_blocker_and_ledger_triage_stay_blocking(self):
+        run = self.temp / 'review-run'
+        first = self.review('--run-dir', str(run), '--milestone', 'M1', FAKE_REPORT=BLOCK)
+        self.assertEqual(first.returncode, 1, first.stderr)
+        addressed = self.temp / 'prior.md'
+        addressed.write_text(BLOCK)
+        second = self.review('--run-dir', str(run), '--milestone', 'M1', '--round', '2', '--addressed', str(addressed),
+                             FAKE_REPORT=BLOCK.replace('off by one', 'addition returns one too many'))
+        self.assertEqual(second.returncode, 1, second.stderr)
+        events = [json.loads(line) for line in (run/'review-ledger.jsonl').read_text().splitlines() if '"type": "finding"' in line]
+        self.assertEqual(events[0]['id'], events[1]['id'])
+        # A different milestone's previously unverified finding is promoted by real triage.
+        old = '- [Minor] src/app.py:2 — old defect — missing fields\nVERDICT: pass\n'
+        self.assertEqual(self.review('--run-dir', str(run), '--milestone', 'M2', FAKE_REPORT=old).returncode, 0)
+        observations = [json.loads(line) for line in (run/'review-ledger.jsonl').read_text().splitlines() if '"type": "finding"' in line]
+        identity = observations[-1]['id']
+        triage = subprocess.run([sys.executable, str(self.harness/'scripts/review_calibration.py'), 'triage',
+                                '--run', str(run), '--id', identity, '--decision', 'block', '--reason', 'verified main caller',
+                                '--likelihood', 'will', '--impact', 'functional', '--reachable-path', 'main() -> add()',
+                                '--scenario', 'add(2, 2) → 5', '--evidence', 'src/app.py:2'], capture_output=True, text=True)
+        self.assertEqual(triage.returncode, 0, triage.stderr)
+        addressed.write_text(old)
+        result = self.review('--run-dir', str(run), '--milestone', 'M2', '--round', '2', '--addressed', str(addressed),
+                             FAKE_REPORT=BLOCK.replace('off by one', 'addition returns one too many'))
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertIn('Prior blockers after orchestrator triage', self.context())
+
+    def test_ambiguous_round_two_identity_needs_triage(self):
+        addressed = self.temp / 'prior.md'
+        addressed.write_text(BLOCK)
+        result = self.review('--round', '2', '--addressed', str(addressed),
+                             FAKE_REPORT=BLOCK.replace('off by one', 'reworded bug').replace('add(2, 2) → 5', 'changed scenario'))
+        self.assertEqual(result.returncode, 4, result.stderr)
+        self.assertIn('possible rephrased prior blocker', result.stderr)
+
+    def test_persisted_review_requires_explicit_milestone(self):
+        result = self.review('--ledger', str(self.temp/'run/xreview.jsonl'), omit_milestone=True)
+        self.assertEqual(result.returncode, 2)
+        self.assertIn('--milestone is required', result.stderr)
+        self.assertEqual(self.calls(), [])
+        self.assertEqual(self.review(omit_milestone=True).returncode, 0)
+
+    def test_failed_attempt_retries_same_output_and_cap_ignores_output_changes(self):
+        run = self.temp / 'run'
+        args = ('--run-dir', str(run), '--milestone', 'M1')
+        self.assertEqual(self.review(*args, FAKE_EXIT='1').returncode, 3)
+        retry = self.review(*args)
+        self.assertEqual(retry.returncode, 0, retry.stderr)
+        events = [json.loads(line) for line in (run/'review-ledger.jsonl').read_text().splitlines()]
+        self.assertEqual([e['status'] for e in events if e['type']=='review_result'], ['failed', 'complete'])
+        for i in range(3):
+            result = self.review('--run-dir', str(run), '--milestone', 'M2', '--out', str(self.temp/f'changed-{i}.md'), FAKE_EXIT='1')
+            self.assertEqual(result.returncode, 3, result.stderr)
+        fourth = self.review('--run-dir', str(run), '--milestone', 'M2', '--out', str(self.temp/'changed-again.md'))
+        self.assertEqual(fourth.returncode, 2)
+        self.assertIn('attempt cap reached', fourth.stderr)
+
+    def test_timeout_releases_reservation_for_same_command(self):
+        args = ('--run-dir', str(self.temp/'run'), '--milestone', 'M1', '--timeout', '.1')
+        self.assertEqual(self.review(*args, FAKE_SLEEP='2').returncode, 3)
+        result = self.review(*args)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("downgraded to Minor", result.stdout)
-        self.assertIn("unverified", result.stdout)
-        self.assertIn("downgraded", Path(f"{self.report}.calibration.md").read_text())
+
+    def test_parser_calibration_fixtures(self):
+        cases = json.loads((HARNESS/'tests/fixtures/review-parser-calibration.json').read_text())
+        for case in cases:
+            with self.subTest(case=case['name']):
+                result = self.review(FAKE_REPORT=case['report'])
+                self.assertEqual(result.returncode, case['expected_exit'], result.stderr)
+                self.assertIn(case['report'].strip(), Path(f'{self.report}.calibration.md').read_text())
 
     def test_repeated_section_flags_preserve_commas(self):
         spec = self.temp / "comma-spec.md"
@@ -579,7 +697,7 @@ class XReviewTest(unittest.TestCase):
         self.assertEqual(first.returncode, 1, first.stderr)
         addressed = self.temp / "prior.md"
         addressed.write_text(BLOCK)
-        new_functional = BLOCK.replace('off by one', 'new functional')
+        new_functional = BLOCK.replace('off by one', 'new functional').replace('main() -> add()', 'parse() -> decode()')
         second = self.review("--run-dir", str(run), "--milestone", "M1", "--addressed", str(addressed), FAKE_REPORT=new_functional)
         self.assertEqual(second.returncode, 0, second.stderr)
         self.assertIn('round 2 new blocker must be severe', second.stdout)

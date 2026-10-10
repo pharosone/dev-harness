@@ -24,8 +24,9 @@ from project import OverlayError, load as load_overlay, repo_root
 
 LIKELIHOODS = ('will', 'plausible', 'edge')
 IMPACTS = ('severe', 'functional', 'cosmetic')
-FINDING = re.compile(r'^\s*(?:[-*]|\d+\.)\s*\[(Critical|Major|Minor)\]\s*(.*)$')
-LOCATION = re.compile(r'^.+:\d+$')
+FINDING = re.compile(r'^\s*(?:(?:[-*]|\d+\.)\s*)?(?:\*\*|__|`)?\[(Critical|Major|Minor)\](?:\*\*|__|`)?\s*(.*)$', re.I)
+CANDIDATE = re.compile(r'\[(Critical|Major|Minor)\]|\b(?:Critical|Major)\b|^\s*(?:[-*]|\d+\.)\s+.* — .* — ', re.I)
+LOCATION = re.compile(r'^.+:\d+(?:-\d+)?$')
 RATING = re.compile(r'^(will|plausible|edge)\s*/\s*(severe|functional|cosmetic)$')
 
 
@@ -46,9 +47,71 @@ def review_config(root: Path) -> dict:
     return {'stage': stage, 'invariants': list(invariants)}
 
 
+def plain(value: str) -> str:
+    """Strip paired Markdown wrappers; preserve raw text separately."""
+    value = value.strip()
+    for marker in ('**', '__', '`'):
+        while value.startswith(marker) and value.endswith(marker) and len(value) > len(marker) * 2:
+            value = value[len(marker):-len(marker)].strip()
+    return value
+
+
+def code_evidence(value: str) -> bool:
+    return bool(value) and all(LOCATION.fullmatch(plain(ref)) for ref in value.split(','))
+
+
+def path_of(finding: dict) -> str:
+    return finding.get('location', '').rsplit(':', 1)[0]
+
+
+def scenario_key(finding: dict) -> tuple[str, str, str]:
+    normalize = lambda value: ' '.join(plain(value).replace('→', '->').casefold().split())
+    return (path_of(finding), normalize(finding.get('reachable_path', '')),
+            normalize(finding.get('scenario', '')))
+
+
+def prior_ledger_findings(run: Path, milestone: str) -> list[dict]:
+    """Freeze the round-1 triage snapshot when round 2 starts, for every later lens."""
+    prior = {}
+    for event in read_events(run):
+        if event['type'] == 'review' and event['milestone'] == milestone and event['round'] == 2:
+            break
+        if event['type'] == 'finding' and event['milestone'] == milestone and event['round'] == 1:
+            prior[event['id']] = dict(event)
+        elif event['type'] in ('triage', 'outcome') and event['id'] in prior:
+            prior[event['id']].update({key: value for key, value in event.items() if key not in ('type', 'at')})
+    return [finding for finding in prior.values() if decision(finding) == 'block']
+
+
+def previous_blockers(findings: list[dict], addressed: str, policy: dict,
+                      run: Path | None, milestone: str) -> tuple[set[str], list[str]]:
+    """Match caller/scenario or explicit IDs, using recorded triage rather than old labels."""
+    prior = [f for f in parse_findings(addressed) if compute(f, policy)['verdict'] == 'block']
+    if run:
+        prior += prior_ledger_findings(run, milestone)
+    matched, uncertain = {finding_id(old) for old in prior}, []
+    for finding in findings:
+        identity = finding_id(finding)
+        candidates = [old for old in prior if identity == finding_id(old)
+                      or (finding.get('reference') and finding['reference'] in (old.get('id'), finding_id(old)))
+                      or (all(scenario_key(finding)) and scenario_key(finding) == scenario_key(old))]
+        if candidates:
+            matched.add(identity)
+            old = next((old for old in candidates if old.get('milestone') == milestone), candidates[0])
+            if run and old.get('milestone') == milestone:
+                finding['linked_id'] = old['id']
+        elif finding.get('reference'):
+            finding['identity_uncertain'] = True
+            uncertain.append(f"{finding['location']}: unknown prior finding id {finding['reference']}")
+        elif any(path_of(finding) == path_of(old) and plain(finding.get('reachable_path', '')) == plain(old.get('reachable_path', '')) for old in prior):
+            finding['identity_uncertain'] = True
+            uncertain.append(f"{finding['location']}: possible rephrased prior blocker; verify id/caller/scenario")
+    return matched, uncertain
+
+
 def finding_id(finding: dict) -> str:
     # Line shifts during fix-up do not create a new defect; preserve the defect title.
-    path = finding.get('location', '').rsplit(':', 1)[0]
+    path = path_of(finding)
     title = ' '.join(finding.get('defect', '').split()).casefold()
     identity = path + '\n' + title
     return hashlib.sha256(identity.encode()).hexdigest()[:16]
@@ -59,14 +122,14 @@ def parse_findings(text: str) -> list[dict]:
     findings = []
     for line in text.splitlines():
         match = FINDING.match(line)
-        if not match:
+        if not match and not CANDIDATE.search(line):
             continue
-        parts = [part.strip() for part in match[2].split(' — ')]
-        finding = {'reviewer_rating': match[1], 'raw': line.strip(),
+        parts = [plain(part) for part in match[2].split(' — ')] if match else []
+        finding = {'reviewer_rating': match[1].title() if match else 'Unknown', 'raw': line.strip(),
                    'location': parts[0] if parts else '',
-                   'defect': parts[1] if len(parts) > 1 else '',
+                   'defect': parts[1] if len(parts) > 1 else line.strip() if not match else '',
                    'likelihood': None, 'impact': None, 'reachable_path': '',
-                   'scenario': '', 'evidence': '', 'workaround': None, 'invariant': None}
+                   'scenario': '', 'evidence': '', 'workaround': None, 'invariant': None, 'reference': None}
         if len(parts) >= 5:
             rating = RATING.fullmatch(parts[2])
             if rating:
@@ -74,8 +137,8 @@ def parse_findings(text: str) -> list[dict]:
             finding['reachable_path'], finding['scenario'] = parts[3:5]
             for extra in parts[5:]:
                 key, separator, value = extra.partition(':')
-                if separator and key in ('evidence', 'workaround', 'invariant'):
-                    finding[key] = value.strip()
+                if separator and key in ('evidence', 'workaround', 'invariant', 'id'):
+                    finding['reference' if key == 'id' else key] = plain(value)
         finding['id'] = finding_id(finding)
         findings.append(finding)
     return findings
@@ -88,7 +151,7 @@ def compute(finding: dict, review: dict | None = None, *, round_number: int = 1,
                if not finding.get(key) or finding.get(key, '').casefold() in ('none', 'unknown', 'memory')]
     if not LOCATION.fullmatch(finding.get('location', '')):
         missing.append('path:line')
-    if not LOCATION.fullmatch(finding.get('evidence', '')):
+    if not code_evidence(finding.get('evidence', '')):
         missing.append('code-read evidence path:line')
     likelihood, impact = finding.get('likelihood'), finding.get('impact')
     if likelihood not in LIKELIHOODS or impact not in IMPACTS:
@@ -96,6 +159,8 @@ def compute(finding: dict, review: dict | None = None, *, round_number: int = 1,
     if missing:
         return {'verdict': 'backlog', 'label': 'Minor',
                 'reason': 'unverified: missing/invalid ' + ', '.join(dict.fromkeys(missing))}
+    if impact == 'functional' and likelihood == 'plausible' and finding.get('workaround') in (None, '', 'unknown', 'memory'):
+        return {'verdict': 'backlog', 'label': 'Minor', 'reason': 'unverified: workaround for plausible functional failure'}
     blocks = False
     reason = f'{impact} × {likelihood}'
     if impact == 'severe':
@@ -133,12 +198,28 @@ def read_events(run: Path) -> list[dict]:
             continue
         try:
             event = json.loads(line)
-            if not isinstance(event, dict) or event.get('type') not in ('review', 'finding', 'triage', 'outcome'):
+            if not isinstance(event, dict) or event.get('type') not in ('review', 'review_result', 'finding', 'triage', 'outcome'):
                 raise ValueError('invalid event')
             events.append(event)
         except ValueError as exc:
             raise ValueError(f'{path}:{number}: invalid ledger: {exc}') from None
     return events
+
+
+def review_states(run: Path) -> list[dict]:
+    attempts = []
+    for event in read_events(run):
+        if event['type'] == 'review':
+            attempts.append({**event, 'status': event.get('status', 'complete')})
+        elif event['type'] == 'review_result':
+            for attempt in attempts:
+                if attempt.get('attempt_id') == event['attempt_id']:
+                    attempt['status'] = event['status']
+    return attempts
+
+
+def finish_review(run: Path, attempt_id: str, status: str, reason: str) -> None:
+    append_event(run, {'type': 'review_result', 'attempt_id': attempt_id, 'status': status, 'reason': reason})
 
 
 def append_event(run: Path, event: dict, *, reserve_round: bool = False) -> None:
@@ -149,16 +230,19 @@ def append_event(run: Path, event: dict, *, reserve_round: bool = False) -> None
             fcntl.flock(stream, fcntl.LOCK_EX)
         try:
             if reserve_round:
-                events = read_events(run)
-                rounds = [e for e in events if e['type'] == 'review' and e['milestone'] == event['milestone']]
-                used = {e['round'] for e in rounds}
+                rounds = [e for e in review_states(run) if e['milestone'] == event['milestone']]
+                used = {e['round'] for e in rounds if e['status'] != 'failed'}
                 requested = event['round']
                 if requested not in (1, 2) or (requested == 1 and 2 in used):
                     raise ValueError(f"milestone {event['milestone']}: at most 2 review rounds; cannot return to round 1")
                 if requested == 2 and 1 not in used:
                     raise ValueError(f"milestone {event['milestone']}: expected round 1 before round 2")
-                if any(e['round'] == requested and e.get('report') == event.get('report') for e in rounds):
-                    raise ValueError(f"milestone {event['milestone']}: report already reviewed in round {requested}; at most 2 review rounds")
+                key = event.get('review_key', event.get('report'))
+                same = [e for e in rounds if e['round'] == requested and e.get('review_key', e.get('report')) == key]
+                if any(e['status'] != 'failed' for e in same):
+                    raise ValueError(f"milestone {event['milestone']}: report/input already reviewed or running in round {requested}; at most 2 review rounds")
+                if len(same) >= 3:
+                    raise ValueError('review attempt cap reached (3); changing --out does not reset retries')
             stream.write(json.dumps({'at': datetime.now(timezone.utc).isoformat(), **event}, ensure_ascii=False) + '\n')
             stream.flush()
         finally:
@@ -186,10 +270,11 @@ def record_findings(run: Path, findings: list[dict], review: dict, milestone: st
     existing = snapshots(run)
     for finding in findings:
         result = compute(finding, review, round_number=round_number, previous_ids=previous_ids)
-        observation_id = hashlib.sha256((milestone + '\n' + finding_id(finding)).encode()).hexdigest()[:16]
+        observation_id = finding.get('linked_id') or hashlib.sha256((milestone + '\n' + finding_id(finding)).encode()).hexdigest()[:16]
         prior = existing.get(observation_id, {})
         append_event(run, {'type': 'finding', **finding, 'id': observation_id, 'computed_verdict': result['verdict'],
                            'computed_label': result['label'], 'computed_reason': result['reason'],
+                           'needs_triage': result['reason'].startswith('unverified:') or bool(finding.get('identity_uncertain')),
                            'review': review, 'milestone': milestone, 'round': round_number,
                            'orchestrator_triage': None, 'triage_reason': None,
                            'user_override': prior.get('user_override'), 'outcome': prior.get('outcome'),
@@ -240,10 +325,10 @@ def triage(run: Path, identity: str, choice: str, reason: str, **updates) -> Non
         raise ValueError('triage contradicts matrix (' + result['reason'] + '); record a user override via outcome')
     if not reason.strip():
         raise ValueError('triage needs a reason')
-    if choice == 'block' and not LOCATION.fullmatch(candidate.get('evidence', '')):
+    if choice == 'block' and not code_evidence(candidate.get('evidence', '')):
         raise ValueError('blocking triage needs code-read evidence path:line')
     append_event(run, {'type': 'triage', 'id': identity, 'orchestrator_triage': choice,
-                       'triage_reason': reason, 'triage_computed_reason': result['reason'], **updates})
+                       'triage_reason': reason, 'triage_computed_reason': result['reason'], 'needs_triage': False, **updates})
     write_backlog(run)
 
 
@@ -289,8 +374,8 @@ def summary(runs: list[Path], *, over_block_threshold: float = .25,
         findings = list(snapshots(run).values())
         milestones = {}
         seen_rounds = set()
-        for event in read_events(run):
-            if event['type'] == 'review':
+        for event in review_states(run):
+            if event['status'] != 'failed':
                 name = event['milestone']
                 marker = (name, event['round'])
                 if marker not in seen_rounds:
@@ -379,7 +464,7 @@ def main(argv: list[str] | None = None) -> int:
             cmd.add_argument('--report', type=Path, required=True)
             cmd.add_argument('--root', type=Path, help='product checkout; default current Git checkout')
             cmd.add_argument('--milestone', required=True)
-            cmd.add_argument('--round', type=int, choices=(1, 2), default=1)
+            cmd.add_argument('--round', type=int, choices=(1, 2))
             cmd.add_argument('--addressed', type=Path)
         elif name == 'triage':
             cmd.add_argument('--decision', choices=('block', 'backlog'), required=True)
@@ -404,16 +489,20 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == 'record':
             policy = review_config(args.root.resolve() if args.root else repo_root())
             text = args.report.read_text(encoding='utf-8')
-            round_number = 2 if args.addressed else args.round
+            round_number = args.round if args.round is not None else 2 if args.addressed else 1
             if round_number == 2 and not args.addressed:
                 raise ValueError('round 2 requires --addressed')
             if not args.milestone.strip():
                 raise ValueError('milestone must be non-empty')
-            prior = parse_findings(args.addressed.read_text(encoding='utf-8')) if args.addressed else []
-            previous = {finding_id(f) for f in prior if compute(f, policy)['verdict'] == 'block'}
+            findings = parse_findings(text)
+            previous, uncertain = (previous_blockers(findings, args.addressed.read_text(encoding='utf-8') if args.addressed else '', policy, args.run, args.milestone)
+                                   if round_number == 2 else (set(), []))
             append_event(args.run, {'type': 'review', 'milestone': args.milestone, 'round': round_number,
                                    'report': str(args.report.resolve())}, reserve_round=True)
-            record_findings(args.run, parse_findings(text), policy, args.milestone, round_number, previous)
+            record_findings(args.run, findings, policy, args.milestone, round_number, previous)
+            if round_number == 2 and uncertain:
+                print('review_calibration: needs triage: ' + '; '.join(uncertain), file=sys.stderr)
+                return 4
         elif args.command == 'triage':
             triage(args.run, args.id, args.decision, args.reason,
                    **{k: getattr(args, k) for k in ('likelihood', 'impact', 'workaround', 'invariant', 'evidence', 'location', 'defect', 'reachable_path', 'scenario')})

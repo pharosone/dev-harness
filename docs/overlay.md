@@ -492,8 +492,9 @@ core repository itself.
 
 ## review — calibrated acceptance (`project.json`)
 
-Read by `xreview.py` from `project.json`. Unknown keys, an invalid stage or malformed
-invariants cause exit 2 before any reviewer is invoked. Other project sections are ignored.
+Read from `project.json` by `xreview.py` and QA/panel ingestion with `review_calibration.py record`.
+Unknown keys, an invalid stage or malformed invariants cause exit 2 before review starts.
+Other project sections are ignored.
 
 ```json
 "review": {
@@ -507,9 +508,22 @@ invariants cause exit 2 before any reviewer is invoked. Other project sections a
 | `stage` | `"pilot"` or `"production"` | `"pilot"` | production blocks verified severe × edge findings |
 | `invariants` | array of non-empty single-line strings | `[]` | product properties that must always hold; severe × edge blocks in pilot only when a finding names an exact matching invariant |
 
-The stage and invariants enter the review context. Every finding must supply likelihood,
-impact, a reachable caller/route, failure scenario and evidence of reading the code
-(`evidence: path:line`). Missing fields or memory-only claims are Minor until verified.
+The stage and invariants enter the review context. Every finding has six em-dash-separated fields:
+
+```text
+- [Critical|Major|Minor] path:line — defect — likelihood/impact — reachable path — failure scenario — evidence: path:line
+```
+
+Evidence must cite code read in the review. Runtime parsing normalizes backticks/bold and line
+ranges, retaining the original text. Optional trailing fields are `— workaround: none` or a
+specific usable workaround, `— invariant: <exact overlay invariant text>`, and
+`— id: <prior stable ledger finding ID>` to reference that same prior finding.
+Explicit malformed/partial findings remain **verbatim** in `<report>.calibration.md` and the
+run ledger. Missing fields or memory-only claims remain Minor until verified; that downgrade
+never approves a reviewer's block. Exit 4 requires triage when a blocking claim is incomplete
+or a known same-site finding has uncertain prior identity. It is distinct from exit 1 for a
+verified computed blocker. Fully verified matrix backlogs can override a reviewer's block to pass.
+Only exit 0 approves; exit 2/3 (refusal, failed reviewer, timeout or missing verdict) do not.
 Use `workaround: none` to establish that a plausible functional failure has no workaround.
 An absent workaround statement does not establish that it cannot be worked around.
 `invariant: no public leak` must name an actual overlay invariant; an invented invariant
@@ -531,26 +545,53 @@ functional blockers are Major; all backlog findings are Minor.
 
 ## Review calibration evidence and feedback hook
 
-`xreview.py --run-dir <run> --milestone M1` records round 1 in
-`<run>/review-ledger.jsonl`; `--ledger <run>/xreview.jsonl` also supplies the run directory.
-The two files serve different purposes: `xreview.jsonl` caps vendor review usage, while
-`review-ledger.jsonl` retains acceptance evidence. `--addressed <previous-report>` implies
-round 2 and requires the same milestone. A repeated report in the same round, a third round, or a return to round 1 is refused.
-Distinct report paths for split areas or panel lenses may share a round; they do not add rounds. Round 2 reviews
-only fixes and previous blockers; a new blocker needs severe impact. A round reservation
-includes failures/timeouts, so abandoned attempts do not create unlimited retries. Without
-a run directory the prompt and `--round` still constrain scope, but round counts cannot
-persist between invocations.
+Persisted xreview calls (`--run-dir <run>` or `--ledger <run>/xreview.jsonl`) require explicit
+`--milestone M1`; no generic milestone default can merge unrelated reviews. Standalone reviews
+may use the report stem as an informational fallback, without persistent round enforcement.
+The two ledgers serve different purposes: `xreview.jsonl` caps vendor review usage, while
+`review-ledger.jsonl` retains acceptance evidence and logical round state.
 
-Each finding record includes its stable ID (scoped to milestone, source path and normalized
-defect title; line shifts during fixes preserve identity), raw reviewer rating,
-parsed fields, matrix verdict/reason, overlay snapshot and review round. Append-only triage
-and outcome events retain corrections; reports use the latest observation of each finding
-per milestone and never count the same finding twice for a repeated round. QA/panel findings enter the same ledger with `review_calibration.py record --run <run>
---report <role-report> --milestone M1 --round 1` (round 2 also needs `--addressed`).
-This reads the product overlay from the current checkout, or `--root <checkout>`.
-Every blocker
-must be checked against the code before fix-up (at most five minutes each):
+`--round` defaults to unspecified. When omitted it resolves to 2 with `--addressed`, otherwise 1.
+An explicit round always wins: `--addressed <previous-report>` implies 2 **only** without one.
+`--round 1 --addressed` imports earlier external findings as context, not prior blockers for
+round-2 suppression. For example:
+
+```sh
+python3 harness/core/scripts/xreview.py --base <base> --writer claude --run-dir <run> \
+  --milestone M1 --round 1 --addressed external-review.md --out <run>/reports/M1-xreview.md
+python3 harness/core/scripts/review_calibration.py record --run <run> \
+  --report <run>/reports/security.md --milestone M1 --round 1 --addressed external-review.md
+```
+
+The record CLI has the same round/addressed semantics; it reads the current product overlay,
+or `--root <checkout>`. Ingest QA/panel findings before triage. Distinct report paths for split
+areas or lenses may share a round; they do not add rounds. At most two logical rounds per
+milestone: round 2 checks fixes/new code and previous blockers only, and a new blocker needs
+severe impact **and** a blocking matrix cell. Returning to round 1 after round 2 is refused.
+
+A failed/timeout reviewer attempt releases its reservation for bounded retry: at most **three
+attempts for the same review input**, including retries with different `--out` paths. Running
+or completed reviews cannot duplicate. Round reporting counts active/completed logical rounds;
+failed attempts do not consume a successful round. Changing an output path cannot reset the
+retry budget or evade the completed-review restriction. Without a run directory the prompt
+still constrains scope, but review state cannot persist between invocations.
+
+Round-2 matching uses source path + reachable caller + failure scenario against prior ledger
+findings and their recorded triage, not a defect-title match alone. Source/evidence line moves
+are normalized. Optional `id` can reference a prior stable ledger finding; use it only for that
+same finding. A known same-site finding with uncertain identity needs triage (exit 4), never
+silent treatment as a new functional backlog. Do not drop an unchanged prior blocker just
+because its title or line number changed.
+
+Every finding record retains stable identity, raw reviewer text/rating, parsed fields,
+matrix verdict/reason, overlay snapshot and review round, including explicit malformed/partial
+findings. Append-only triage and outcome events retain corrections; reports use the latest
+observation of each finding per milestone. The sidecar retains verbatim unresolved claims as
+well as the computed decision: a missing field or identity uncertainty is a triage need,
+not a successful empty review.
+
+Resolve triage needs and check every blocker's scenario against code before fix-up
+(at most five minutes each):
 
 ```sh
 python3 harness/core/scripts/review_calibration.py triage --run <run> --id ID \
@@ -573,8 +614,9 @@ blocker that later fails can have both flags: each represents different evidence
 alone does not invent a later outcome. Link an outcome to its finding ID whenever a later
 fix-up, incident or user report provides evidence; unresolved items stay unresolved.
 
-Reports show blockers per milestone, rounds used and rates per run/across runs, with
-observed outcome counts. Over-block rate is over-blocked / all computed-or-triaged
+Reports show blockers per milestone, active/completed logical rounds used and rates per
+run/across runs, with observed outcome counts; failed attempts do not add a successful round.
+Over-block rate is over-blocked / all computed-or-triaged
 blockers; missed rate is missed / all accepted backlog items, including override-to-backlog.
 Zero denominators yield 0. Unknown outcomes remain in the denominator and observation
 counts make that limitation visible. By default, suggestions start above 25% over-blocked
@@ -585,7 +627,8 @@ Suggestions name the affected cell or propose an invariant; they never edit defa
 Minors go to `<run>/backlog.md`. The script maintains a marked section while preserving
 owner notes. The orchestrator fixes Minors costing at most 15 minutes in the same fix-up;
 remaining items and the backlog path appear in G4 and the final report along with the
-calibration summary. A missing/corrupt ledger report is an error, not a zero-error success.
+calibration summary and unresolved triage needs, including verbatim malformed/partial claims.
+A missing/corrupt ledger report is an error, not a zero-error success.
 
 A correction becomes a fixture with an explicitly sanitized JSON file containing only
 `name`, a canonical `finding` string, and `review` (`stage`, `invariants`):
@@ -598,8 +641,9 @@ python3 harness/core/scripts/review_calibration.py fixture --run <run> --id ID \
 The exported case adds the corrected expected decision and generic `user-correction`
 provenance. Raw ledger content is never copied. Private paths, recipients, URLs and common
 credential prefixes in submitted cases are refused; synthetic relative paths and invented
-product names belong in fixtures. Keep the original defect title when re-reporting a prior blocker in round 2 so the runtime
-can distinguish it from a new defect, even if its line number shifts.
+product names belong in fixtures. To reference a prior blocker in round 2, retain its reachable
+caller and failure scenario or supply its stable ledger `id`; the title alone cannot establish
+identity, and source/evidence line shifts do not make it a new finding.
 A corrected expectation may deliberately disagree with
 the current matrix: that is evidence for a proposed default change, not automatic approval.
 

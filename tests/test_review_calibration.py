@@ -160,6 +160,48 @@ class LedgerTest(unittest.TestCase):
                                           '--source', 'user-report', '--reason', 'owner accepts']), 0)
         self.assertTrue(calibration.snapshots(self.run)[identity]['over_blocked'])
 
+    def test_failed_attempts_do_not_count_rounds_and_retries_are_bounded(self):
+        for index in range(3):
+            identity = f'attempt-{index}'
+            calibration.append_event(self.run, {'type': 'review', 'milestone': 'M1', 'round': 1,
+                                                'report': f'out-{index}.md', 'review_key': 'same input',
+                                                'attempt_id': identity, 'status': 'running'}, reserve_round=True)
+            self.assertEqual(calibration.summary([self.run])['runs'][0]['milestones']['M1']['rounds_used'], 1)
+            calibration.finish_review(self.run, identity, 'failed', 'reviewer failed')
+            self.assertNotIn('M1', calibration.summary([self.run])['runs'][0]['milestones'])
+        with self.assertRaisesRegex(ValueError, 'attempt cap reached'):
+            calibration.append_event(self.run, {'type': 'review', 'milestone': 'M1', 'round': 1,
+                                                'report': 'another-output.md', 'review_key': 'same input',
+                                                'attempt_id': 'fourth', 'status': 'running'}, reserve_round=True)
+
+    def test_round_one_record_imports_external_context_without_round_two_filter(self):
+        report = self.root / 'qa.md'
+        external = self.root / 'old-review.md'
+        external.write_text(finding()['raw'])
+        report.write_text(finding(defect='new defect', extra='')['raw'])
+        result = calibration.main(['record', '--run', str(self.run), '--root', str(self.root),
+                                   '--report', str(report), '--milestone', 'M1', '--round', '1', '--addressed', str(external)])
+        self.assertEqual(result, 0)
+        item, = calibration.snapshots(self.run).values()
+        self.assertEqual(item['round'], 1)
+        self.assertEqual(item['computed_verdict'], 'block')
+
+    def test_round_one_triage_remains_available_to_every_round_two_lens(self):
+        original = finding(label='Minor', defect='old title')
+        identity = self.record(original)
+        calibration.triage(self.run, identity, 'block', 'code verified')
+        calibration.append_event(self.run, {'type': 'review', 'milestone': 'M1', 'round': 2, 'report': 'lens-a.md'}, reserve_round=True)
+        changed = finding(defect='rephrased title')
+        previous, uncertain = calibration.previous_blockers([changed], '', PILOT, self.run, 'M1')
+        self.assertFalse(uncertain)
+        self.assertIn(calibration.finding_id(changed), previous)
+        calibration.record_findings(self.run, [changed], PILOT, 'M1', 2, previous)
+        again = finding(defect='yet another title')
+        previous, uncertain = calibration.previous_blockers([again], '', PILOT, self.run, 'M1')
+        self.assertFalse(uncertain)
+        self.assertEqual(again['linked_id'], identity)
+        self.assertEqual(calibration.compute(again, round_number=2, previous_ids=previous)['verdict'], 'block')
+
     def test_backlog_retains_notes_deduplicates_and_removes_blocker(self):
         self.run.mkdir()
         (self.run / 'backlog.md').write_text('# Owner notes\n\nKeep this.\n')

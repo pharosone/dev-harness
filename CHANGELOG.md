@@ -13,6 +13,10 @@ with defaults; a major release may require an overlay change and says which.
   rounds), Minors go to `backlog.md`. Calibration records triage and observed outcomes, reports
   across runs, and exports sanitized feedback fixtures; user overrides need no invented outcome.
   Roles, runtime adapters, `pharos-dev` G4/final reports and a mixed-triage eval use this scale.
+- Review parsing normalizes Markdown/line ranges and retains malformed claims verbatim;
+  exit 4 requires triage. Prior blockers match path/caller/scenario plus ledger triage or a
+  prior finding ID. Persisted milestones are explicit; failed reviewer attempts release rounds
+  for bounded retry (three attempts per input). Explicit round 1 keeps addressed context in round 1.
 
 ## 1.3.0 — 2026-10-10
 
