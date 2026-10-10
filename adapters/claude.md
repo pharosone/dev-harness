@@ -47,3 +47,18 @@ text; pass the rule paths to agents of other runtimes.
   single-vendor); Codex workers are replaced by Claude dispatches on the same profiles.
 - **Headless:** `claude -p` in a checkout loads its hooks and agents (not with `--bare`); the
   cross-review runner uses it with read-only tools when Codex wrote the code.
+
+## Skill evals
+
+A new skill, or a change to a skill's instructions, ships with at least one added or changed
+scenario from its purpose or a recorded failure, with graders for the required behaviour.
+The unit is not done without score with the skill, score without it (baseline), Δ, model,
+cost and run date. Require Δ > 0 on every new or changed case and no regression on existing
+cases beyond the overlay tolerance (default 0.05). A case whose Δ stays 0 does not test the
+skill: fix the case. This covers core and product skills, including non-Claude skills.
+
+Run `python3 harness/core/scripts/skill_evals.py run --skill <SKILL.md path> --model <model>
+--run-dir <run> --base <unit base>`; add a cost ceiling with `--max-cost-usd <usd>`.
+Evidence goes to `<run>/evals/<skill>.json` and the skill's eval history; quote the scores,
+Δ, model, cost and run date in the unit report. Run the cheap gate
+`python3 harness/core/scripts/skill_evals.py check --base <unit base>` before accepting the unit.

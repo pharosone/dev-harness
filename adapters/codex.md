@@ -64,3 +64,23 @@ read it again.
 
 Verified references (2026-10-09): learn.chatgpt.com/docs — skills, agent-configuration/subagents,
 hooks, non-interactive-mode, config-file/config-reference.
+
+## Skill evals
+
+A new skill, or a change to a skill's instructions, ships with at least one added or changed
+scenario from its purpose or a recorded failure, with graders for the required behaviour.
+The unit is not done without score with the skill, score without it (baseline), Δ, model,
+cost and run date. Require Δ > 0 on every new or changed case and no regression on existing
+cases beyond the overlay tolerance (default 0.05). A case whose Δ stays 0 does not test the
+skill: fix the case. This covers core and product skills, including non-Claude skills.
+
+Run `python3 harness/core/scripts/skill_evals.py run --skill <SKILL.md path> --model <model>
+--run-dir <run> --base <unit base>`; add a cost ceiling with `--max-cost-usd <usd>`.
+Evidence goes to `<run>/evals/<skill>.json` and the skill's eval history; quote the scores,
+Δ, model, cost and run date in the unit report. Run the cheap gate
+`python3 harness/core/scripts/skill_evals.py check --base <unit base>` before accepting the unit.
+
+Codex-only evals: configure `project.json → skills.eval_command` as a paired Codex runner,
+then use `skill_evals.py run --runtime codex --skill <SKILL.md> --model <actual model>
+--run-dir <run>`. This routes both core and product skills through that runner and retains
+the same cheap gate, hashes, case acceptance and history format. Missing runner is an error.

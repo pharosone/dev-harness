@@ -28,7 +28,8 @@ class EvalPluginTest(unittest.TestCase):
             self.assertTrue((link / "SKILL.md").is_file(), skill)
 
     def test_every_case_is_well_formed(self):
-        cases = sorted(p for p in (PLUGIN / "evals").iterdir() if p.is_dir() and p.name != "results")
+        cases = sorted(p for p in (PLUGIN / "evals").iterdir()
+                       if p.is_dir() and p.name not in {"results", "history"})
         self.assertGreaterEqual(len(cases), 4)
         for case in cases:
             header = frontmatter(case / "prompt.md")

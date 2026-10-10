@@ -1,0 +1,19 @@
+{
+  "skills/pharos-dev/SKILL.md": [
+    "codex-only",
+    "codex-worker",
+    "gate-wait",
+    "lanes-boundary",
+    "tier0-docs",
+    "tier3-process",
+    "skill-evals-unit"
+  ],
+  "skills/pharos-discover/SKILL.md": [
+    "compare-declined",
+    "compare-offer",
+    "skill-evals-discovery"
+  ],
+  "skills/pharos-investigate/SKILL.md": [
+    "deep-mode-offer"
+  ]
+}
