@@ -129,16 +129,20 @@ def parse_findings(text: str) -> list[dict]:
                    'location': parts[0] if parts else '',
                    'defect': parts[1] if len(parts) > 1 else line.strip() if not match else '',
                    'likelihood': None, 'impact': None, 'reachable_path': '',
-                   'scenario': '', 'evidence': '', 'workaround': None, 'invariant': None, 'reference': None}
+                   'scenario': '', 'evidence': '', 'workaround': None, 'invariant': None, 'reference': None, 'parse_errors': []}
         if len(parts) >= 5:
             rating = RATING.fullmatch(parts[2])
             if rating:
                 finding['likelihood'], finding['impact'] = rating.groups()
             finding['reachable_path'], finding['scenario'] = parts[3:5]
+            seen = set()
             for extra in parts[5:]:
                 key, separator, value = extra.partition(':')
-                if separator and key in ('evidence', 'workaround', 'invariant', 'id'):
+                if separator and key in ('evidence', 'workaround', 'invariant', 'id') and key not in seen and value.strip():
                     finding['reference' if key == 'id' else key] = plain(value)
+                    seen.add(key)
+                else:
+                    finding['parse_errors'].append('unknown, duplicate or empty trailing field: ' + extra)
         finding['id'] = finding_id(finding)
         findings.append(finding)
     return findings
@@ -147,6 +151,8 @@ def parse_findings(text: str) -> list[dict]:
 def compute(finding: dict, review: dict | None = None, *, round_number: int = 1,
             previous_ids: set[str] | None = None) -> dict:
     review = review or {'stage': 'pilot', 'invariants': []}
+    if finding.get('parse_errors'):
+        return {'verdict': 'backlog', 'label': 'Minor', 'reason': 'unverified: ' + '; '.join(finding['parse_errors'])}
     missing = [key for key in ('defect', 'reachable_path', 'scenario', 'evidence')
                if not finding.get(key) or finding.get(key, '').casefold() in ('none', 'unknown', 'memory')]
     if not LOCATION.fullmatch(finding.get('location', '')):
@@ -318,7 +324,7 @@ def get_finding(run: Path, identity: str) -> dict:
 def triage(run: Path, identity: str, choice: str, reason: str, **updates) -> None:
     finding = get_finding(run, identity)
     updates = {k: v for k, v in updates.items() if v is not None}
-    candidate = {**finding, **updates}
+    candidate = {**finding, **updates, 'parse_errors': []}
     result = compute(candidate, finding['review'], round_number=finding['round'],
                      previous_ids=set(finding['previous_ids']))
     if choice != result['verdict']:
@@ -328,7 +334,7 @@ def triage(run: Path, identity: str, choice: str, reason: str, **updates) -> Non
     if choice == 'block' and not code_evidence(candidate.get('evidence', '')):
         raise ValueError('blocking triage needs code-read evidence path:line')
     append_event(run, {'type': 'triage', 'id': identity, 'orchestrator_triage': choice,
-                       'triage_reason': reason, 'triage_computed_reason': result['reason'], 'needs_triage': False, **updates})
+                       'triage_reason': reason, 'triage_computed_reason': result['reason'], 'needs_triage': False, 'parse_errors': [], **updates})
     write_backlog(run)
 
 

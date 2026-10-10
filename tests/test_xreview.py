@@ -564,6 +564,18 @@ class XReviewTest(unittest.TestCase):
                 self.assertIn(raw, sidecar)
                 self.assertNotIn('VERDICT: pass', sidecar)
 
+    def test_unlabelled_claim_cannot_hide_beside_a_verified_backlog_item(self):
+        report = ('- [Major] src/watch.py:29 — startup status — edge/functional — launch() -> watch() — launch race shows exited — evidence: src/watch.py:29\n'
+                  'Separate finding: an empty batch deletes database rows.\n\nVERDICT: block\n')
+        result = self.review(FAKE_REPORT=report)
+        self.assertEqual(result.returncode, 4, result.stdout + result.stderr)
+        self.assertIn('empty batch deletes database rows', Path(f'{self.report}.calibration.md').read_text())
+
+    def test_unrecognized_trailing_field_cannot_clear_a_block(self):
+        report = ('- [Major] src/watch.py:29 — startup status — edge/functional — launch() -> watch() — launch race shows exited — evidence: src/watch.py:29 — additional defect: deletes database rows\nVERDICT: block\n')
+        result = self.review(FAKE_REPORT=report)
+        self.assertEqual(result.returncode, 4, result.stdout + result.stderr)
+
     def test_partial_blocking_claims_are_retained_in_run_ledger(self):
         run = self.temp/'run'
         raw = '- **[Critical]** src/db.py:40 — drops rows — likely/severe — sync() -> flush() — empty batch deletes rows'

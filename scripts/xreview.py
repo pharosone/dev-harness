@@ -358,6 +358,19 @@ def verdict(report: Path, policy: dict | None = None, *, addressed: str = "",
         return write_verdict(report, 3, "no verdict — not an approval", text)
     policy = policy or {"stage": "pilot", "invariants": []}
     findings = parse_findings(text)
+    if word == 'block':
+        recognized = {finding['raw'] for finding in findings}
+        for line in text.splitlines():
+            raw = line.strip()
+            # Only protocol scaffolding can be ignored. Any other unclassified prose
+            # might contain the reason for block, even beside a valid Minor finding.
+            scaffold = (not raw or VERDICT.fullmatch(line) or raw == 'No findings.'
+                        or re.fullmatch(r"(?:#{1,6}\s+|\*\*)?(?:Findings|Cross-vendor review|Review)(?:\*\*)?:?", raw, re.I)
+                        or FENCE.fullmatch(line))
+            if raw not in recognized and not scaffold:
+                opaque = parse_findings('- [Critical] Unparsed reviewer response')[0]
+                opaque.update(raw=raw, location='', defect=raw, reviewer_rating='Unknown')
+                findings.append(opaque)
     if word == 'block' and not findings:
         opaque = parse_findings('- [Critical] Unparsed reviewer response')[0]
         opaque['raw'] = text
