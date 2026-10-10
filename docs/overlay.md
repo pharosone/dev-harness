@@ -19,6 +19,7 @@ dialect (`tripwire.py`): `*` and `?` stay inside one directory, `**` crosses dir
 | `gates.json` | `gate.py` | `gate.py` exits 2: nothing to run is never reported as a pass |
 | `drift.json` | `check_docs_drift.py`, the Stop hook (`runtime_hook.py`) | only the harness-log rule, with its defaults |
 | `models.json` | `render_adapters.py`, `xreview.py`, `compare.py` | the core profiles (`harness/core/adapters/models.json`) |
+| `router.json` | `model_router.py`, `router_shadow.py`, `balance.py`, `lanes.py` | shadow mode off; existing model selection and dispatch unchanged |
 | `architecture.json` | `arch_check.py`; `architecture-reviewer`, `design-review`, `pharos-discover` (Placement) | the check is off (exit 0, and it says so); reviewers take the layers from `architecture.md`, AGENTS.md and the code |
 | `architecture.md` | `architecture-reviewer`, `design-review`, `pharos-discover` (Placement) | the map comes from AGENTS.md and the code's own shape; the reviewer reports it under Not covered |
 | `rules/*.md` | `render_adapters.py`; agents by path | no path rules |
@@ -32,6 +33,9 @@ An overlay file that exists but cannot be used (bad JSON, wrong type, unknown ke
 is an error for `tier.py`, `gate.py`, `check_docs_drift.py`, `arch_check.py`, `watch.py` and `lanes.py` (exit 2) and for the renderer
 (exit 1), never a clean result. The guard is the exception: it prints a note to stderr, skips the
 bad part and keeps every core rule, because a broken guard must not lock a session.
+
+The optional shadow router is also advisory: an invalid `router.json` logs a skipped shadow
+recommendation and retains the actual static pick. It cannot block or promote a dispatch.
 
 ## project.json
 

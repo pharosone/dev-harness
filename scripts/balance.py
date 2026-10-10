@@ -537,7 +537,8 @@ def decide(status: dict, runways: dict, why: dict, soft: dict, shares: dict, tot
 
 
 def pick(task: str, profile: str, role: str, not_runtime: str | None = None,
-         now: float | None = None) -> dict:
+         now: float | None = None, *, brief: str | None = None,
+         tier: int | None = None, router_weights: dict | str | None = None) -> dict:
     """The pick for one worker; runtime is None when no vendor can take it (exit 6)."""
     if not_runtime is not None and not_runtime not in RUNTIMES:
         raise BalanceError(f"unknown runtime {not_runtime!r}; expected claude or codex")
@@ -566,12 +567,21 @@ def pick(task: str, profile: str, role: str, not_runtime: str | None = None,
               "shares": shares,
               "runway": {v: round(runways[v], 4) for v in RUNTIMES},
               "usage_status": status}
+    import router_shadow
+    shadow = router_shadow.evaluate(current, run, primary,
+        actual={key: result[key] for key in ("runtime", "model", "effort")},
+        profile=profile, role=role, tier=tier, brief=brief, weights=router_weights,
+        usage=report, now=now, not_runtime=not_runtime, origin="balance.pick")
     if chosen:
         fields = {"runtime": chosen, "model": result["model"], "effort": result["effort"],
                   "profile": profile, "role": role, "reason": result["reason"],
                   "runway": result["runway"], "shares": shares, "not_runtime": not_runtime}
         entry = task_state.event_record("balance.pick", json.dumps(fields), None)
         task_state.append_event(task_state.evidence_path(run / "events.jsonl", primary), entry)
+    if shadow is not None:
+        result["shadow"] = shadow
+        router_shadow.append(run, primary, shadow)
+    if chosen or shadow is not None:
         regenerate_dashboard(run, primary)
     return result
 
@@ -625,6 +635,9 @@ def main(argv: list[str] | None = None) -> int:
     picker.add_argument("--role", required=True)
     picker.add_argument("--not-runtime", choices=RUNTIMES)
     picker.add_argument("--now", type=float)
+    picker.add_argument("--brief", help="compact JSON task capsule or Markdown Goal/Contract sections")
+    picker.add_argument("--tier", type=int, choices=range(4), help="risk tier for shadow scoring")
+    picker.add_argument("--router-weights", help="explicit JSON trait weights; no classifier call")
     args = parser.parse_args(argv)
     try:
         if args.command == "usage" and args.action == "set":
@@ -652,7 +665,8 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             print(json.dumps({"vendor": "claude", "windows": windows}))
             return 0
-        result = pick(args.task, args.profile, args.role, args.not_runtime, args.now)
+        result = pick(args.task, args.profile, args.role, args.not_runtime, args.now,
+                      brief=args.brief, tier=args.tier, router_weights=args.router_weights)
         print(json.dumps(result, indent=2))
         if result["runtime"] is None:
             print(f"balance: {result['reason']}", file=sys.stderr)
