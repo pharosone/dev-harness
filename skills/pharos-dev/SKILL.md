@@ -44,6 +44,12 @@ read their evidence, own the final report.
   does `events.jsonl`, whose first event is the run's start: `task_state.py event <task>
   run.start --data '{"workflow": "dev", "depth": "<mode>", "compare": "off", "runtime_mode":
   "<mode>"}'`.
+- **Run dashboard (herdr).** With `HERDR_ENV=1`, right after `run.start` open the run's tab:
+  `python3 harness/core/scripts/lanes.py dashboard --task <task> --open` (`📊 <task>`: live
+  status and events on the left, the run's lane panes on the right; project panes from
+  `project.json → dashboard`). It changes only where a `pane` decision opens, never the
+  decision: short report-only work on your own vendor is still a subagent (your agent tool),
+  not a pane. Without herdr it is a no-op.
 
 ## Tier decides the process
 
@@ -124,11 +130,14 @@ what, so the dashboard and a resuming runtime see it without a living session.
   same lane runs headless.
 - **Work the lane** with `lanes.py status`, `wait` (blocking; never a polling loop), `result`
   (report and usage) and `cancel`. `start` exit 3: dispatch it as a subagent; exit 4
-  (`queued`, three live herdr agents): start it again after a lane ends. `wait` exit 5: the
+  (`queued`, at the herdr agent limit: three by default, `project.json → lanes`): start it
+  again after a lane ends. `wait` exit 5: the
   lane is `blocked` — show it to the user with its pane and never answer it yourself.
 - **Panes:** the run's own panes stay open after the work;
   panes the run did not create are never closed or reused, and `cancel` refuses a pane that
-  is no longer the run's.
+  is no longer the run's. With the dashboard open, a lane pane whose agent has exited is
+  reused for the next lane; at the end of the run `lanes.py dashboard --task <task> --close`
+  closes the dashboard's own panes.
 - **Events:** `lanes.py` records `dispatch.start` and `dispatch.end` for what it starts. A
   Claude subagent is recorded by the generated hooks; a Codex subagent, or a background
   completion the hook did not see, by you: `task_state.py event <task> dispatch.start --id
@@ -172,6 +181,7 @@ Record the card as `task_state.py event <task> gate.open --data '{"gate": "<gate
 "gates/<gate>.md"}'`, regenerate the run dashboard (`python3 harness/core/scripts/dashboard.py
 <task>`, which prints the page's path) and give the user that path with the card: running and
 stale lanes, pending gates, tripwires, spend per unit and compare status on one local page.
+With herdr, also point to the live `📊 <task>` tab, where the gate shows as pending.
 Ask through the runtime's question tool and send a push notification when the runtime has one.
 Record the answer (continue / redirect with notes / stop) in `run.md` and as `gate.answer`
 {gate, answer, source: the user's words} before dependent work.

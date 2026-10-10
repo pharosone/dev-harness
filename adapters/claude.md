@@ -25,10 +25,13 @@ text; pass the rule paths to agents of other runtimes.
   `headless` and `pane` go through `lanes.py start` (`claude -p --output-format stream-json`
   or `codex exec --json`, logs in `<run>/lanes/`), which records its own events. A pane needs
   `HERDR_ENV=1` and opens beside this session (a second one in a tab named after the task,
-  another repository in its own tab); without herdr the lane runs headless.
+  another repository in its own tab), or in the run's dashboard tab once it is open; without
+  herdr the lane runs headless. The agent limit is `project.json → lanes` (default three).
 - **Dashboard:** `python3 harness/core/scripts/dashboard.py <task>` writes
   `<run>/dashboard.html` and prints its path; the hooks and `lanes.py` regenerate it after each
-  event. Open it locally; it has no scripts and no network references.
+  event. Open it locally; it has no scripts and no network references. With `HERDR_ENV=1`,
+  `lanes.py dashboard --task <task> --open` at run start opens the live tab `📊 <task>` (status
+  and events views, project panes, the run's lane panes); `--close` closes its own panes.
 - **Prefix:** roles list only the tools they use; the browser stays with `ui-design-verifier`.
   Subagent cache TTL is 5 minutes (`subagentPromptCacheTtl`). Do not paste files into briefs:
   name paths.

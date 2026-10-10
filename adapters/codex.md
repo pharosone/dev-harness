@@ -55,10 +55,12 @@ read it again.
   start through `lanes.py start`, which records `dispatch.start`/`dispatch.end` itself and
   carries the guard override into every Codex lane (headless and pane). Wait with `lanes.py
   wait`, the blocking wait, never a status loop. A pane needs `HERDR_ENV=1`; a `blocked` lane is
-  the user's to answer.
+  the user's to answer. The agent limit is `project.json → lanes` (default three).
 - **Dashboard:** `python3 harness/core/scripts/dashboard.py <task>` writes
   `<run>/dashboard.html` and prints its path; `lanes.py` and `tripwire.py spend --dispatch`
-  regenerate it. Give the user the path at each gate.
+  regenerate it. Give the user the path at each gate. With `HERDR_ENV=1`, `lanes.py dashboard
+  --task <task> --open` at run start opens the live tab `📊 <task>` (status and events views,
+  project panes, the run's lane panes, which then start there); `--close` closes its own panes.
 
 Verified references (2026-10-09): learn.chatgpt.com/docs — skills, agent-configuration/subagents,
 hooks, non-interactive-mode, config-file/config-reference.

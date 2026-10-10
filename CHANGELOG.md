@@ -3,6 +3,32 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.3.0 — 2026-10-10
+
+- `lanes.py`: the herdr agent limit is configurable — `project.json → lanes`
+  `{"herdr_max_agents": N, "count": "workspace" | "run"}` (defaults 3 and `workspace`, as
+  before); `count: "run"` counts only the live agents the run started, so the user's own idle
+  sessions no longer use up the run's panes. Any other key or value is exit 2.
+- Run dashboard tab: `lanes.py dashboard --task T --open` opens one herdr tab per run,
+  `📊 <task>`, recorded in `<run>/lanes/_herdr.json`. Left column (58%): `📊 status` (units,
+  lanes running/blocked/stale with herdr's live status, pending gates, open tripwires, vendor
+  shares and latest picks; every 30 s), `🧾 events` (a formatted tail of `events.jsonl`) and
+  the overlay's project panes; right column: the run's lane panes. Live pane lanes of the run
+  move there when it opens. `--close` closes only the dashboard's own panes (a live lane's pane
+  stays); without herdr the command is a no-op and `dashboard.py`'s page stays the fallback.
+  New script `dashboard_herdr.py` (geometry, placement, the `view status|events` loops).
+- Lane placement: with the dashboard open, `lanes.py start` puts pane lanes into its right
+  column, reusing a run's pane whose lane ended and whose shell is idle again (directory and
+  worker environment typed in, an earlier lane's variables unset) before splitting the last one
+  down, and balances the column's heights. Every lane pane is labelled
+  `🤖 <work> · <runtime> <model>`. Panes the run did not create are never closed, reused or
+  moved.
+- Optional overlay key `project.json → dashboard` `{"panes": [{"label", "command", "zone":
+  "status" | "events" | "side"}]}`: project panes (a product's live status loop, a log tail) in
+  their zone; unknown keys are exit 2.
+- `pharos-dev` opens the herdr dashboard at run start and points to it at gates; the Claude and
+  Codex adapters describe it. No required overlay change.
+
 ## 1.2.0 — 2026-10-10
 
 - The critical cross-review cap is five per run (was four); fix-up and review rounds alternate

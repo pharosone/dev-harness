@@ -35,6 +35,7 @@ Launchers (the run directory is `task_state.py locate TASK` of the current check
   lanes.py result --task T --dispatch D
   lanes.py cancel --task T --dispatch D
   lanes.py snapshot-cleanup --task T [--dispatch D ...]
+  lanes.py dashboard --task T [--open | --close]
 
 start decides by the rule above with --checkout as --repo (unless --launcher is given); its
 orchestrator is --orchestrator, else $HARNESS_ORCHESTRATOR (an unknown runtime there is exit 2),
@@ -143,16 +144,24 @@ intended. capability_profile(..., reads=True) adds "reads": "source and run dire
   Codex's cached_input_tokens) is added only when the stream gives it. A
   Claude run that wrote no report since its start gets its final result text as the report
   (a report left by an earlier run is replaced).
-- pane (HERDR_ENV=1 only): at most 3 live herdr agents in the caller's workspace
-  ($HERDR_WORKSPACE_ID, else all of `herdr agent list`), counting ones the run did not start;
-  the count and the launch run under an exclusive lock on one file per herdr workspace,
+- pane (HERDR_ENV=1 only): at most `herdr_max_agents` (default 3) live herdr agents, counted
+  by the overlay's `project.json → lanes` {"herdr_max_agents": N (an integer >= 1), "count":
+  "workspace" | "run"}: "workspace" (the default) counts every agent in the caller's workspace
+  ($HERDR_WORKSPACE_ID, else all of `herdr agent list`), ones the run did not start included;
+  "run" counts only the live agents this run started. Any other key or value is exit 2.
+  The count and the launch run under an exclusive lock on one file per herdr workspace,
   `dev-harness-herdr-<workspace>.lock` ($HERDR_WORKSPACE_ID, else "default") in $XDG_RUNTIME_DIR
   (else the system temp directory), so concurrent starts of any runs in the workspace cannot
   both pass the limit.
   At the limit report-only work (not a writer, no --needs-user) runs headless instead and other
-  work is refused with exit 4 and "queued: ..." so the orchestrator retries later. The first
-  live pane of the run splits the caller's pane (`--no-focus`); a second live pane opens one
-  tab labelled with the task, and later ones split the run's last pane there. A pane whose
+  work is refused with exit 4 and "queued: ..." so the orchestrator retries later. When the
+  run has a dashboard tab (`lanes.py dashboard --open`, dashboard_herdr.py), a pane goes into
+  its right column: a lane pane of the run whose dispatch ended and whose shell is idle again
+  is reused first (cd and the worker's environment are typed into that shell), else the
+  column's last pane is split down and the column's heights are balanced. Without a dashboard
+  the first live pane of the run splits the caller's pane (`--no-focus`); a second live pane
+  opens one tab labelled with the task, and later ones split the run's last pane there. Every
+  lane pane is labelled "🤖 <work> · <runtime> <model>". A pane whose
   --checkout is in another repository (decide's other-repo signal) goes into that repository's
   own tab instead, labelled with its top-level directory's name, opened once per run and split
   for its later panes; those panes do not count for the placement above. Then
@@ -169,6 +178,10 @@ state regenerates the dashboard (best effort, as after an event). Panes the run 
   id, when both are known), else exits 1 with "agent NAME is no longer the pane this run
   created" and sends nothing; then it sends ctrl+c to the run's own agent and leaves its pane
   open. Usage from a pane is null.
+
+dashboard opens (--open), closes (--close) or describes the run's herdr dashboard tab; the tab,
+its geometry, views and the overlay's `project.json → dashboard` are dashboard_herdr.py's.
+Without herdr (HERDR_ENV unset) it says so and exits 0; dashboard.py's page is the fallback.
 
 status prints one object per dispatch (a list without --dispatch): {dispatch, launcher, state,
 last_activity, pane, report, reason}, state one of running, stale, idle, done, failed, timeout,
@@ -210,6 +223,7 @@ except ImportError:  # Windows: state files are written without a lock.
 
 # Importing must not write __pycache__ into a read-only installed harness.
 sys.dont_write_bytecode = True
+import project
 import task_state
 from task_state import StateError, git
 import xreview
@@ -341,6 +355,9 @@ def other_repository(repo: str | None, cwd: Path) -> str | None:
 # --- launchers ---------------------------------------------------------------------------
 
 HERDR_LIMIT = 3
+# The overlay's `project.json → lanes`: each key given replaces its default.
+LANE_SETTINGS = {"herdr_max_agents": HERDR_LIMIT, "count": "workspace"}
+COUNTS = ("workspace", "run")
 DEFAULT_TIMEOUT = 45 * 60
 STALE_MINUTES = 15  # status's stale window; dashboard.py shares it
 ENDED = ("done", "failed", "timeout", "cancelled")
@@ -380,6 +397,35 @@ def run_directory(task: str) -> tuple[Path, Path]:
     if not task_state.evidence_path(run / "run.md", primary).is_file():
         raise LaneError(f"Task is not initialized; run task_state.py init first: {task}")
     return primary, run
+
+
+def lane_settings(cwd: Path) -> dict:
+    """The overlay's `project.json → lanes` of cwd's checkout over LANE_SETTINGS; ValueError
+    (exit 2) on an unusable overlay, an unknown key or an invalid value. Outside a checkout
+    there is no overlay, so the defaults hold."""
+    try:
+        root = project.repo_root(cwd)
+    except project.OverlayError:
+        return dict(LANE_SETTINGS)
+    try:
+        values = project.load(root, "project.json", {}).get("lanes", {})
+    except project.OverlayError as exc:
+        raise ValueError(f"cannot use {exc}") from None
+    if not isinstance(values, dict):
+        raise ValueError("project.json: lanes must be an object")
+    unknown = sorted(set(values) - set(LANE_SETTINGS))
+    if unknown:
+        raise ValueError(f"project.json: unknown lanes keys: {', '.join(unknown)}; expected "
+                         f"{', '.join(LANE_SETTINGS)}")
+    result = {**LANE_SETTINGS, **values}
+    limit = result["herdr_max_agents"]
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+        raise ValueError("project.json: lanes.herdr_max_agents must be an integer >= 1, got "
+                         f"{limit!r}")
+    if result["count"] not in COUNTS:
+        raise ValueError(f"project.json: lanes.count must be one of {', '.join(COUNTS)}, got "
+                         f"{result['count']!r}")
+    return result
 
 
 def lanes_dir(run: Path, primary: Path) -> Path:
@@ -1021,6 +1067,11 @@ def place_pane(run: Path, primary: Path, task: str, checkout: Path, env: dict,
     return tab["last_pane"], tab["tab_id"]
 
 
+def lane_label(state: dict) -> str:
+    """The readable label of a lane's pane: "🤖 <work> · <runtime> <model>"."""
+    return f"🤖 {state['work']} · {state['runtime']} {state['model']}"
+
+
 def agent_name(work: str, role: str, taken: set[str]) -> str:
     """A herdr agent name for the dispatch that no live agent has."""
     base = slug(f"{work}-{role}", 28)
@@ -1038,10 +1089,16 @@ def pane_launch(state: dict, path: Path, run: Path, primary: Path) -> None:
         flags += candidate_flags(state["runtime"], state["scratch"], str(workdir(state)),
                                  headless=False, deny_write=candidate_denials(state))
     name = state["pane_name"]
-    pane, tab = place_pane(run, primary, state["task"], workdir(state), env,
-                           state.get("other_repo"))
+    placed = None
+    if not state.get("other_repo"):
+        import dashboard_herdr  # imported late: it imports this module
+        placed = dashboard_herdr.lane_pane(state, run, primary, workdir(state), env)
+    pane, tab = placed or place_pane(run, primary, state["task"], workdir(state), env,
+                                     state.get("other_repo"))
     update_state(path, pane_id=pane, tab_id=tab)
     state.update(pane_id=pane, tab_id=tab)
+    with contextlib.suppress(LaneError):  # a label is a convenience, never a failed launch
+        herdr("pane", "rename", pane, lane_label(state))
     try:
         started = herdr("agent", "start", name, "--kind", state["runtime"], "--pane", pane, "--",
                         *flags)
@@ -1091,6 +1148,7 @@ def start(args, *, capability: str | None = None, scratch: str | None = None) ->
     if args.max_budget_usd is not None and not args.max_budget_usd > 0:
         raise ValueError("--max-budget-usd must be positive")
     task_state.identifier(args.task)
+    settings = lane_settings(Path.cwd())
     orchestrator, echo = start_orchestrator(getattr(args, "orchestrator", None))
     if args.launcher:
         if args.launcher == "pane" and not herdr_on:
@@ -1114,7 +1172,8 @@ def start(args, *, capability: str | None = None, scratch: str | None = None) ->
         scratch_dir.mkdir(parents=True, exist_ok=True)
         profile = {"capability": capability, "scratch": str(scratch_dir)}
     with herdr_lock() if launcher == "pane" else contextlib.nullcontext():
-        return launch(args, launcher, reason, budget, primary, run, brief, checkout, profile)
+        return launch(args, launcher, reason, budget, primary, run, brief, checkout, profile,
+                      settings)
 
 
 def start_orchestrator(flag: str | None) -> tuple[str, dict]:
@@ -1163,20 +1222,26 @@ def checked_scratch(capability: str | None, scratch: str | None, checkout: Path)
 
 
 def launch(args, launcher: str, reason: str, budget: dict, primary: Path, run: Path,
-           brief: Path, checkout: Path, profile: dict) -> int:
+           brief: Path, checkout: Path, profile: dict, settings: dict | None = None) -> int:
     """Count, record and launch one dispatch (a pane under the workspace's herdr lock)."""
     name = None
     if launcher == "pane":
+        settings = settings or LANE_SETTINGS
         agents = herdr_agents()
-        name = agent_name(args.work, args.role, {a.get("name") for a in agents if a.get("name")}
-                          | {s.get("pane_name") for s in live_panes(run)})
-        if len(agents) >= HERDR_LIMIT:
+        mine = {s.get("pane_name") for s in live_panes(run)}
+        name = agent_name(args.work, args.role,
+                          {a.get("name") for a in agents if a.get("name")} | mine)
+        counted = (agents if settings["count"] == "workspace"
+                   else [a for a in agents if a.get("name") in mine])
+        limit, scope = settings["herdr_max_agents"], (
+            "" if settings["count"] == "workspace" else " of this run")
+        if len(counted) >= limit:
             if args.role in WRITERS or args.needs_user:
-                raise Queued(f"queued: {len(agents)} live herdr agents are at the limit of "
-                             f"{HERDR_LIMIT}; retry when one ends.")
+                raise Queued(f"queued: {len(counted)} live herdr agents{scope} are at the limit "
+                             f"of {limit}; retry when one ends.")
             launcher = "headless"
-            reason = (f"headless: {len(agents)} live herdr agents are at the limit of "
-                      f"{HERDR_LIMIT} and the work is report-only.")
+            reason = (f"headless: {len(counted)} live herdr agents{scope} are at the limit of "
+                      f"{limit} and the work is report-only.")
     enforced = launcher == "headless" and args.runtime == "claude"
     if "budget_enforced" in budget:
         budget["budget_enforced"] = enforced
@@ -1430,6 +1495,12 @@ def main() -> int:
     sub.add_argument("--task", required=True)
     sub.add_argument("--dispatch", action="append", dest="dispatches", metavar="D",
                      help="only this dispatch's snapshot (repeatable; default: every candidate)")
+    sub = commands.add_parser("dashboard", help="the run's herdr dashboard tab")
+    sub.add_argument("--task", required=True)
+    action = sub.add_mutually_exclusive_group()
+    action.add_argument("--open", action="store_true", help="open it (once per run)")
+    action.add_argument("--close", action="store_true",
+                        help="close the run's own dashboard panes (a live lane's pane stays)")
     sub = commands.add_parser("supervise", help="internal: the headless supervisor")
     sub.add_argument("state")
     args = parser.parse_args()
@@ -1446,6 +1517,10 @@ def main() -> int:
             return start(args)
         if args.command == "supervise":
             return supervise(Path(args.state))
+        if args.command == "dashboard":
+            import dashboard_herdr  # imported late: it imports this module
+            return dashboard_herdr.command(args.task, "open" if args.open
+                                           else "close" if args.close else "show")
         primary, run = run_directory(args.task)
         if args.command == "snapshot-cleanup":
             print(json.dumps(snapshot_cleanup(run, args.dispatches)))
