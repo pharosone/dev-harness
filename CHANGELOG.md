@@ -3,7 +3,7 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
-## 1.5.0 — Unreleased
+## 1.5.0 — 2026-10-10
 
 - Optional shadow model routing: an overlay-configurable runtime registry expands all
   supported model/effort tuples inside AA v4.3.2 quality bands. Exact independent task evidence,

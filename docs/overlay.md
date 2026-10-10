@@ -44,7 +44,7 @@ One JSON object. Each script reads only its own section; other top-level keys ar
 ```json
 {
   "name": "tasklist",
-  "core": {"repo": "https://git.example.com/dev-harness.git", "ref": "v1.4.0", "prefix": "harness/core"},
+  "core": {"repo": "https://git.example.com/dev-harness.git", "ref": "v1.5.0", "prefix": "harness/core"},
   "guard": {"deploy_hosts": ["deploy.tasklist.example"], "prod_compose": ["compose.prod*"]},
   "interview": {"extra_rows": [{"item": "Accessibility", "question": "…", "section": "Accessibility",
                                 "drafted_by": "a11y-reviewer"}]},
