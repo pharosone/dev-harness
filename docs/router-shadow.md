@@ -53,7 +53,7 @@ python3 harness/core/scripts/balance.py pick --task demo --profile critical-revi
 
 The top-level `runtime`, `model`, `effort` and `reason` remain the actual static choice.
 The additive `shadow` object records its separate recommendation, status, full candidate
-evidence, policy/data hashes and assumptions. Manual weights are `HUMAN_SUPPLIED`, not gold
+evidence, policy/data hashes and assumptions. Manual weights are `CALLER_SUPPLIED`, not gold
 classifier labels. Model scores, costs and usage do not enter the classifier prompt.
 
 `lanes.py decide` accepts `--task`, `--profile`, `--tier`, `--brief`, and `--router-weights`.
@@ -96,6 +96,11 @@ the last request can overshoot it. Timeout kills the classifier process group. F
 wrong/missing resolved model identity, invalid JSON/schema or insufficient context logs a
 skip and makes no repair call. Returned structured-output formatting is allowed; ordinary
 tool calls are rejected. A corrupt cache skips classification rather than triggering a paid retry.
+Known quota stop lines and an ineligible actual dispatch block fresh classification; a valid
+cache hit consumes no new quota. Per-call fractional quota reservation remains unmeasured
+and is labeled accordingly. Failed results retain any finite reported token/cost evidence;
+missing or incomplete timeout evidence stays unknown. Optional cache-write failure keeps the
+validated result and its resource record without starting another call.
 
 Pass `--brief` a UTF-8 JSON capsule such as:
 

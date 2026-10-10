@@ -13,6 +13,7 @@ sys.dont_write_bytecode = True
 SCRIPTS = Path(__file__).resolve().parents[1] / 'scripts'
 sys.path.insert(0, str(SCRIPTS))
 cal = importlib.import_module('router_calibration')
+shadow_module = importlib.import_module('router_shadow')
 
 
 class CalibrationTest(unittest.TestCase):
@@ -64,6 +65,47 @@ class CalibrationTest(unittest.TestCase):
         self.assertEqual(report['review_reservations_n'], 1)
         self.assertIsNone(report['estimates']['failure_probability'])
         self.assertFalse(report['fit_ready'])
+
+    def test_root_generated_decision_fields_join_and_reject_contradictions(self):
+        self.events.clear(); self.start('a', tier=1)
+        start, advisory = self.events
+        start.pop('decision_id')
+        start.update(shadow_module.dispatch_fields(advisory))
+        end = dict(v=1, id='a.end', at='2026-10-10T12:02:00Z', type='dispatch.end',
+                   dispatch='a', status='done', usage=None,
+                   **shadow_module.completion_fields({**start, 'log': str(self.run / 'missing.log')}))
+        self.events.append(end); self.save()
+        self.assertTrue(self.label())
+        self.assertEqual(cal.calibration_report(self.run)['eligible_outcome_n'], 1)
+        for record in (start, end):
+            saved = record['router_decision_id']
+            record['router_decision_id'] = 'wrong-decision'
+            self.save()
+            with self.assertRaises(cal.CalibrationError):
+                self.label()
+            self.assertEqual(cal.calibration_report(self.run)['eligible_outcome_n'], 0)
+            record['router_decision_id'] = saved
+        start['decision_id'] = 'conflicting-alias'
+        self.save()
+        with self.assertRaises(cal.CalibrationError):
+            self.label()
+
+    def test_real_14_review_writer_and_computed_verdict_link(self):
+        review_ledger = importlib.import_module('review_calibration')
+        xreview = importlib.import_module('xreview')
+        report = self.run / 'review.md'
+        report.write_text('No findings.\nVERDICT: pass\n')
+        reference = dict(attempt_id='review-real-api', milestone='m1', round=1,
+                         report=str(report), verdict='pass')
+        review_ledger.append_event(self.run, {**reference, 'type': 'review', 'status': 'running'})
+        code, reason = xreview.verdict(report, run_dir=self.run, milestone='m1')
+        self.assertEqual(code, 0)
+        review_ledger.finish_review(self.run, reference['attempt_id'], 'complete', reason)
+        self.assertTrue(self.label(review=reference))
+        coverage = cal.calibration_report(self.run)
+        self.assertEqual(coverage['eligible_outcome_n'], 1)
+        self.assertEqual(coverage['review_linked_labels_n'], 1)
+        self.assertFalse(coverage['fit_ready'])
 
     def test_high_tiers_need_authoritative_pass(self):
         for tier in (2, 3):

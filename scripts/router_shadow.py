@@ -69,6 +69,14 @@ class ShadowError(ValueError):
     """A safe, fixed diagnostic; raw model output is never printed or logged."""
 
 
+class ClassifierFailure(ShadowError):
+    """A rejected classification may still have reported resource evidence."""
+
+    def __init__(self, message: str, telemetry: dict):
+        super().__init__(message)
+        self.telemetry = telemetry
+
+
 def strict_json(text: str):
     def reject_constant(value):
         raise ShadowError("non-finite JSON number")
@@ -205,6 +213,7 @@ def invoke_classifier(config: dict, capsule: dict) -> dict:
                 "CLAUDECODE"):
         env.pop(key, None)
     started = time.monotonic()
+    timed_out = False
     with tempfile.TemporaryDirectory(prefix="harness-router-classify-") as cwd:
         with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
             proc = subprocess.Popen(classifier_command(config), cwd=cwd, env=env,
@@ -218,53 +227,78 @@ def invoke_classifier(config: dict, capsule: dict) -> dict:
                 except (ProcessLookupError, AttributeError):
                     proc.kill()
                 proc.wait()
-                raise ShadowError("classifier timeout; shadow skipped") from None
-            if proc.returncode:
-                raise ShadowError("classifier process failed; shadow skipped")
+                timed_out = True
             out.seek(0)
             raw = out.read(MAX_RESPONSE_BYTES + 1)
-    if len(raw) > MAX_RESPONSE_BYTES:
-        raise ShadowError("classifier response too large")
-    records = [strict_json(line) for line in raw.decode("utf-8").splitlines() if line.strip()]
+    malformed = False
+    records = []
+    for line in raw[:MAX_RESPONSE_BYTES].splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = strict_json(line.decode("utf-8"))
+            if not isinstance(row, dict):
+                raise ShadowError("invalid stream record")
+            records.append(row)
+        except (ValueError, UnicodeError):
+            malformed = True
     results = [row for row in records if isinstance(row, dict) and row.get("type") == "result"]
-    if len(results) != 1 or results[0].get("is_error") or results[0].get("subtype") != "success":
-        raise ShadowError("classifier returned no successful result")
-    result = results[0]
-    models = set()
-    for row in records:
-        if not isinstance(row, dict):
-            raise ShadowError("classifier stream contains invalid records")
-        message = row.get("message", {})
-        if row.get("type") == "assistant" and isinstance(message, dict):
-            if isinstance(message.get("model"), str):
-                models.add(message["model"])
-            if any(isinstance(block, dict) and block.get("type") == "tool_use"
-                   and not (block.get("name") == "StructuredOutput"
-                            and isinstance(result.get("structured_output"), dict))
-                   for block in message.get("content", [])):
-                raise ShadowError("classifier attempted tool use")
-    model_usage = result.get("modelUsage", {})
-    if isinstance(model_usage, dict):
-        models.update(model_usage)
-    if models != {config["model"]}:
-        raise ShadowError("classifier resolved model identity mismatch or missing")
-    value = result.get("structured_output")
-    if value is None:
-        value = strict_json(result.get("result", ""))
-    classification = validate_classification(value)
+    result = results[0] if len(results) == 1 else {}
     usage = result.get("usage") if isinstance(result.get("usage"), dict) else {}
     safe_usage = {key: val for key, val in usage.items()
                   if key in ("input_tokens", "output_tokens", "cache_read_input_tokens",
                              "cache_creation_input_tokens")
                   and type(val) in (int, float) and math.isfinite(val) and val >= 0}
     cost = result.get("total_cost_usd")
-    return {"result": classification, "resolved_model": config["model"], "usage": safe_usage,
-            "api_equivalent_usd": cost if type(cost) in (int, float)
-            and math.isfinite(cost) and cost >= 0 else None,
-            "elapsed_seconds": time.monotonic() - started}
+    telemetry = {"attempted": True, "usage": safe_usage or None,
+        "api_equivalent_usd": cost if type(cost) in (int, float) and math.isfinite(cost) and cost >= 0 else None,
+        "elapsed_seconds": time.monotonic() - started,
+        "resource_evidence": "reported_result" if result else "unknown",
+        "response_complete": not timed_out and not malformed and len(raw) <= MAX_RESPONSE_BYTES and bool(result)}
+    def fail(message):
+        raise ClassifierFailure(message, telemetry)
+    if timed_out:
+        fail("classifier timeout; shadow skipped")
+    if proc.returncode:
+        fail("classifier process failed; shadow skipped")
+    if len(raw) > MAX_RESPONSE_BYTES:
+        fail("classifier response too large")
+    if malformed:
+        fail("classifier stream contains invalid records")
+    if not result or result.get("is_error") or result.get("subtype") != "success":
+        fail("classifier returned no successful result")
+    models = set()
+    for row in records:
+        if not isinstance(row, dict):
+            fail("classifier stream contains invalid records")
+        message = row.get("message", {})
+        if row.get("type") == "assistant" and isinstance(message, dict):
+            if isinstance(message.get("model"), str):
+                models.add(message["model"])
+            content = message.get("content", [])
+            if not isinstance(content, list):
+                fail("classifier stream contains invalid content")
+            if any(isinstance(block, dict) and block.get("type") == "tool_use"
+                   and not (block.get("name") == "StructuredOutput"
+                            and isinstance(result.get("structured_output"), dict))
+                   for block in content):
+                fail("classifier attempted tool use")
+    model_usage = result.get("modelUsage", {})
+    if isinstance(model_usage, dict):
+        models.update(model_usage)
+    if models != {config["model"]}:
+        fail("classifier resolved model identity mismatch or missing")
+    try:
+        value = result.get("structured_output")
+        if value is None:
+            value = strict_json(result.get("result", ""))
+        classification = validate_classification(value)
+    except (ValueError, TypeError):
+        fail("classifier output violates schema")
+    return {"result": classification, "resolved_model": config["model"], **telemetry}
 
 
-def classify(config: dict, capsule: dict, run: Path, primary: Path) -> dict:
+def classify(config: dict, capsule: dict, run: Path, primary: Path, *, fresh_check=None) -> dict:
     key = digest({"capsule": capsule, "taxonomy": TAXONOMY_VERSION, "prompt": SYSTEM_PROMPT,
                   "prompt_version": PROMPT_VERSION, "schema": OUTPUT_SCHEMA,
                   "model": config["model"], "effort": config["effort"]})
@@ -279,22 +313,31 @@ def classify(config: dict, capsule: dict, run: Path, primary: Path) -> dict:
             value = validate_classification(cached["result"])
             return {**metadata, "status": value["status"], "result": value,
                     "resolved_model": cached["resolved_model"], "cache_hit": True,
-                    "usage": {}, "api_equivalent_usd": 0, "elapsed_seconds": 0}
+                    "usage": {}, "api_equivalent_usd": 0, "elapsed_seconds": 0, "attempted": False}
         except (ValueError, KeyError, TypeError):
             # A corrupt cache does not trigger a paid repair; log and skip.
             raise ShadowError("classifier cache invalid; shadow skipped") from None
+    if fresh_check is not None:
+        fresh_check()
     result = invoke_classifier(config, capsule)
     if config.get("cache", True):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        task_state.evidence_path(path, primary)
-        fd, temporary = tempfile.mkstemp(prefix=".classifier-", dir=path.parent)
+        temporary = None
         try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            task_state.evidence_path(path, primary)
+            fd, temporary = tempfile.mkstemp(prefix=".classifier-", dir=path.parent)
             with os.fdopen(fd, "w") as stream:
                 json.dump({"cache_key": key, **result}, stream, allow_nan=False)
             os.replace(temporary, path)
+        except (OSError, task_state.StateError) as exc:
+            # The classification and its paid usage remain valid if optional caching fails.
+            result["cache_write_error"] = type(exc).__name__
         finally:
-            if os.path.exists(temporary):
-                os.unlink(temporary)
+            if temporary:
+                try:
+                    os.unlink(temporary)
+                except OSError:
+                    pass
     return {**metadata, **result, "status": result["result"]["status"], "cache_hit": False}
 
 
@@ -348,6 +391,34 @@ def validated_links(run: Path, actual: dict, parent: str | None, root: str | Non
     return result
 
 
+def classifier_preflight(policy: dict, usage: dict, now: float, actual: dict,
+                         allowed: list[str] | None) -> None:
+    """Before fresh paid work only. Cached/manual classifications consume no quota."""
+    def block(message):
+        raise ClassifierFailure(message, {"attempted": False, "usage": {},
+            "api_equivalent_usd": 0, "elapsed_seconds": 0, "resource_evidence": "not_invoked"})
+    if actual.get("runtime") is None:
+        block("no actual dispatch is eligible; fresh classifier skipped")
+    if allowed is not None and "claude" not in allowed:
+        block("Claude classifier unavailable in this runtime mode; provide weights")
+    claude = policy.get("runtimes", {}).get("claude", {})
+    access = claude.get("model_access", {}).get(policy["classifier"]["model"], {})
+    if (claude.get("enabled") is False or claude.get("implemented") is False
+            or claude.get("availability", "available") != "available"
+            or claude.get("account_status") == "unavailable" or access.get("status") == "unavailable"):
+        block("Claude classifier runtime/model unavailable; shadow skipped")
+    bucket = claude.get("usage_bucket", "claude")
+    vendor = usage.get(bucket, {}) if isinstance(usage, dict) else {}
+    stop_at = policy.get("cost", {}).get("stop_at", 0.85)
+    for window in vendor.get("windows", []):
+        used, reset = window.get("used"), window.get("resets_at")
+        if (type(used) not in (int, float) or not math.isfinite(used) or not 0 <= used <= 1
+                or type(reset) not in (int, float) or not math.isfinite(reset)):
+            block("classifier usage window invalid; fresh call skipped")
+        if reset > now and used >= stop_at:
+            block("classifier quota bucket is at stop_at; fresh call skipped")
+
+
 def evaluate(root: Path, run: Path, primary: Path, *, actual: dict, profile: str | None,
              role: str, tier: int | None, brief: str | Path | None = None,
              capsule: dict | None = None, weights: dict | None = None,
@@ -393,29 +464,28 @@ def evaluate(root: Path, run: Path, primary: Path, *, actual: dict, profile: str
                 weights = strict_json(weights)
             parsed = validate_classification({"taxonomy_version": TAXONOMY_VERSION,
                 "status": "classified", "weights": weights, "reason": "supplied task weights"})
-            event["classifier"] = {"status": "manual_weights", "validation": "HUMAN_SUPPLIED"}
+            event["classifier"] = {"status": "manual_weights", "validation": "CALLER_SUPPLIED"}
         else:
             config = policy["classifier"]
             if not config.get("enabled"):
                 raise ShadowError("classifier disabled; provide weights or explicitly enable it")
             if not config["model"].startswith("claude-"):
                 raise ShadowError("configured classifier has no subscription adapter; shadow skipped")
-            allowed = runtime_mode(run)
-            if allowed is not None and "claude" not in allowed:
-                raise ShadowError("Claude classifier unavailable in this runtime mode; provide weights")
-            claude = policy.get("runtimes", {}).get("claude", {})
-            if (claude.get("enabled") is False or claude.get("implemented") is False
-                    or claude.get("availability", "available") != "available"
-                    or claude.get("account_status") == "unavailable"):
-                raise ShadowError("Claude classifier runtime unavailable; shadow skipped")
             event["classifier"] = {"status": "failed", "validation": "UNVALIDATED",
                                    "model": config["model"], "effort": config["effort"],
-                                   "usage": None, "api_equivalent_usd": None}
+                                   "usage": None, "api_equivalent_usd": None, "attempted": False,
+                                   "quota_reservation_status": "unmeasured"}
             value = capsule if capsule is not None else capsule_from_brief(Path(brief)) if brief else {}
             safe_capsule = sanitize_capsule(value, role=role, profile=profile, tier=tier)
             event["capsule_hash"] = digest(safe_capsule)
-            classification = classify(config, safe_capsule, run, primary)
+            if usage is None:
+                import balance
+                usage = balance.usage(run)
+            classification = classify(config, safe_capsule, run, primary,
+                fresh_check=lambda: classifier_preflight(policy, usage,
+                    time.time() if now is None else now, actual, runtime_mode(run)))
             event["classifier"] = {key: val for key, val in classification.items() if key != "result"}
+            event["classifier"]["quota_reservation_status"] = "unmeasured"
             parsed = classification["result"]
             if parsed["status"] != "classified":
                 raise ShadowError("classifier reported insufficient context")
@@ -431,6 +501,8 @@ def evaluate(root: Path, run: Path, primary: Path, *, actual: dict, profile: str
         event.update(actual=dict(actual), selected_tuple=dict(actual), mode="shadow",
                      decision_id=decision_id, dispatch=dispatch, attempt_id=dispatch)
     except Exception as exc:  # An advisory system cannot break the existing dispatch.
+        if isinstance(exc, ClassifierFailure):
+            event["classifier"].update(exc.telemetry, status="failed")
         safe = str(exc) if isinstance(exc, ShadowError) else f"{type(exc).__name__}; shadow skipped"
         event.update(status="skipped", recommendation=None, reason=clean_text(safe)[:240])
     return event

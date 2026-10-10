@@ -57,6 +57,17 @@ def digest(value):
                                      separators=(",", ":")).encode()).hexdigest()
 
 
+def decision_identity(event):
+    """Dispatch fields and shadow/helper fields use different public key names."""
+    values = [event[key] for key in ("decision_id", "router_decision_id")
+              if event.get(key) is not None]
+    for value in values:
+        identity(value, "decision_id")
+    if len(set(values)) > 1:
+        raise CalibrationError("conflicting decision ID fields")
+    return values[0] if values else None
+
+
 def _semantic(value):
     value = {k: v for k, v in value.items() if k != "at"}
     if isinstance(value.get("review"), dict):
@@ -160,6 +171,10 @@ def _attempts(events):
         links = [e for e in events if e.get("type") == "router.attempt"
                  and e.get("dispatch") == dispatch]
         joined = {**start, **(shadows[-1] if shadows else {}), **(links[-1] if links else {})}
+        decision_ids = [decision_identity(e) for e in [start, *shadows, *links]]
+        if len({value for value in decision_ids if value is not None}) > 1:
+            raise CalibrationError("dispatch/shadow decision identity mismatch")
+        joined["decision_id"] = next((value for value in decision_ids if value is not None), None)
         key = joined.get("attempt_id") or dispatch
         if key in attempts:
             raise CalibrationError("attempt ID belongs to multiple dispatches")
@@ -219,6 +234,9 @@ def _validate_end(events, attempt):
     if len(ends) > 1:
         raise CalibrationError("ambiguous duplicate dispatch ends")
     if ends:
+        end_decision = decision_identity(ends[0])
+        if end_decision is not None and end_decision != attempt.get("decision_id"):
+            raise CalibrationError("dispatch end contradicts decision identity")
         for key in LINK_KEYS + ("actual", "selected_tuple"):
             expected = attempt["actual"] if key == "selected_tuple" else attempt.get(key)
             if ends[0].get(key) is not None and ends[0][key] != expected:

@@ -52,6 +52,7 @@ class ShadowTest(unittest.TestCase):
         task_state.append_event(self.run / "events.jsonl", entry)
 
     def evaluate(self, **values):
+        values.setdefault("usage", {})
         return shadow.evaluate(self.root, self.run, self.root, actual=ACTUAL,
             profile="critical-review", role="implementer", tier=3, **values)
 
@@ -81,7 +82,7 @@ class ShadowTest(unittest.TestCase):
         self.assertEqual(result["actual"], ACTUAL)
         self.assertEqual(result["selected_tuple"], ACTUAL)
         self.assertEqual(result["recommendation"]["runtime"], "codex")
-        self.assertEqual(result["classifier"]["validation"], "HUMAN_SUPPLIED")
+        self.assertEqual(result["classifier"]["validation"], "CALLER_SUPPLIED")
         self.assertEqual(result["policy_hash"], "p" * 64)
         shadow.append(self.run, self.root, result)
         shadow.append(self.run, self.root, result)
@@ -106,6 +107,45 @@ class ShadowTest(unittest.TestCase):
         self.assertEqual(result["actual"], ACTUAL)
         self.assertEqual(result["classifier"]["validation"], "UNVALIDATED")
         self.assertEqual(result["status"], "skipped")
+
+    def test_known_quota_stop_blocks_fresh_classifier_but_not_a_valid_cache(self):
+        self.configure()
+        usage = {"claude": {"status": "known", "windows": [
+            {"name": "five_hour", "used": .9, "resets_at": 2000}]}}
+        with self.fake_scorer(CONFIG), patch.object(shadow, "invoke_classifier", side_effect=AssertionError):
+            result = self.evaluate(capsule=self.capsule(), usage=usage, now=1000)
+        self.assertEqual(result["status"], "skipped")
+        self.assertIn("stop_at", result["reason"])
+        self.assertFalse(result["classifier"]["attempted"])
+        self.assertEqual(result["classifier"]["api_equivalent_usd"], 0)
+        with patch.object(shadow, "invoke_classifier", return_value={
+                "result": ANSWER, "resolved_model": CONFIG["model"]}):
+            shadow.classify(CONFIG, self.capsule(), self.run, self.root)
+        with self.fake_scorer(CONFIG), patch.object(shadow, "invoke_classifier", side_effect=AssertionError):
+            result = self.evaluate(capsule=self.capsule(), usage=usage, now=1000)
+        self.assertTrue(result["classifier"]["cache_hit"])
+        self.assertEqual(result["classifier"]["api_equivalent_usd"], 0)
+
+    def test_no_eligible_actual_dispatch_never_starts_fresh_classifier(self):
+        self.configure()
+        with self.fake_scorer(CONFIG), patch.object(shadow, "invoke_classifier", side_effect=AssertionError):
+            result = shadow.evaluate(self.root, self.run, self.root,
+                actual={"runtime": None, "model": None, "effort": None}, profile="critical-review",
+                role="implementer", tier=3, capsule=self.capsule(), usage={})
+        self.assertEqual(result["status"], "skipped")
+        self.assertFalse(result["classifier"]["attempted"])
+
+    def test_failed_classifier_resource_evidence_is_logged(self):
+        self.configure()
+        telemetry = {"attempted": True, "usage": {"input_tokens": 123, "output_tokens": 20},
+                     "api_equivalent_usd": .027, "elapsed_seconds": 1}
+        with self.fake_scorer(CONFIG), patch.object(shadow, "invoke_classifier",
+                side_effect=shadow.ClassifierFailure("classifier process failed", telemetry)):
+            result = self.evaluate(capsule=self.capsule())
+        self.assertEqual(result["status"], "skipped")
+        self.assertIsNone(result["recommendation"])
+        self.assertEqual(result["classifier"]["usage"], telemetry["usage"])
+        self.assertEqual(result["classifier"]["api_equivalent_usd"], .027)
 
     def test_bad_configuration_never_breaks_static_dispatch(self):
         self.configure(mode="active")
@@ -218,6 +258,15 @@ class ShadowTest(unittest.TestCase):
             shadow.classify(CONFIG, {**self.capsule(), "goal": "other"}, self.run, self.root)
         self.assertEqual(call.call_count, 3)
 
+    def test_cache_write_failure_preserves_classification_and_cost(self):
+        response = {"result": ANSWER, "resolved_model": CONFIG["model"], "api_equivalent_usd": .027}
+        with patch.object(shadow, "invoke_classifier", return_value=response), patch.object(
+                shadow.os, "replace", side_effect=OSError("readonly")):
+            result = shadow.classify(CONFIG, self.capsule(), self.run, self.root)
+        self.assertEqual(result["api_equivalent_usd"], .027)
+        self.assertEqual(result["result"], ANSWER)
+        self.assertEqual(result["cache_write_error"], "OSError")
+
     def test_cache_cannot_follow_symlink(self):
         outside = self.root / "outside"
         outside.mkdir()
@@ -307,6 +356,31 @@ class ClassifierProcessTest(unittest.TestCase):
             self.run_fake("print('not json')\n")
         with self.assertRaisesRegex(shadow.ShadowError, "process failed"):
             self.run_fake("sys.exit(4)\n")
+
+    def test_failed_budget_identity_schema_and_tool_cases_keep_reported_usage(self):
+        base = {"type": "result", "subtype": "success", "is_error": False,
+                "structured_output": ANSWER, "modelUsage": {CONFIG["model"]: {}},
+                "usage": {"input_tokens": 123, "output_tokens": 20}, "total_cost_usd": .027}
+        cases = [({**base, "subtype": "error_max_budget_usd", "is_error": True}, 1, []),
+                 ({**base, "modelUsage": {"other-model": {}}}, 0, []),
+                 ({**base, "structured_output": {"wrong": "schema"}}, 0, []),
+                 (base, 0, [{"type": "assistant", "message": {"model": CONFIG["model"],
+                            "content": [{"type": "tool_use", "name": "Bash"}]}}])]
+        for result, code, before in cases:
+            payload = "\n".join("print(" + repr(json.dumps(row)) + ")" for row in [*before, result])
+            payload += f"\nsys.exit({code})\n"
+            with self.subTest(code=code, subtype=result['subtype']):
+                with self.assertRaises(shadow.ClassifierFailure) as raised:
+                    self.run_fake(payload)
+                self.assertEqual(raised.exception.telemetry["api_equivalent_usd"], .027)
+                self.assertEqual(raised.exception.telemetry["usage"]["output_tokens"], 20)
+
+    def test_timeout_without_result_has_unknown_cost_not_zero(self):
+        with self.assertRaises(shadow.ClassifierFailure) as raised:
+            self.run_fake("print('partial',flush=True)\ntime.sleep(5)\n",
+                          {**CONFIG, "timeout_seconds": .05})
+        self.assertIsNone(raised.exception.telemetry["api_equivalent_usd"])
+        self.assertFalse(raised.exception.telemetry["response_complete"])
 
 
 if __name__ == "__main__":
