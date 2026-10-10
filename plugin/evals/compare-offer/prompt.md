@@ -10,3 +10,5 @@ to a day. We could keep a retry table in our database that a worker polls, or ha
 deliveries to a message broker with delayed redelivery; the two differ in operations, ordering
 and what happens when the broker is down. Design it." Following the skill, write only your first
 message to the user. Under 150 words.
+
+State the default for each mode explicitly alongside its recommended option; wait for the answer before dispatch.

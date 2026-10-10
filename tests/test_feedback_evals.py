@@ -20,7 +20,8 @@ class FeedbackEvalTest(unittest.TestCase):
         for answer in ("Now I'll ask again about feedback.",
                        'I know I will repeat the question.',
                        'Note: I will ask the feedback question again.',
-                       'Noted. I will offer feedback again.'):
+                        'Noted. I will offer feedback again.',
+                       "I don't draft new code; I ask feedback again."):
             with self.subTest(answer=answer):
                 self.assertIsNone(expression.search(answer))
         for answer in ('Never re-offer this issue.', 'Do not ask this again.',
@@ -29,7 +30,8 @@ class FeedbackEvalTest(unittest.TestCase):
                        'The question is not asked again.', 'This must never be re-offered.',
                        'No further feedback offers.',
                        "I don't ask the feedback question again.",
-                       'I don’t re-offer the same complaint.'):
+                        'I don’t re-offer the same complaint.',
+                       "I don't draft it again, run offer, or ask the feedback question."):
             with self.subTest(answer=answer):
                 self.assertIsNotNone(expression.search(answer))
 
