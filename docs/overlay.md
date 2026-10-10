@@ -490,7 +490,7 @@ a non-link where a skill link goes is refused. Generated files and links the sou
 produce are removed. The renderer refuses to run with the core outside the checkout or on the
 core repository itself.
 
-### review — calibrated acceptance
+## review — calibrated acceptance (`project.json`)
 
 Read by `xreview.py` from `project.json`. Unknown keys, an invalid stage or malformed
 invariants cause exit 2 before any reviewer is invoked. Other project sections are ignored.
@@ -529,7 +529,7 @@ and silently disabled guards/checks. Functional is a recoverable feature failure
 wrong result. Cosmetic affects presentation. Verified severe blockers are Critical;
 functional blockers are Major; all backlog findings are Minor.
 
-### Review calibration evidence and feedback hook
+## Review calibration evidence and feedback hook
 
 `xreview.py --run-dir <run> --milestone M1` records round 1 in
 `<run>/review-ledger.jsonl`; `--ledger <run>/xreview.jsonl` also supplies the run directory.
@@ -603,9 +603,22 @@ can distinguish it from a new defect, even if its line number shifts.
 A corrected expectation may deliberately disagree with
 the current matrix: that is evidence for a proposed default change, not automatic approval.
 
-**Feedback hook at merge:** if `feat/feedback` is present, its collector can consume the
-sanitized fixture JSON array plus `report --json`; otherwise retain these artifacts in the
-run for the feedback workflow. An upstream proposal should include a cell/invariant change,
+**Feedback hook at merge:** `feat/feedback` currently exposes `feedback.py draft` with
+`--kind`, `--title`, `--from-file`, and `--run-dir`. It expects a harness-only Markdown
+proposal, rather than a raw ledger or fixture array. Build `<run>/calibration-proposal.md`
+from the sanitized fixture and aggregate counts (omit private run paths), using these
+headings: `What happened`, `Expected`, `Repro (minimal, harness-only)`, `Evidence`, `Proposal`.
+The evidence includes the current matrix decision, corrected expectation, outcome rates
+and a synthetic reproducer. Once that branch is merged, create a local reviewable draft:
+
+```sh
+python3 harness/core/scripts/feedback.py draft --kind friction \
+  --title 'Calibrate review acceptance from observed outcomes' \
+  --from-file <run>/calibration-proposal.md --run-dir <run>
+```
+
+Without that script, retain the sanitized fixture array and proposal in the run as the
+documented handoff hook; the feedback workflow can consume them after merge. An upstream proposal should include a cell/invariant change,
 before/after fixture decisions and the rate evidence. Export does not send or publish
 anything. The user approves any upstream submission. Run the fixture tests and skill evals
 before adopting a new shared default, and retain the old evidence for comparison.

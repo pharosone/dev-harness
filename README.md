@@ -272,7 +272,7 @@ Review likelihood and impact against this product's normal paths. `xreview.py` r
 Critical/Major blockers from the approved matrix; missing fields or code-read evidence
 make a claim Minor until verified. Configure `project.json.review` with `stage` (default
 `pilot`) and short product `invariants` (default empty). See [review policy and calibration
-loop](docs/overlay.md#review--calibrated-acceptance) for the scale and commands.
+loop](docs/overlay.md#review--calibrated-acceptance-projectjson) for the scale and commands.
 
 Use `--section 'Limits, retries'` repeatedly for headings containing commas; legacy
 `--sections` still works. Supply `--run-dir <run> --milestone M1`; round 2 uses
