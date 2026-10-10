@@ -165,7 +165,13 @@ def lane_conditions(run: Path, memory: dict, config: dict, now: float,
             continue
         prompt = needs_input(screen or "")
         if prompt or status == "blocked":
-            add("needs-input", prompt or "agent_status: blocked")
+            prior_input = next(((k, c) for k, c in memory.get("open", {}).items()
+                                if c.get("dispatch") == dispatch
+                                and c.get("condition") == "needs-input"), None)
+            if screen is None and prior_input:
+                conditions[prior_input[0]] = dict(prior_input[1])
+            else:
+                add("needs-input", prompt or "agent_status: blocked")
         if screen is not None:
             digest = hashlib.sha256(screen.encode()).hexdigest()
             previous = screens.get(dispatch, {})

@@ -124,11 +124,11 @@ class WatchTest(unittest.TestCase):
         self.assertEqual(self.poll(2001), [])
 
     def test_failed_read_does_not_clear_a_question(self):
-        self.live("1 question")
+        self.live("1 question", "blocked")
         self.poll()
-        self.live(read_failed=True)
+        self.live(status="blocked", read_failed=True)
         self.assertEqual(self.poll(1001), [])
-        self.live("1 question")
+        self.live("1 question", "blocked")
         self.assertEqual(self.poll(1002), [])
 
     def test_product_secret_values_are_not_logged_or_cached(self):
