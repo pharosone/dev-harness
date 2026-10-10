@@ -472,6 +472,8 @@ def status_lines(run: Path, primary: Path, now: datetime, agents: dict | None) -
         for unit, state in dashboard.tripwire_state(run, primary, units).items():
             if state["trips"]:
                 trips.append(f"  🔥 {unit}: {'; '.join(str(t) for t in state['trips'])}")
+    import watch
+    lines.append(watch.summary(run))
     lines.append(f"Tripwires: {len(trips)} open")
     lines += trips
     lines += balance_lines(events)
@@ -513,6 +515,8 @@ def event_line(event: dict) -> str:
         tools = (f" · {usage['tool_calls']} tool calls"
                  if isinstance(usage.get("tool_calls"), int) else "")
         body = f"■ {event.get('dispatch')}  {event.get('status') or '?'}{took}{tools}"
+    elif kind == "watch":
+        body = f"🚨 {event.get('line') or 'watch condition'}"
     elif kind == "gate.open":
         body = f"🚦 gate {event.get('gate')} open" + (f" · {event['card']}"
                                                       if event.get("card") else "")

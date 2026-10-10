@@ -471,18 +471,26 @@ class LaunchTest(unittest.TestCase):
         self.assertEqual(self.calls(), [])
         self.assertEqual(out["launcher"], "pane")
 
-    def test_a_blocked_agent_is_surfaced_and_never_answered(self):
+    def test_a_blocked_agent_is_surfaced_without_automatic_input(self):
         out = self.start("--launcher", "pane", env=self.herdr_env())
         self.set_agent(out["pane"], "blocked")
         before = len(self.herdr_calls())
         self.assertEqual(self.status(out["dispatch"], env=self.herdr_env())["state"], "blocked")
-        self.assertEqual(self.wait(out["dispatch"], env=self.herdr_env(), expect=5)["state"],
-                         "blocked")
+        waited = self.wait(out["dispatch"], env=self.herdr_env(), expect=5)
+        self.assertEqual(waited["state"], "blocked")
+        for phrase in ("spec and earlier authorizations", "never answer trust/permission reviews",
+                       "escalate material decisions to the user"):
+            self.assertIn(phrase, waited["reason"])
         answered = [c for c in self.herdr_calls()[before:]
                     if c[:2] in (["agent", "prompt"], ["agent", "send-keys"],
                                  ["pane", "send-keys"], ["pane", "send-text"])]
         self.assertEqual(answered, [])
         self.assertEqual([e["type"] for e in self.events(out["dispatch"])], ["dispatch.start"])
+
+    def test_successful_pane_start_closes_its_launch_window(self):
+        out = self.start("--launcher", "pane", env=self.herdr_env())
+        state = json.loads((self.run_dir / "lanes" / f"{out['dispatch']}.json").read_text())
+        self.assertIs(state.get("launch_pending"), False)
 
     def test_over_three_live_agents_report_only_work_runs_headless(self):
         busy = [{"name": f"busy{i}", "agent": "claude", "pane_id": f"w1:p{20 + i}",

@@ -50,6 +50,34 @@ read their evidence, own the final report.
   `project.json → dashboard`). It changes only where a `pane` decision opens, never the
   decision: short report-only work on your own vendor is still a subagent (your agent tool),
   not a pane. Without herdr it is a no-op.
+- **Run watch.** At run start arm `python3 harness/core/scripts/watch.py --task <task>`:
+  Claude Code uses `Monitor`, unbounded with the tool's maximum timeout, and re-arms on expiry
+  or any unexpected exit while the run remains active;
+  if unavailable, use a background process and read its output every turn and before going
+  idle. Codex uses a background process with captured output read at those boundaries, or
+  `watch.py --task <task> --once` at every turn and before going idle. Restart a background
+  watcher that exits while the run is active. Stop the watcher when the run ends. Product
+  checks and the product's own stop command come from `project.json → watch` (see
+  `harness/core/docs/overlay.md`); state and repeat suppression survive re-arming.
+
+## Act on watch output
+
+Every emitted line gets an action in the same turn. `LANE … needs-input`: read the dialog,
+answer questions you can decide from the spec and earlier authorizations; never answer trust/permission reviews;
+escalate material decisions to the user. A watch category is an alert, not the question text:
+read the actual dialog and those authorizations before deciding. `frozen`: inspect, nudge or cancel the lane. `exited` or
+`ended-no-report`: inspect its logs and recover or report the failed dispatch. `done`: read and
+accept the report promptly, with the unit's checks and spend recording. As part of acceptance,
+or after recovering/handling an `ended-no-report` dispatch, run
+`python3 harness/core/scripts/watch.py --task <task> --ack <dispatch>`. Acknowledgment closes
+that dispatch's terminal alert permanently; new work must use a new dispatch id. It cannot
+hide needs-input or frozen conditions. For a `CHECK` indicating
+a repeating failure or retry loop, stop the product's live process using its own
+`watch.stop_command` from the product checkout before another retry; when no stop command is
+configured, escalate immediately for the product's stop procedure. A repeated generic check
+failure needs diagnosis; determine whether live work is retrying before stopping it. Report the
+action to the user in 2–3 lines. Silence is fine when nothing fires. The watcher records
+observations and never answers dialogs or stops the product itself.
 
 ## Tier decides the process
 
@@ -132,7 +160,9 @@ what, so the dashboard and a resuming runtime see it without a living session.
   (report and usage) and `cancel`. `start` exit 3: dispatch it as a subagent; exit 4
   (`queued`, at the herdr agent limit: three by default, `project.json → lanes`): start it
   again after a lane ends. `wait` exit 5: the
-  lane is `blocked` — show it to the user with its pane and never answer it yourself.
+  lane is `blocked` — never answer trust/permission reviews yourself. Read its dialog and
+  apply «Act on watch output»: answer questions you can decide from the spec and earlier authorizations;
+  escalate material decisions to the user.
 - **Panes:** the run's own panes stay open after the work;
   panes the run did not create are never closed or reused, and `cancel` refuses a pane that
   is no longer the run's. With the dashboard open, a lane pane whose agent has exited is
@@ -223,7 +253,8 @@ design verifier's screenshots. A PR goes through `submit-pr` when the user asks.
 
 ## Stop and ask
 
-- A tripwire tripped, a gate is reached, a lane is `blocked`, or the same finding survived two
+- A tripwire tripped, a gate is reached, a lane needs a material decision or trust/permission
+  review, or the same finding survived two
   rounds.
 - The implementer flagged that the spec and a frozen test cannot both hold.
 - A required capability (second vendor, browser, independent context) is unavailable: record

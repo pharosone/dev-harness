@@ -177,8 +177,9 @@ prints `{"launcher", "reason"}`:
 `lanes.py start` launches the decision and records `dispatch.start`/`dispatch.end`; `status`,
 `wait`, `result` and `cancel` work the same for every launcher. Herdr holds at most three live
 agents, counting ones the run did not start, unless the overlay sets `project.json → lanes`
-(`herdr_max_agents`, and `count: "run"` to count only the run's own agents); a `blocked` lane is
-shown to the user and never answered by the orchestrator; panes the run did not create are never
+(`herdr_max_agents`, and `count: "run"` to count only the run's own agents); a `blocked` lane's
+dialog must be read: answer questions you can decide from the spec and earlier authorizations;
+never answer trust/permission reviews; escalate material decisions to the user. Panes the run did not create are never
 closed or reused.
 
 With herdr, `lanes.py dashboard --task T --open` opens the run's dashboard tab `📊 <task>`: on
@@ -189,8 +190,39 @@ panes (`project.json → dashboard`); on the right the run's lane panes, labelle
 lane ended and whose shell is idle before splitting a new one; `--close` closes only the run's
 own dashboard panes. Without herdr it is a no-op and `dashboard.py`'s page is the dashboard.
 
+At run start arm `python3 harness/core/scripts/watch.py --task T`: Claude Code uses `Monitor`
+with an unbounded command and the tool's maximum timeout, re-arming on expiry or unexpected exit; Codex starts a
+background process and reads its output each turn and before going idle, or runs `--once` at
+those boundaries. Polling defaults to 30 seconds, repeat suppression to 600 seconds
+(`--every`, `--quiet-repeat`); cleared conditions re-arm immediately. The watcher emits
+`LANE <work> needs-input <what>`, `frozen <minutes>` (unchanged screen for 15 minutes while not
+working), `ended-no-report`, `exited` or `done`, and `CHECK <name> <anomaly>` / `failed` from the
+overlay's `watch.checks`. Without herdr, lane checks use dispatch state and product checks
+still run. State lives in `<run>/lanes/_watch.json`; `watch` events appear in both dashboards,
+with `Watch: ✅ quiet` / `Watch: 🚨 N open` in the status view.
+
+Act on every line in the same turn: answer or escalate input, nudge or cancel frozen lanes,
+inspect missing reports/exits, accept done reports, and stop the product's live process on a
+repeating product failure through its own `watch.stop_command` before another retry. If the
+stop command is absent, escalate for the product's stop procedure. Tell the user in 2–3 lines
+what was done; silence is fine when nothing fires. The script only observes and records;
+the orchestrator acts. Stop the watcher when the run ends. Configuration:
+[watch in the overlay](docs/overlay.md#watch--lane-and-product-observations).
+
+After accepting a report or handling an ended-no-report dispatch, run
+`python3 harness/core/scripts/watch.py --task T --ack D` as part of that acceptance/recovery.
+This permanently closes the dispatch's terminal watch alert; new work gets a new dispatch id.
+The command cannot acknowledge live input/freeze alerts. Runtime poll errors are logged as
+`watch.error` events and retried; bad startup configuration exits 2. `--once` returns 1 on a
+poll failure. Pane starts keep a registration window open while their recorded `launch_pid`
+is alive and `launch_pending` is true; successful startup closes it immediately, and a dead
+launcher can be reported as exited. Legacy states without a launcher PID have five minutes
+of grace. Health commands may emit JSON lines with stable
+`key` and changing `message` fields to suppress changing counters. HTML shows the latest
+50 watch events, with the full history kept in `events.jsonl`.
+
 The run directory keeps `events.jsonl`, one JSON event per line (`run.start`,
-`dispatch.start`/`dispatch.end`, `gate.open`/`gate.answer`, `compare.*`), appended only through
+`dispatch.start`/`dispatch.end`, `gate.open`/`gate.answer`, `compare.*`, `watch`), appended only through
 `task_state.py`'s locked writer: its `event` command, the generated Claude hooks, `lanes.py`
 and `compare.py`. `run.md` stays
 the narrative; `dashboard.py` renders both, and a run without the log renders from its files
@@ -210,6 +242,7 @@ documents its CLI and overlay keys.
 | `balance.py usage/observe/pick` | each vendor's usage windows (Claude from captured stream-json logs, Codex from its session files, manual `usage set`) and the pick of a worker's vendor inside one profile; each pick is a `balance.pick` event |
 | `dashboard.py TASK [--out PATH]` | the run as one self-contained local page (`<run>/dashboard.html`): lanes, pending gates, tripwires, compares, vendors (usage windows, runway, shares, latest picks), spend per unit |
 | `dashboard_herdr.py view status\|events --task T` | the run's herdr dashboard tab behind `lanes.py dashboard`: geometry, lane placement and reuse, the live status and events views it runs in its panes (`project.json → dashboard` adds project panes) |
+| `watch.py --task T [--once] [--every S] [--quiet-repeat S] [--ack D]` | observe lane dialogs, frozen screens, reports and exits, plus overlay product checks; suppress repeats, append `watch` events and acknowledge terminal lane acceptance/recovery |
 | `tripwire.py scope/spend/flag/check/report/resolve/close/hook` | unit paths, spend ledger, stop-the-lane facts, decisions on flags; `hook` and `spend --dispatch … --status …` write dispatch events |
 | `tier.py --base REF` | risk tier from paths × size (`tiers.json`) |
 | `gate.py [AREA…] [--changed BASE] [--dry-run]`, `--pin-ci WORKFLOW` | the one copy of the CI gates (`gates.json`), quiet output, full logs on disk; the pin against CI |
