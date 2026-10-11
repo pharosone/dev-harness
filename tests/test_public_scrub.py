@@ -1,5 +1,7 @@
 """The core is public: no product names, hosts or stack-specific facts of any consumer.
 
+Generic technology examples are public guidance, not a consumer's private stack facts.
+
 Projects keep those in their own `harness/project` layer. The skill names pharos-dev and
 pharos-discover are the core's own names and stay allowed.
 """
@@ -10,13 +12,21 @@ import unittest
 
 CORE = Path(__file__).resolve().parents[1]
 FORBIDDEN = re.compile(
-    r"vector-kya|pharosone(?!/dev-harness\b)|pharos(?!-dev\b|-discover\b|-investigate\b| task=|one/dev-harness\b)|meridian|\bclerk\b|\bsqlc\b|\bhuma\b|\bminio\b"
+    r"vector-kya|pharosone(?!/dev-harness\b)|pharos(?!-dev\b|-discover\b|-investigate\b| task=|one/dev-harness\b)|meridian|\bclerk\b|\bsqlc\b|\bhuma\b"
     r"|server/internal|web/lib|organization_id|\bcabinet\b|\bjudg(?:e|es|ed|ing)\b",
     re.IGNORECASE)
 SKIP = {"LICENSE", "tests/test_public_scrub.py"}
 
 
 class PublicScrubTest(unittest.TestCase):
+    def test_generic_object_service_examples_are_not_consumer_specifics(self):
+        self.assertIsNone(FORBIDDEN.search("S3 / MinIO: shared service with isolated buckets"))
+
+    def test_consumer_names_hosts_and_invariants_remain_forbidden(self):
+        for text in ("vector-kya", "vector-kya.example.test", "organization_id", "server/internal"):
+            with self.subTest(text=text):
+                self.assertIsNotNone(FORBIDDEN.search(text))
+
     def test_no_consumer_specifics_in_tracked_files(self):
         listed = subprocess.run(["git", "ls-files", "-z"], cwd=CORE, capture_output=True, check=True)
         hits = []
