@@ -119,6 +119,10 @@ class ScopeTest(unittest.TestCase):
     def test_runner_flags_preserve_underlying_test_scope(self):
         wrappers = [
             ["uv", "run", "--frozen"], ["uv", "run", "--with", "x"],
+            ["uv", "run", "--color", "never"], ["uv", "run", "--color=never"],
+            ["uv", "run", "-w", "x", "--no-extra", "test"],
+            ["uv", "run", "--index-strategy", "first-index", "--refresh-package", "x"],
+            ["uv", "run", "--module"], ["uv", "run", "-m"],
             ["uv", "run", "--with=x", "--python", "3.12", "--no-sync"],
             ["uv", "--directory", "project", "run", "--with", "x", "--"],
             ["poetry", "run", "--"], ["pdm", "run", "--project", "project"],
