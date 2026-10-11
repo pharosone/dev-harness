@@ -37,9 +37,9 @@ checkout needs at least one commit and a clean tree.
 
 ```sh
 CORE_URL=https://github.com/pharosone/dev-harness.git
-git clone --depth 1 --branch v1.5.0 "$CORE_URL" /tmp/dev-harness
+git clone --depth 1 --branch v1.4.0 "$CORE_URL" /tmp/dev-harness
 mkdir -p harness && cp -R /tmp/dev-harness/examples/project harness/project   # then edit it
-python3 /tmp/dev-harness/scripts/harness_sync.py install --repo "$CORE_URL" --ref v1.5.0
+python3 /tmp/dev-harness/scripts/harness_sync.py install --repo "$CORE_URL" --ref v1.4.0
 python3 harness/core/scripts/render_adapters.py
 ```
 
