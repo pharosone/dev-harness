@@ -12,7 +12,8 @@
     "review-calibration",
     "pharos-dev-profile-authority",
     "frozen-test-amendments",
-    "pharos-dev-efficient-testing"
+    "pharos-dev-efficient-testing",
+    "pharos-dev-push-policy"
   ],
   "skills/pharos-discover/SKILL.md": [
     "compare-declined",
@@ -31,7 +32,8 @@
   "skills/submit-pr/SKILL.md": [
     "submit-pr-evidence",
     "submit-pr-profile-authority",
-    "submit-pr-efficient-testing"
+    "submit-pr-efficient-testing",
+    "submit-pr-push-policy"
   ],
   "skills/address-gh-review/SKILL.md": [
     "address-gh-round",
