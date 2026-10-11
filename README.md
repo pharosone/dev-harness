@@ -106,7 +106,11 @@ approval. Hard limits are enforced by `harness/core/scripts/guard.py` on both ru
 repeated here because compaction can drop path rules:
 - never deploy from a session;
 - stage explicit paths only (`git add <paths>`, never `-A` or `.`);
-- push only when the user asks (the guard asks them);
+- by default, Claude asks for each push; an owner may authorize autonomous ordinary feature
+  pushes with `project.json` → `guard.push: "allow"`. Codex lanes always remain denied.
+  Force/lease, mirror, deletions, main/master or cached remote HEAD, hidden verbs and
+  ambiguous/compound pushes still ask. Changing the policy itself asks once. See
+  [guard configuration](docs/overlay.md#guard);
 - never read or write `.env` files;
 - never touch personal untracked agents and skills;
 - never put secrets in briefs, reports or logs.

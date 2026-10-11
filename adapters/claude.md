@@ -103,7 +103,11 @@ text; pass the rule paths to agents of other runtimes.
   package scripts; check which checkout is served.
 - **Hooks:** generated `.claude/settings.json` runs the Stop wrapper, `guard.py` before Bash,
   Read, Edit, Write and NotebookEdit, and the tripwire before and after Agent. `git push` triggers a
-  permission prompt every time. Hooks are a guardrail; CI still runs every check.
+  permission prompt by default. After explicit owner authorization, the overlay may set
+  `guard.push` to `"allow"` for ordinary, non-force feature pushes by this orchestrator.
+  Force/lease, mirror, deletions, main/master or cached remote HEAD, aliases/dynamic verbs
+  and uncertain/compound pushes still ask; the configuration edit itself asks once. This
+  grants no push permission to Codex lanes. Hooks are a guardrail; CI still runs every check.
 - **Claude-only mode** (Codex unavailable): everything as usual except the review —
   `xreview.py --writer claude --reviewer claude` (Opus `high` in a fresh context, recorded as
   single-vendor); Codex workers are replaced by Claude dispatches on the same profiles.

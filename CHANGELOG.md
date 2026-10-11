@@ -3,6 +3,14 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.7.1 — 2026-10-11
+
+- Optional `guard.push: "allow"` lets an owner-authorized Claude orchestrator push ordinary
+  non-force feature refs without a per-push confirmation. The default remains ask; Codex
+  lanes remain denied. Force/lease, mirror, deletion, default-branch, dynamic and uncertain
+  pushes still ask, including unsafe configured destinations. Editing the policy still
+  requires the existing guard-configuration approval.
+
 ## 1.7.0 — 2026-10-11
 
 - Review fixes preserve full-suite admission through runner options, retain waiting records

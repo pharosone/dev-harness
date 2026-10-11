@@ -59,7 +59,7 @@ class ExampleRunsTheArchitectureCheckTest(unittest.TestCase):
 class PluginVersionTest(unittest.TestCase):
     def test_plugin_version_is_the_release(self):
         plugin = json.loads(read("plugin", ".claude-plugin", "plugin.json"))
-        self.assertEqual(plugin["version"], "1.7.0")
+        self.assertEqual(plugin["version"], "1.7.1")
 
 
 if __name__ == "__main__":
