@@ -77,7 +77,7 @@ RED_EVIDENCE = re.compile(
     # Error types count only where a failure prints them (line start, or "raise X"),
     # never inside a passing test's name such as test_raises_AssertionError ... ok.
     r"--- FAIL|^FAIL|FAILED|^ERROR(?:\s|:)|undefined:|cannot find"
-    r"|^\s*(?:raise\s+\w*Error\b|(?:E[ \t]+)?[A-Za-z_.]*(?:Error|UndefinedColumn):)"
+    r"|^\s*(?:raise\s+\w*Error\b|(?:E[ \t]+)?[A-Za-z0-9_.]*(?:Error|UndefinedColumn):)"
     r"|: error\b|^error\b|Traceback"
     r"|✗|×|Tests? .*failed",
     re.MULTILINE,
@@ -551,7 +551,7 @@ def verified_setup_error(evidence: dict, source: bytes, filename: str) -> set[st
                  r"|\b[1-9]\d* failed\b|^\s*(?:E\s+)?(?:assert\b|self\.assert)",
                  text, re.MULTILINE):
         return None
-    errors = list(re.finditer(r"^[ \t]*(?:E[ \t]+)?([A-Za-z_.]*(?:Error|UndefinedColumn)):[ \t]*(.*)",
+    errors = list(re.finditer(r"^[ \t]*(?:E[ \t]+)?([A-Za-z0-9_.]*(?:Error|UndefinedColumn)):[ \t]*(.*)",
                               text, re.MULTILINE))
     if not errors:
         return None

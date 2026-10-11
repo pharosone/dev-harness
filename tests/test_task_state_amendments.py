@@ -136,6 +136,11 @@ class FreezeAmendmentTest(unittest.TestCase):
             with self.subTest(source=changed):
                 self.rejected(self.amend(changed))
 
+    def test_qualified_setup_exception_with_digits_is_supported(self):
+        old = "def setup_function():\n    fixture = missing_api()\n\ndef test_one():\n    assert True\n"
+        self.prepare(old, red='Traceback (most recent call last):\n  File "tests/test one.py", line 2, in setup_function\npsycopg2.errors.UndefinedColumn: missing fixture column\n')
+        self.accepted(self.amend(old.replace("missing_api", "correct_api")), "setup-only")
+
     def test_setup_only_before_first_green_keeps_assertions_byte_identical(self):
         old = "import unittest\n\nclass TestOne(unittest.TestCase):\n    def setUp(self):\n        self.fixture = Fake(wrong=True)\n\n    def test_one(self):\n        self.assertEqual(self.fixture.value, 42)  # contract\n"
         self.prepare(old, red="ERROR: test_one\nTraceback (most recent call last):\n  in setUp\nTypeError: Fake got unexpected keyword 'wrong'\n")
