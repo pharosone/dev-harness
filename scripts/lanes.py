@@ -542,6 +542,12 @@ def finish(state: dict, status: str, usage: dict | None = None,
     """Write the dispatch's one end; an end already written wins and is returned.
     report_source, when given, says where the report came from ("final_message")."""
     fields = {"dispatch": state["dispatch"], "status": status, "usage": usage}
+    if state.get("router_decision_id"):
+        import router_shadow
+        try:
+            fields.update(router_shadow.completion_fields(state))
+        except Exception as exc:
+            print(f"lanes: shadow completion evidence skipped ({type(exc).__name__})", file=sys.stderr)
     if report_source:
         fields["report_source"] = report_source
     record(state, "dispatch.end", fields, event_id=f"{state['dispatch']}.end")
@@ -1167,17 +1173,76 @@ def start(args, *, capability: str | None = None, scratch: str | None = None) ->
     budget = {} if args.max_budget_usd is None else {"budget_enforced": False}
     budget.update(echo)  # printed beside the budget, never recorded
     if launcher == "subagent":
+        shadow = shadow_for_args(args, "lanes.start")
+        extra = {"shadow": shadow} if shadow is not None else {}
         print(json.dumps({"dispatch": None, "launcher": launcher, "reason": reason, "pane": None,
-                          **budget}))
+                          **budget, **extra}))
         return EXIT_SUBAGENT
     primary, run = run_directory(args.task)
+    # Classify outside the Herdr launch lock. This never alters args or launcher.
+    shadow = shadow_for_args(args, "lanes.start", primary=primary, run=run, emit=False)
     profile = {}
     if scratch_dir is not None:
         scratch_dir.mkdir(parents=True, exist_ok=True)
         profile = {"capability": capability, "scratch": str(scratch_dir)}
-    with herdr_lock() if launcher == "pane" else contextlib.nullcontext():
-        return launch(args, launcher, reason, budget, primary, run, brief, checkout, profile,
-                      settings)
+    try:
+        with herdr_lock() if launcher == "pane" else contextlib.nullcontext():
+            return launch(args, launcher, reason, budget, primary, run, brief, checkout, profile,
+                          settings, shadow=shadow)
+    except (Queued, LaneError, OSError):
+        if shadow is not None:
+            # Keep classification cost/evidence even if capacity/snapshot setup prevented a launch.
+            # If launch already wrote the same decision ID, append is an idempotent no-op.
+            import router_shadow
+            router_shadow.append(run, primary, {**shadow, "launch_not_completed": True})
+            regenerate_dashboard(run, primary)
+        raise
+
+
+def shadow_for_args(args, origin: str, *, primary: Path | None = None,
+                    run: Path | None = None, emit: bool = True) -> dict | None:
+    """Optional advisory data. Old commands without shadow configuration are unchanged."""
+    import router_shadow
+    try:
+        try:
+            root = project.repo_root(Path.cwd())
+        except project.OverlayError:
+            return None  # Generic launcher decisions outside a checkout keep their old contract.
+        try:
+            configured_mode = router_shadow.mode(root)
+        except Exception:
+            configured_mode = "shadow"  # evaluate records the configuration failure safely.
+        if configured_mode == "off":
+            return None
+        if run is None:
+            if not getattr(args, "task", None):
+                return {"mode": "shadow", "status": "skipped", "recommendation": None,
+                        "reason": "shadow event needs --task; actual launcher retained"}
+            primary, run = run_directory(args.task)
+        actual = {"runtime": args.runtime, "model": getattr(args, "model", None),
+                  "effort": getattr(args, "effort", None)}
+        profile = getattr(args, "profile", None)
+        if origin == "lanes.decide" and profile and not actual["model"]:
+            import xreview
+            models, _ = xreview.models(root)
+            static = models.get(args.runtime, {}).get(profile, {})
+            actual.update(model=static.get("model"), effort=static.get("effort"))
+        event = router_shadow.evaluate(root, run, primary, actual=actual, profile=profile,
+            role=args.role, tier=getattr(args, "tier", None), brief=getattr(args, "brief", None),
+            weights=getattr(args, "router_weights", None), origin=origin,
+            parent_attempt_id=getattr(args, "parent_attempt_id", None),
+            root_attempt_id=getattr(args, "root_attempt_id", None),
+            linked_decision_id=getattr(args, "router_decision_id", None))
+        if emit:
+            router_shadow.append(run, primary, event)
+            regenerate_dashboard(run, primary)
+        return event
+    except Exception as exc:
+        # No exception in an advisory path is allowed to mutate the actual launch.
+        print(f"lanes: shadow skipped ({type(exc).__name__}); actual launcher retained",
+              file=sys.stderr)
+        return {"mode": "shadow", "status": "skipped", "recommendation": None,
+                "reason": f"{type(exc).__name__}; shadow skipped"}
 
 
 def start_orchestrator(flag: str | None) -> tuple[str, dict]:
@@ -1226,7 +1291,8 @@ def checked_scratch(capability: str | None, scratch: str | None, checkout: Path)
 
 
 def launch(args, launcher: str, reason: str, budget: dict, primary: Path, run: Path,
-           brief: Path, checkout: Path, profile: dict, settings: dict | None = None) -> int:
+           brief: Path, checkout: Path, profile: dict, settings: dict | None = None,
+           *, shadow: dict | None = None) -> int:
     """Count, record and launch one dispatch (a pane under the workspace's herdr lock)."""
     name = None
     if launcher == "pane":
@@ -1251,6 +1317,13 @@ def launch(args, launcher: str, reason: str, budget: dict, primary: Path, run: P
         budget["budget_enforced"] = enforced
     folder = lanes_dir(run, primary)
     dispatch = slug(f"{args.work}-{args.role}", 40) + "-" + uuid.uuid4().hex[:6]
+    shadow_fields = {}
+    if shadow is not None and shadow.get("decision_id"):
+        import router_shadow
+        shadow = {**shadow, "dispatch": dispatch, "attempt_id": dispatch}
+        if not shadow.get("parent_attempt_id"):
+            shadow["root_attempt_id"] = shadow.get("root_attempt_id") or dispatch
+        shadow_fields = router_shadow.dispatch_fields(shadow)
     where = None
     if profile:
         snapshot = Path(profile["scratch"]) / SNAPSHOT_DIR
@@ -1276,7 +1349,7 @@ def launch(args, launcher: str, reason: str, budget: dict, primary: Path, run: P
              "snapshot": profile.get("snapshot"), "snapshot_base": profile.get("snapshot_base"),
              "workdir": str(where) if where else None,
              "prompt": brief.read_text(encoding="utf-8")
-             + f"\n\nWrite your full report to {report}.\n"}
+             + f"\n\nWrite your full report to {report}.\n", **shadow_fields}
     if profile:
         state["prompt"] += candidate_note(state) + "\n"
     path = task_state.evidence_path(folder / f"{dispatch}.json", primary)
@@ -1285,7 +1358,10 @@ def launch(args, launcher: str, reason: str, budget: dict, primary: Path, run: P
     record(state, "dispatch.start", {
         "dispatch": dispatch, "role": args.role, "runtime": args.runtime, "model": args.model,
         "effort": args.effort, "launcher": launcher, "work": args.work, "report": str(report),
-        "pane": state["pane_name"], **profile})
+        "pane": state["pane_name"], **profile, **shadow_fields})
+    if shadow is not None and shadow.get("decision_id"):
+        router_shadow.append(run, primary, shadow)
+        regenerate_dashboard(run, primary)
     try:
         if launcher == "headless":
             with open(state["log"], "ab") as log:
@@ -1301,7 +1377,8 @@ def launch(args, launcher: str, reason: str, budget: dict, primary: Path, run: P
         finish(state, "failed")
         raise LaneError(f"launch failed, dispatch {dispatch} ended failed: {exc}") from None
     print(json.dumps({"dispatch": dispatch, "launcher": launcher, "reason": reason,
-                      "pane": state["pane_name"], **budget, **profile}))
+                      "pane": state["pane_name"], **budget, **profile,
+                      **({"shadow": shadow} if shadow is not None else {})}))
     return 0
 
 
@@ -1459,6 +1536,11 @@ def add_decision_flags(sub, required: bool) -> None:
     sub.add_argument("--tier", type=int, help="the unit's process tier, 0-3")
     sub.add_argument("--compare-candidate", action="store_true",
                      help="the worker is a compare candidate")
+    sub.add_argument("--profile", help="grade used only by the optional shadow router")
+    sub.add_argument("--router-weights", help="explicit JSON trait weights; no classifier call")
+    sub.add_argument("--router-decision-id", help="link a prior balance/decide shadow record")
+    sub.add_argument("--parent-attempt-id", help="explicit preceding dispatch for a fix-up")
+    sub.add_argument("--root-attempt-id", help="root dispatch of the same acceptance chain")
 
 
 def main() -> int:
@@ -1468,6 +1550,8 @@ def main() -> int:
     sub = commands.add_parser("decide", help="print the launcher for one worker")
     add_decision_flags(sub, required=True)
     sub.add_argument("--repo", help="the checkout the worker runs in (default: this one)")
+    sub.add_argument("--task", help="initialized run for shadow evidence")
+    sub.add_argument("--brief", help="compact task capsule or Markdown Goal/Contract sections")
     sub = commands.add_parser("start", help="decide, launch and record one worker")
     add_decision_flags(sub, required=False)
     sub.add_argument("--task", required=True)
@@ -1517,6 +1601,9 @@ def main() -> int:
                             herdr=os.environ.get("HERDR_ENV") == "1", needs_user=args.needs_user,
                             outlives_turn=args.outlives_turn, other_repo=other, tier=args.tier,
                             compare_candidate=args.compare_candidate)
+            shadow = shadow_for_args(args, "lanes.decide")
+            if shadow is not None:
+                report["shadow"] = shadow
             print(json.dumps(report))
             return 0
         if args.command == "start":

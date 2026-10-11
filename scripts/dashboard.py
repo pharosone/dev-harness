@@ -57,6 +57,7 @@ sys.dont_write_bytecode = True
 from task_state import StateError, checkouts, locate, read_events
 from tripwire import check as tripwire_check, ledger_entries
 from xreview import SECRET_VALUE
+import router_calibration
 
 UNKNOWN = "unknown"
 BLOCKED = "blocked — waiting for the user"
@@ -542,6 +543,29 @@ def report_cell(report: Path | None, run: Path, out_dir: Path, named) -> str:
     return link(report, out_dir, report.relative_to(run).as_posix())
 
 
+def shadow_section(events: list[dict]) -> str:
+    """Add read-only recommendations; absent shadow events leave the page unchanged."""
+    rows = []
+    for event in [e for e in events if e.get("type") == "router.shadow"][-20:]:
+        label = router_calibration.classifier_label(event)
+        badge = "<br><strong>" + text(label) + "</strong>" if label else ""
+        details = "<br>".join(text(item) for item in router_calibration.shadow_details(event))
+        recommendation = ("would pick " + router_calibration.show_tuple(event["recommendation"])
+                          if isinstance(event.get("recommendation"), dict) else "skipped / no recommendation")
+        rows.append(
+            '<tr><td class="recommendation">⚖ shadow: ' + text(recommendation) + badge + '</td>'
+            '<td class="actual">' + text(router_calibration.show_tuple(event.get("actual"))) + '</td>'
+            '<td class="status">' + text(router_calibration.safe_text(event.get("status"))) + '</td>'
+            '<td class="reason">because ' + text(router_calibration.safe_text(event.get("reason"))) + '</td>'
+            '<td class="provenance">' + details + '</td></tr>')
+    if not rows:
+        return ""
+    return ('<section id="router-shadow"><h2>Shadow recommendations</h2>'
+            '<p class="muted">Static dispatch remains the actual choice. Assumptions are uncalibrated.</p>'
+            + table(["Would pick", "Actual static tuple", "Status", "Reason", "Assumptions / provenance"], rows, "")
+            + '</section>')
+
+
 def render(run: Path, primary: Path, out: Path, now: datetime, stale: timedelta) -> str:
     out_dir = out.parent
     has_log = (run / "events.jsonl").is_file()
@@ -746,6 +770,7 @@ Unreadable event lines skipped: <span id="unreadable-count">{unreadable}</span>.
 <p class="muted">Latest {min(len(watch_events), 50)} of {len(watch_events)} watch events; full history in events.jsonl.</p>
 <ul>{''.join(watch_rows) or '<li>No watch conditions emitted.</li>'}</ul>
 </section>
+{shadow_section(events)}
 <section id="running">
 <h2>Running and stale dispatches</h2>
 {table(dispatch_head, running, "No dispatch is running.")}

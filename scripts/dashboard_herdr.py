@@ -477,8 +477,17 @@ def status_lines(run: Path, primary: Path, now: datetime, agents: dict | None) -
     lines.append(f"Tripwires: {len(trips)} open")
     lines += trips
     lines += balance_lines(events)
+    lines += shadow_lines(events)
     if unreadable:
         lines.append(f"({unreadable} unreadable line(s) in events.jsonl skipped)")
+    return lines
+
+
+def shadow_lines(events: list[dict]) -> list[str]:
+    lines = []
+    for event in [e for e in events if e.get("type") == "router.shadow"][-5:]:
+        lines.append(dashboard.router_calibration.shadow_text(event))
+        lines += ["  " + detail for detail in dashboard.router_calibration.shadow_details(event)]
     return lines
 
 
@@ -525,6 +534,8 @@ def event_line(event: dict) -> str:
     elif kind == "balance.pick":
         body = (f"⚖ pick {event.get('role') or '?'} → {event.get('runtime') or '?'}"
                 + (f" ({event['reason']})" if event.get("reason") else ""))
+    elif kind == "router.shadow":
+        body = dashboard.router_calibration.shadow_text(event)
     else:
         fields = {k: v for k, v in event.items() if k not in task_state.EVENT_ENVELOPE}
         body = f"· {kind} " + " ".join(f"{k}={json.dumps(v, ensure_ascii=False)}"
