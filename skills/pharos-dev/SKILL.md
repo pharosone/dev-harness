@@ -7,6 +7,14 @@ Read `harness/core/README.md`, the active runtime adapter and, when present,
 `harness/project/skills/pharos-dev.md` (this skill's project specifics) before following this
 procedure. `harness/project` in this skill means the overlay in use: `$HARNESS_PROJECT` when set; `python3 harness/core/scripts/project.py overlay` prints it.
 
+**Dispatch authority:** resolve every orchestrator/worker model and effort from
+`harness/core/adapters/models.json` deep-merged with the active
+`harness/project/models.json` (or `$HARNESS_PROJECT/models.json`). Record profile, model
+and effort. Never select from personal memory or saved preferences; router shadow is
+advisory and cannot replace the actual static profile choice. Lane progress goes to
+`<report>.progress.md`; write final `<report>` only at the end. Requests use
+`<run>/lanes/<work>.flag.md` or `tripwire.py flag`; never type into another pane.
+
 # pharos-dev — deliver an approved spec
 
 **Goal:** every "Done when" row of the spec holds, proven by commands run in this session,
@@ -125,6 +133,18 @@ power — the same profile on both vendors; the pick only chooses which vendor r
 
 ## Unit loop
 
+Frozen tests allow only verified automatic amendments: Python AST-equivalent cleanup of
+provably unused imports (collected tests/fixtures and unknown bindings remain protected), or
+setup-only repair before recorded first green with unchanged assertion bytes and verified
+setup-error red evidence. Re-run `task_state.py freeze --red-log` to archive and log the
+reason. All other edits require coordinator approval. To authorize named list/tuple/set
+literal additions, pin `task-state append-only: tests/test_tools.py:EXPECTED` in the initial
+brief and pass `freeze --brief <brief>`; existing elements and all other AST nodes stay
+unchanged. Immediately record the first passing test output using
+`task_state.py green <task> <unit> --green-log <file>`; `verify` alone is not green evidence.
+Never introduce skip/xfail workarounds; setup bodies with these controls stay protected.
+Empty/all-skipped or expected-failure-only runs cannot establish first green.
+
 1. `python3 harness/core/scripts/tripwire.py scope <task> NN --base HEAD [--turn-budget N] <spec globs>`
    in the unit's checkout. Parallel units only when their globs do not overlap, each in
    `python3 harness/core/scripts/worktree.py add <name> [--deps]`; one writer per checkout.
@@ -132,7 +152,10 @@ power — the same profile on both vendors; the pick only chooses which vendor r
    `PostToolUse(Agent)` hook records spend and runs the tripwires). The brief quotes the unit
    contract from the spec and names the checkout, the paths, the rule files, the run directory
    and the report path. The implementer role defines the dispatch itself (tests → red log →
-   `task_state.py freeze --red-log` → code → `verify` → `gate.py`).
+   `task_state.py freeze --red-log` → code → `verify` → `gate.py` →
+   `task_state.py green --green-log` immediately after the first passing test command).
+   Name `<report>.progress.md` for progress and `<run>/lanes/<work>.flag.md` for questions;
+   never write the final report early or type into another pane.
    The writer's vendor, model and effort come from `balance.py pick` (Vendor balance above).
    How it starts — subagent, headless or a pane — is `lanes.py decide`'s answer
    (Lanes below). Codex is a worker, never the owner: its brief ends with a report file and a

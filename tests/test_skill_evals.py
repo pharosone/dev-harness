@@ -45,6 +45,11 @@ args=sys.argv[1:]
 Path(os.environ['TRACE']).write_text(json.dumps(args))
 plugin=Path(args[2])
 assert len(list((plugin/'skills').iterdir())) == 1
+if os.environ.get('CHECK_BUNDLE'):
+ assert (plugin/'harness/core/README.md').read_text() == 'Authoritative profiles.\\n'
+ assert (plugin/'harness/core/shared/rules.md').read_text() == 'Referenced rules.\\n'
+ assert (plugin/'skills/example/../../README.md').read_text() == 'Authoritative profiles.\\n'
+ assert (plugin/'skills/example/../../shared/rules.md').read_text() == 'Referenced rules.\\n'
 cases=[p.parent.name for p in (plugin/'evals').rglob('prompt.md')]
 with_score=float(os.environ.get('WITH','1'))
 without_score=float(os.environ.get('WITHOUT','0.25'))
@@ -95,6 +100,52 @@ sys.exit(int(os.environ.get('EXIT','0')))
     def settings(self):
         settings = ev.config(self.root)
         return settings, ev.inventory(self.root, settings)
+
+    def test_native_eval_packages_whole_declared_reference_bundle(self):
+        self.put(self.skill, 'Read `../../README.md`.\n')
+        self.put('README.md', 'Authoritative profiles.\n')
+        self.put('shared/rules.md', 'Referenced rules.\n')
+        self.put('skills/example/eval-inputs.json', '["../../shared/rules.md"]')
+        self.put('plugin/evals/case/prompt.md', 'changed scenario')
+        code, output = self.run_eval(CHECK_BUNDLE='1')
+        self.assertEqual(code, 0, output)
+
+    def test_external_metadata_bump_does_not_require_new_evidence(self):
+        self.put(self.skill, "Read `../../README.md`.\n")
+        self.put("README.md", "Version: 1.5.0\nDate: 2026-10-10\nRules stay fixed.\n")
+        self.git('add', 'README.md', self.skill)
+        self.git('commit', '-qm', 'reference base')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+        self.put("README.md", "Version: 1.6.0\nDate: 2026-10-11\nRules stay fixed.\n")
+        code, output = self.cli('check', '--base', self.base)
+        self.assertEqual(code, 0, output)
+        self.put("README.md", "Version: 1.6.0\nDate: 2026-10-11\nRules changed.\n")
+        code, output = self.cli('check', '--base', self.base)
+        self.assertEqual(code, 1, output)
+        self.assertIn('no added/changed eval case', output)
+
+    def test_reference_mode_change_is_not_a_metadata_bump(self):
+        self.put(self.skill, "Read `../../README.md`.\n")
+        reference = self.put("README.md", "Version: 1.5.0\n")
+        self.git('add', 'README.md', self.skill)
+        self.git('commit', '-qm', 'reference mode base')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+        reference.chmod(0o755)
+        code, output = self.cli('check', '--base', self.base)
+        self.assertEqual(code, 1, output)
+        self.assertIn('no added/changed eval case', output)
+
+    def test_changelog_headings_only_are_noninvalidating(self):
+        self.put(self.skill, "Read `../../CHANGELOG.md`.\n")
+        self.put("CHANGELOG.md", "## 1.5.0 — Unreleased\n- Fix X\n")
+        self.git('add', 'CHANGELOG.md', self.skill)
+        self.git('commit', '-qm', 'changelog base')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+        self.put("CHANGELOG.md", "## 1.6.0 — 2026-10-11\n- Fix X\n")
+        code, output = self.cli('check', '--base', self.base)
+        self.assertEqual(code, 0, output)
+        self.put("CHANGELOG.md", "## 1.6.0 — 2026-10-11\n- Fix Y\n")
+        self.assertEqual(self.cli('check', '--base', self.base)[0], 1)
 
     def test_invalid_base_is_a_clear_usage_error(self):
         for base in ('missing-ref', '--no-index'):

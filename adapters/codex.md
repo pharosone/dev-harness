@@ -7,6 +7,17 @@ spend a weekly limit before anyone sees a result. Skills resolve through `.agent
 (`$pharos-dev`) or their `skills/<name>/SKILL.md`. `AGENTS.md` is loaded automatically: do not
 read it again.
 
+- **Profile authority:** resolve orchestrator and worker model/effort at dispatch time from
+  `harness/core/adapters/models.json` deep-merged with `harness/project/models.json`.
+  Never use personal memory or saved model preferences. Record the resolved profile/model/effort;
+  router shadow recommendations stay advisory and do not replace actual static profile choices.
+- **Lane reports and requests:** progress goes to `<report>.progress.md`; the final report
+  goes to `<report>` only when work ends. For coordinator input, write
+  `<run>/lanes/<work>.flag.md` (or `tripwire.py flag`); watch surfaces `needs-input flag`.
+  If the run directory is outside writable roots, use `<report>.flag.md`. Native subagent
+  events use the same watched channel. Never type into another agent pane. The coordinator
+  resolves and removes answered flags.
+
 - **Codex-only mode** (Claude unavailable, or the user asks): Codex may orchestrate
   `pharos-dev`, within limits that keep it from becoming an owner session again:
   - orchestrator on `gpt-6.1-sol` `high` (never Astra); workers from `.codex/agents/*` on their

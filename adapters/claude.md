@@ -4,6 +4,17 @@ Skills resolve through `.claude/skills/*`. The root `CLAUDE.md` imports `AGENTS.
 roles set `omitClaudeMd` and read the map once themselves. `.claude/rules` carry the path rules'
 text; pass the rule paths to agents of other runtimes.
 
+- **Profile authority:** resolve orchestrator and worker model/effort at dispatch time from
+  `harness/core/adapters/models.json` deep-merged with `harness/project/models.json`.
+  Never use personal memory or saved model preferences. Record the resolved profile/model/effort;
+  router shadow recommendations stay advisory and do not replace actual static profile choices.
+- **Lane reports and requests:** progress goes to `<report>.progress.md`; the final report
+  goes to `<report>` only when work ends. For coordinator input, write
+  `<run>/lanes/<work>.flag.md` (or `tripwire.py flag`); watch surfaces `needs-input flag`.
+  If the run directory is outside writable roots, use `<report>.flag.md`. Native subagent
+  events use the same watched channel. Never type into another agent pane. The coordinator
+  resolves and removes answered flags.
+
 - **Questions:** `AskUserQuestion` within its batch limit, recommended option first and never
   treated as submitted; otherwise ask in the conversation.
 - **Delegation:** the Agent tool with the generated role (`subagent_type`), model from the

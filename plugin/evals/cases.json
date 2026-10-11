@@ -9,28 +9,36 @@
     "skill-evals-unit",
     "watch-react",
     "feedback-offer",
-    "review-calibration"
+    "review-calibration",
+    "pharos-dev-profile-authority",
+    "frozen-test-amendments"
   ],
   "skills/pharos-discover/SKILL.md": [
     "compare-declined",
     "compare-offer",
     "skill-evals-discovery",
-    "feedback-declined"
+    "feedback-declined",
+    "pharos-discover-profile-authority"
   ],
   "skills/pharos-investigate/SKILL.md": [
     "deep-mode-offer",
-    "investigate-declined-comparison"
+    "investigate-declined-comparison",
+    "pharos-investigate-profile-authority"
   ],
   "skills/submit-pr/SKILL.md": [
-    "submit-pr-evidence"
+    "submit-pr-evidence",
+    "submit-pr-profile-authority"
   ],
   "skills/address-gh-review/SKILL.md": [
-    "address-gh-round"
+    "address-gh-round",
+    "address-gh-review-profile-authority"
   ],
   "skills/manual-test-plan/SKILL.md": [
-    "manual-test-scope"
+    "manual-test-scope",
+    "manual-test-plan-profile-authority"
   ],
   "skills/design-review/SKILL.md": [
-    "design-review-shape"
+    "design-review-shape",
+    "design-review-profile-authority"
   ]
 }

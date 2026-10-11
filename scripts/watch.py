@@ -10,6 +10,19 @@ stop_command: "product's own stop command"}. Commands run in the product checkou
 through its shell, with a 60-second timeout; stdout lines are anomalies, nonzero or
 timeout emits CHECK <name> failed. stop_command is for the orchestrator, not executed
 here. Without herdr, only persisted dispatch observations and product checks apply.
+Lane conditions: done only once the dispatch ended with a report written since its start, or
+a pane's agent is idle/done with one (a report written while it works, or progress notes in
+<report>.progress.md, are not done; a vanished agent or process is exited until its end);
+ended-no-report; exited; needs-input <dialog>; needs-input flag (lanes.flag_raised: the
+canonical <run>/lanes/<work>.flag.md, an open tripwire flag of the unit, or <report>.flag.md
+written since the start; the text is never read; removing or resolving it clears it);
+needs-input hook-trust (Codex's startup review of new or changed hooks, with the one key the
+user presses: t, Trust all and continue); frozen N only for a working agent whose screen and
+checkout files (tracked, untracked and ignored; .git and .harness/ excluded) have not changed
+for frozen_minutes. Activity that cannot be read (no checkout recorded, git failing, more than
+ACTIVITY_MAX_FILES files or ACTIVITY_SECONDS of scanning) never proves a freeze. A failed
+screen/state read keeps unanswered dialogs but clears freeze evidence until fresh reads.
+Native Agent-tool subagent events use the same canonical/tripwire request channels.
 --ack closes a pending done/ended-no-report alert permanently for that dispatch after
 acceptance/recovery. New work uses a new dispatch id. Poll errors are logged and retried;
 --once exits 1 on a poll failure, invalid settings/usage exit 2, successful commands exit 0.
@@ -35,6 +48,9 @@ import project
 import task_state
 
 LAUNCH_GRACE = 300  # a bounded startup window, including pane placement and registration
+# checkout_activity's bound: past either, the checkout's activity is unknown (no freeze).
+ACTIVITY_MAX_FILES = 50_000
+ACTIVITY_SECONDS = 5.0
 
 
 def log_error(run: Path, primary: Path, scope: str, exc: Exception) -> None:
@@ -141,7 +157,13 @@ def settings(root: Path) -> dict:
 
 
 # Describe the condition rather than copying the screen (which can contain secrets).
+# Codex's startup review of new or changed hooks (after every harness update the guard's hash
+# changes); `t` is its "Trust all and continue". Only the user presses it.
+HOOK_TRUST = "hook-trust"
+HOOK_TRUST_ACTION = "the user presses t (Trust all and continue) in {pane}"
 PROMPTS = [
+    (r"\bhooks? needs? review\b|\bhooks? (?:is|are) new or changed\b|trust all and continue",
+     HOOK_TRUST),
     (r"\b[1-9]\d*\s+questions?\b|⇧\s*←\s*to answer|\benter\s+submit\b", "question dialog"),
     (r"trust this (?:folder|workspace|repository)|\bt trust all\b|hook.{0,100}(?:needs review|review before)|needs review before it can run", "trust/hook review"),
     (r"do you want to proceed|allow (?:command|once|this)|permission (?:required|prompt)|approve.{0,30}(?:command|permission)|\(y/n\)", "permission prompt"),
@@ -158,6 +180,43 @@ def working_indicator(screen: str) -> bool:
     """An agent status line, never prose such as 'working tree' or 'Working directory'."""
     return bool(re.search(r"(?im)^\s*(?:[•●✻✽✶✢✳⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]\s*)?"
                           r"Working(?:\s*\([^\n]*\)|…|\.\.\.)?\s*$", screen))
+
+
+def checkout_activity(state: dict) -> str | None:
+    """A fingerprint of what the lane changes: HEAD and every file of its checkout, tracked,
+    untracked and ignored alike (`ls-files --cached --others`: path, mtime, size, so a file
+    rewritten with the same content and build or test output count), never .git or the run
+    state under .harness/ (the watcher writes there), plus the report and its progress notes.
+    None, which proves no freeze, for a state without a checkout, a checkout git cannot list,
+    or one past ACTIVITY_MAX_FILES files or ACTIVITY_SECONDS of scanning."""
+    stamps = [lanes.report_stamp(Path(name)) for name in (
+        [state["report"], lanes.progress_path(state["report"])] if state.get("report") else [])]
+    folder = state.get("workdir") or state.get("checkout")
+    if not folder:
+        return None
+    began = time.monotonic()
+    try:
+        head = subprocess.run(["git", "rev-parse", "-q", "--verify", "HEAD"], cwd=folder,
+                              capture_output=True, text=True, timeout=ACTIVITY_SECONDS).stdout.strip()
+        remaining = ACTIVITY_SECONDS - (time.monotonic() - began)
+        if remaining <= 0:
+            return None
+        done = subprocess.run(["git", "ls-files", "-z", "--cached", "--others",
+                               f"--exclude={lanes.RUN_STATE}"], cwd=folder,
+                              capture_output=True, text=True, timeout=remaining)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    names = sorted(set(done.stdout.split("\0")) - {""})
+    if done.returncode or len(names) > ACTIVITY_MAX_FILES:
+        return None
+    files = []
+    for name in names:
+        if Path(name).parts[:1] in ((lanes.RUN_STATE,), (".git",)):
+            continue
+        if time.monotonic() - began > ACTIVITY_SECONDS:
+            return None
+        files.append([name, lanes.report_stamp(Path(folder) / name)])
+    return hashlib.sha256(json.dumps([head, files, stamps]).encode()).hexdigest()
 
 
 def herdr_call(*args: str) -> subprocess.CompletedProcess:
@@ -197,7 +256,7 @@ def lane_conditions(run: Path, memory: dict, config: dict, now: float,
             present.add(path.stem)
             screens.pop(path.stem, None)
             conditions.update({k: dict(c) for k, c in memory.get("open", {}).items()
-                               if c.get("dispatch") == path.stem})
+                               if c.get("dispatch") == path.stem and c.get("condition") != "frozen"})
             continue
         dispatch = state["dispatch"]
         present.add(dispatch)
@@ -206,20 +265,23 @@ def lane_conditions(run: Path, memory: dict, config: dict, now: float,
         def add(kind, detail=""):
             key = f"lane:{dispatch}:{kind}"
             if kind == "needs-input":
-                key += f":{detail}"
+                key += ":flag" if detail == "flag" else f":{detail}"
             conditions[key] = {
                 "line": f"LANE {work} {kind}" + (f" {detail}" if detail else ""),
                 "dispatch": dispatch, "work": work, "condition": kind}
 
-        if state.get("report") and lanes.report_fresh(state):
-            if dispatch not in memory.get("acknowledged", {}):
-                add("done")
+        acknowledged = dispatch in memory.get("acknowledged", {})
+        fresh = bool(state.get("report")) and lanes.report_fresh(state)
+        if not acknowledged and lanes.flag_raised(state, run):
+            add("needs-input", "flag")  # the lane's sanctioned question; its text is not read
+
+        def finished():
+            if not acknowledged:
+                add("done" if fresh else "ended-no-report")
             screens.pop(dispatch, None)
-            continue
-        if dispatch in ends or state.get("state") in ("done", "failed", "timeout", "cancelled"):
-            if dispatch not in memory.get("acknowledged", {}):
-                add("ended-no-report")
-            screens.pop(dispatch, None)
+
+        if dispatch in ends or state.get("state") in lanes.ENDED:
+            finished()
             continue
         status = state.get("agent_status") or state.get("state")
         screen = None
@@ -237,7 +299,7 @@ def lane_conditions(run: Path, memory: dict, config: dict, now: float,
                             continue
                     elif started is not None and now < started + LAUNCH_GRACE:
                         continue  # compatibility for states written before launch_pid existed
-                add("exited")
+                add("exited")  # a report alone is no end: lanes status ends it
                 screens.pop(dispatch, None)
                 continue
             status = agent.get("agent_status")
@@ -252,35 +314,59 @@ def lane_conditions(run: Path, memory: dict, config: dict, now: float,
                                    and state.get("pid") and not lanes.alive(state["pid"])):
             add("exited")
             continue
+        if fresh and state.get("launcher") == "pane" and status in ("idle", "done"):
+            finished()  # the report is final only once the agent ended its turn
+            continue
         working = status == "working" or (status != "blocked" and working_indicator(screen or ""))
         prompt = needs_input(screen or "") if not working else None
         if prompt or status == "blocked":
             prior_input = next(((k, c) for k, c in memory.get("open", {}).items()
-                                if c.get("dispatch") == dispatch
+                                if c.get("dispatch") == dispatch and not k.endswith(":flag")
                                 and c.get("condition") == "needs-input"), None)
             if screen is None and prior_input:
                 conditions[prior_input[0]] = dict(prior_input[1])
+            elif prompt == HOOK_TRUST:
+                pane = state.get("pane_name") or state.get("pane_id")
+                add("needs-input", f"{HOOK_TRUST}: {HOOK_TRUST_ACTION.format(pane=pane)}")
             else:
                 add("needs-input", prompt or "agent_status: blocked")
         if screen is not None:
+            # Frozen: a working agent whose screen and checkout (checkout_activity) have not
+            # changed for frozen_minutes. Activity that cannot be read proves nothing.
             digest = hashlib.sha256(screen.encode()).hexdigest()
+            files = checkout_activity(state) if working else None
             previous = screens.get(dispatch, {})
-            if previous.get("hash") != digest or working:
-                previous = {"hash": digest, "since": now}
+            if (not working or files is None
+                    or [previous.get("hash"), previous.get("files")] != [digest, files]):
+                previous = {"hash": digest, "files": files, "since": now}
             screens[dispatch] = previous
             minutes = max(0, now - previous["since"]) / 60
-            if not working and not prompt and status != "blocked" and minutes >= config["frozen_minutes"]:
+            if working and files is not None and minutes >= config["frozen_minutes"]:
                 add("frozen", str(int(minutes)))
         else:
-            # A failed read or unavailable Herdr is not evidence of recovery. Preserve
-            # screen-derived alerts, but require a fresh observation for new freezes.
+            # Unknown screen evidence cannot prove a freeze. Preserve unanswered
+            # dialogs until resolved, but restart the freeze clock after fresh reads.
             screens.pop(dispatch, None)
-            if status not in ("working", "running"):
-                for key, condition in memory.get("open", {}).items():
-                    if (condition.get("dispatch") == dispatch
-                            and condition.get("condition") in ("needs-input", "frozen")
-                            and not any(c.get("dispatch") == dispatch for c in conditions.values())):
-                        conditions[key] = dict(condition)
+            keep = "needs-input" if status not in ("working", "running") else None
+            for key, condition in memory.get("open", {}).items():
+                if (condition.get("dispatch") == dispatch and condition.get("condition") == keep
+                        and not key.endswith(":flag")
+                        and not any(c.get("dispatch") == dispatch and not k.endswith(":flag")
+                                    for k, c in conditions.items())):
+                    conditions[key] = dict(condition)
+    # Native Agent-tool dispatches have events rather than lanes/*.json states.
+    # Their file request channel must be visible on both runtimes too.
+    for event in events:
+        dispatch = event.get("dispatch")
+        if (event.get("type") != "dispatch.start" or event.get("launcher") != "subagent"
+                or not isinstance(dispatch, str) or dispatch in present
+                or dispatch in memory.get("acknowledged", {})):
+            continue
+        if lanes.flag_raised(event, run):
+            work = safe_text(" ".join(str(event.get("work") or dispatch).split()))
+            conditions[f"lane:{dispatch}:needs-input:flag"] = {
+                "line": f"LANE {work} needs-input flag", "dispatch": dispatch,
+                "work": work, "condition": "needs-input"}
     memory["screens"] = {d: s for d, s in screens.items() if d in present}
     return conditions
 

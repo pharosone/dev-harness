@@ -8,7 +8,7 @@ Usage: gate.py [AREA ...] [--changed BASE] [--base REF] [--keep-going] [--dry-ru
 Overlay file `gates.json` (in $HARNESS_PROJECT, else <checkout>/harness/project; --config
 names another file). Its top-level keys are areas, run in file order, except two reserved
 keys:
-  <area>    {"paths": [...], "steps": [...]}
+  <area>    {"paths": [...], "steps": [...], "services"?: [...]}
   comment   free text, ignored
   ci_pin    read only by --pin-ci (below)
 A path ending in `/` is a directory prefix, a path holding `*` or `?` a glob
@@ -29,6 +29,11 @@ its own directory. A step is
 Steps check the working tree as it is and write no sources; dependency installs are the
 checkout's setup, not steps. Without gates.json there is nothing to run, and gate.py says
 so with exit 2 rather than reporting a pass.
+
+Optional services are {"name", "url_env", "start", "timeout"?: seconds}. Before selected
+steps, probe the environment URL's host/port over TCP (default connect timeout 1 second).
+Fail once with a credential-free endpoint and manual startup instruction; never read .env
+or execute startup commands. --dry-run and --pin-ci never connect to services.
 
 Without AREA or --changed every area runs. --changed adds the areas whose paths
 changed since BASE: committed, staged, unstaged and untracked. Steps run through
@@ -55,12 +60,15 @@ it checks that each command runs, not what its arguments are.
 import argparse
 import glob
 import json
+import os
 from pathlib import Path
 import posixpath
 import re
 import shlex
+import socket
 import sys
 import time
+from urllib.parse import urlsplit
 
 # Importing must not write __pycache__ into a read-only installed harness.
 sys.dont_write_bytecode = True
@@ -136,8 +144,22 @@ def parse(data, where: str) -> tuple[dict, dict]:
         raise ConfigError(f"{where}: expected an object of areas")
     for area, spec in areas.items():
         place = f"{where}: area {area!r}"
-        if not isinstance(spec, dict) or set(spec) != {"paths", "steps"}:
-            raise ConfigError(f"{place} must be an object with exactly 'paths' and 'steps'")
+        if not isinstance(spec, dict) or not {"paths", "steps"} <= set(spec) <= {"paths", "steps", "services"}:
+            raise ConfigError(f"{place} needs 'paths', 'steps' and optional 'services'")
+        services = spec.get("services", [])
+        if not isinstance(services, list):
+            raise ConfigError(f"{place}: services must be a list")
+        for service in services:
+            if not isinstance(service, dict) or not {"name", "url_env", "start"} <= set(service) <= {"name", "url_env", "start", "timeout"}:
+                raise ConfigError(f"{place}: each service needs name, url_env, start and optional timeout")
+            if any(not isinstance(service[key], str) or not service[key].strip()
+                   or any(ord(c) < 32 for c in service[key]) for key in ("name", "url_env", "start")):
+                raise ConfigError(f"{place}: service fields must be nonempty single-line text")
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", service["url_env"]):
+                raise ConfigError(f"{place}: url_env must be an environment variable name")
+            timeout = service.get("timeout", 1)
+            if type(timeout) not in (int, float) or not 0 < timeout <= 30:
+                raise ConfigError(f"{place}: service timeout must be in (0, 30] seconds")
         if not isinstance(spec["paths"], list) or not all(
                 isinstance(p, str) and p for p in spec["paths"]):
             raise ConfigError(f"{place}: 'paths' must be a list of non-empty strings")
@@ -171,6 +193,41 @@ def load(path: Path) -> tuple[dict, dict]:
     except ValueError as exc:
         raise ConfigError(f"{path}: {exc}") from None
     return parse(data, str(path))
+
+
+def probe_services(areas: dict, selected: set[str]) -> str | None:
+    """Bounded TCP liveness preflight; never echo URL credentials or run setup."""
+    seen = set()
+    for area, spec in areas.items():
+        if area not in selected:
+            continue
+        for service in spec.get("services", []):
+            key = (service["name"], service["url_env"])
+            if key in seen:
+                continue
+            seen.add(key)
+            name, env = key
+            value = os.environ.get(env)
+            recovery = f"start it with {service['start']}"
+            if not value:
+                return f"{name}: {env} is unset; {recovery}"
+            try:
+                url = urlsplit(value)
+                port = url.port or {"postgres": 5432, "postgresql": 5432,
+                                    "redis": 6379, "mysql": 3306,
+                                    "http": 80, "https": 443}.get(url.scheme)
+                host = url.hostname
+                if not host or not port or any(ord(c) < 32 for c in host):
+                    raise ValueError("missing endpoint")
+            except ValueError:
+                return f"{name}: {env} must be a service URL with host and port; {recovery}"
+            endpoint = f"[{host}]:{port}" if ":" in host else f"{host}:{port}"
+            try:
+                with socket.create_connection((host, port), timeout=service.get("timeout", 1)):
+                    pass
+            except OSError:
+                return f"{name} at {endpoint} is down; {recovery}"
+    return None
 
 
 def project_config(root: Path) -> tuple[dict, dict]:
@@ -607,6 +664,11 @@ def main() -> int:
                 print(f"{prefix} error: {exc}")
                 failed = True
         return 1 if failed else 0
+
+    problem = probe_services(config, selected)
+    if problem:
+        print(f"FAIL {problem}", flush=True)
+        return 1
 
     passed = failed = skipped = 0
     for area, step in steps:

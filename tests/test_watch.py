@@ -58,7 +58,8 @@ class WatchTest(unittest.TestCase):
         self.config = {"checks": [], "frozen_minutes": 15}
         self.state = {"dispatch": "unit1", "work": "implement", "launcher": "pane",
                       "pane_name": "lane-one", "pane_id": "w1:p2", "report_before": None,
-                      "report": str(self.run / "report.md"), "started": "2026-10-10T10:00:00Z"}
+                      "report": str(self.run / "report.md"), "started": "2026-10-10T10:00:00Z",
+                      "checkout": str(self.root)}  # 1.6.0: no checkout proves no freeze
         self.agent = {"name": "lane-one", "pane_id": "w1:p2", "agent": "codex",
                       "agent_status": "idle"}
         self.save_lane()
@@ -80,7 +81,9 @@ class WatchTest(unittest.TestCase):
                                ("⇧← to answer", "question dialog"),
                                ("enter submit", "question dialog"),
                                ("Trust this folder? t trust all", "trust/hook review"),
-                               ("hook needs review before it can run", "trust/hook review"),
+                               ("hook needs review before it can run",
+                                "hook-trust: the user presses t (Trust all and continue) in "
+                                "lane-one"),
                                ("Do you want to proceed?", "permission prompt"),
                                ("Allow command?", "permission prompt"),
                                ("Permission required (y/n)", "permission prompt")]:
@@ -102,21 +105,27 @@ class WatchTest(unittest.TestCase):
         self.assertEqual(self.poll(1002), [])
 
     def test_frozen_clock_and_stable_repeat_key(self):
+        self.live("Ready", "working")  # frozen needs a working agent (1.6.0)
         self.assertEqual(self.poll(), [])
         self.assertEqual(self.poll(1899), [])
         self.assertEqual(self.poll(1900), ["LANE implement frozen 15"])
         self.assertEqual(self.poll(1960), [])
         self.assertEqual(self.poll(2500), ["LANE implement frozen 25"])
-        self.live("Changed")
+        self.live("Changed", "working")
         self.assertEqual(self.poll(2501), [])
         self.assertEqual(self.poll(3401), ["LANE implement frozen 15"])
 
-    def test_working_never_frozen(self):
+    def test_working_is_frozen_only_while_nothing_changes(self):
+        # 1.6.0: frozen is a working agent whose screen and checkout stay unchanged; an idle
+        # one is reported idle instead.
         self.live("Working", "working")
         self.poll()
-        self.assertEqual(self.poll(5000), [])
+        self.assertEqual(self.poll(1899), [])
+        self.assertEqual(self.poll(1900), ["LANE implement frozen 15"])
         self.live("Same screen", "working")
-        self.assertEqual(self.poll(6000), [])
+        self.assertEqual(self.poll(1901), [])
+        self.live("Same screen", "idle")
+        self.assertEqual(self.poll(9000), [])  # an idle agent is never frozen
 
     def test_read_failure_is_not_a_frozen_screen(self):
         self.poll()
@@ -298,14 +307,17 @@ class WatchTest(unittest.TestCase):
         for screen in ("nothing to commit, working tree clean", "Working directory: /tmp"):
             self.live(screen)
             self.poll(1000)
-            self.assertEqual(self.poll(1900), ["LANE implement frozen 15"])
+            # Prose is not a working indicator, so the idle agent is never "frozen" (1.6.0:
+            # only a working agent is).
+            self.assertEqual(self.poll(1900), [])
             self.live("reset")
             self.poll(1901)
 
     def test_agent_working_indicator_line_prevents_false_prompts_and_freezes(self):
         self.live("• Working (23s • esc to interrupt)\nI have 2 questions\nlog: (y/n)")
         self.assertEqual(self.poll(), [])
-        self.assertEqual(self.poll(2000), [])
+        self.live("• Working (17m • esc to interrupt)\nI have 2 questions\nlog: (y/n)")
+        self.assertEqual(self.poll(2000), [])  # a ticking indicator is a changing screen
 
     def test_working_agent_prose_does_not_trigger_input(self):
         self.live("I have 2 questions about the spec\nlog: (y/n)", "working")
@@ -394,6 +406,7 @@ class WatchTest(unittest.TestCase):
             self.assertEqual(self.poll(1360), ["CHECK worker retry loop: 39 attempts"])
 
     def test_frozen_minute_changes_do_not_rewrite_html_without_emission(self):
+        self.live("Ready", "working")
         self.poll()
         self.poll(1900)
         with patch.object(lanes, "regenerate_dashboard") as render:
