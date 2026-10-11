@@ -89,6 +89,9 @@ read it again.
   with `-c` does). Launch every Codex worker in a worktree with the guard on the command line:
   `codex -c 'hooks.PreToolUse=[{matcher="Bash|apply_patch|Edit|Write",hooks=[{type="command",command="python3 <checkout>/harness/core/scripts/guard.py --runtime codex || true",timeout=10}]}]' …`.
   Trusting a path (`/hooks`) stays the user's decision; never bypass trust on your own.
+  `guard.push: "allow"` is an owner-authorized Claude-orchestrator exception only; Codex
+  pushes remain denied regardless of that setting. Claude still asks for force/lease, mirror,
+  deletions, default-branch, hidden or uncertain pushes, and for editing the policy itself.
   Hooks are a guardrail, not a boundary: the sandbox and CI still apply. There is no dispatch
   tripwire hook on Codex: the orchestrator runs `tripwire.py spend <task> <unit> --tool-uses N --dispatch <d>
   [--status …]` and `check --record` on each report.

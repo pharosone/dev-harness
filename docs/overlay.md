@@ -158,17 +158,34 @@ text before authorizing an issue or PR. See [Feedback](../README.md#feedback).
 
 ### guard
 
-Every key is optional, and every list **adds to** the core rules; an overlay cannot remove one.
+Every key is optional. Lists **add to** the core rules. The scalar `push` is the sole
+owner-authorized relaxation described below; it cannot relax any other core rule.
 Unknown keys and invalid entries print a note and are skipped. The guard reads the overlay of the
 command's repository and that of the checkout holding the core.
 
 | Key | Type | Core default | Meaning |
 |---|---|---|---|
+| `push` | string | `"ask"` | `"allow"` authorizes ordinary single-command Claude pushes to verified non-force, non-default refs; Codex remains denied. |
 | `deploy_hosts` | [string] | none | host names or IPv4 addresses; an ssh/scp/sftp/rsync argument naming one, or a subdomain of a name, is a deploy (case-insensitive, label by label: `notdeploy.example.com` does not match `deploy.example.com`) |
 | `deploy_users` | [string] | `deploy`, `root` | remote users that make an ssh-family call a deploy (`user@`, `-l USER`, `-o User=USER`) |
 | `deploy_host_files` | [string] | `.github/workflows/*deploy*`, `deploy/` | repository-relative globs, or directories ending in `/` (read recursively), whose IPv4 literals are deploy hosts; read at decision time; absolute paths and `..` are rejected |
 | `prod_compose` | [string] | none | basename globs of production compose files; `docker compose` / `docker-compose` with a matching file is denied |
 | `generated` | [{`path`, `hint`?}] | none | directories of generated output; `path` matches as a run of path segments anywhere, any case; shell writes and file edits there are denied with `"<path> is generated output; <hint>"` (default hint: "edit its source and regenerate it instead of changing it by hand.") |
+
+An owner who authorized autonomous work may opt in with `"guard": {"push": "allow"}`.
+The command repository's overlay must authorize it; a separate core checkout's permission
+cannot authorize another repository. Editing `project.json` still asks once on Claude and
+is denied on Codex. Invalid values print a note and preserve the core push rule.
+
+The exception covers literal `git push` and `git subtree push` only. Force/lease or `+refspec`,
+mirror, deletion (`--delete` or `:ref`), main/master and the cached remote HEAD always ask.
+Aliases/substitutions, compound commands, custom Git config/directory overrides, broad ref
+sets and uncertain destinations also ask. Implicit pushes inspect local upstream/push routing,
+including configured refspecs and mirror mode. A supplied source-only ref may inherit a
+configured destination, so configured mappings require an explicit destination or ask.
+Separate push URLs, multiple URLs and URL rewrites ask because cached fetch HEAD cannot
+prove the push repository’s default branch. Cached remote HEAD is required; initialize it
+with `git remote set-head <remote> -a`. The guard never contacts a remote to resolve it.
 
 ```json
 "guard": {

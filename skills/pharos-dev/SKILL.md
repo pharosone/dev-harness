@@ -22,6 +22,19 @@ for the least spend that still covers the risk. The user steers at taste gates; 
 deterministic checks steer. You orchestrate: keep the run file, dispatch writers and reviewers,
 read their evidence, own the final report.
 
+## Push authority
+
+`harness/core/scripts/guard.py` enforces publishing permissions; this skill cannot grant them.
+Claude asks by default and Codex always denies. After owner authorization for autonomous work,
+the command repository may set `project.json` → `guard.push: "allow"`; editing that configuration
+still uses SELF approval. Only the Claude orchestrator's ordinary literal single-command
+`git push` / `git subtree push` to verified non-force, non-default refs may then proceed.
+Force/lease or `+refspec`, mirror, deletion, main/master/cached remote HEAD, hidden aliases or
+substitutions, compound commands and uncertain routing still ask. Configured source-only
+refspec mappings require an explicit safe destination or approval. An explicit destination
+does not prove a separate/rewritten push endpoint's default. Codex lanes commit locally and
+hand publication to the authorized orchestrator; owner autonomy never changes that boundary.
+
 ## Efficient testing authority
 
 Apply `harness/core/rules/efficient-testing.md` to this workflow's tests and recommendations.

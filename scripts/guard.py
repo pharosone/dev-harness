@@ -41,7 +41,15 @@ also free-form or via shell); names compare case-insensitively and through symli
 Project rules come from the "guard" object of the overlay's project.json (project.py:
 $HARNESS_PROJECT, else <repo>/harness/project), read from the command's repository and
 from the checkout that holds this core. Every key is optional and every list adds to the
-core rules; an overlay cannot remove a core rule.
+core rules. The sole permission opt-in is guard.push=allow: on Claude only, one literal
+git push / git subtree push to verified non-force, non-default destinations may run without
+a per-push confirmation. Default ask and Codex deny remain. Force/lease, mirror, deletions,
+main/master/cached remote HEAD, hidden verbs, compound commands and uncertain routing ask.
+The command repository must opt in; a separate core checkout cannot authorize its pushes.
+Config edits still use the SELF rule. Missing cached remote HEAD or unreadable metadata
+asks; use git remote set-head <remote> -a to initialize it (no network probes in the guard).
+An overlay cannot remove any other core rule.
+  push               "ask" (default) or "allow", owner-authorized Claude orchestrator only
   deploy_hosts       host names or IPv4 addresses, e.g. ["deploy.example.com"]: an
                      ssh/scp/sftp/rsync argument naming one, or a subdomain of a name, is a
                      deploy (names compare case-insensitively, label by label)
@@ -255,6 +263,13 @@ class Rules(NamedTuple):
     prod_compose: tuple[str, ...]
     generated: tuple[tuple[str, tuple[str, str]], ...]  # (/segment/, deny finding)
     overlays: tuple[Path, ...]  # the project.json files these rules were read from
+    push: str  # owner opt-in from the command repository; never authorizes Codex
+
+
+class Context(NamedTuple):
+    runtime: str
+    cwd: Path
+    autonomous: bool = True  # only a literal, single git command may use the opt-in
 
 
 def note(message: str) -> None:
@@ -305,7 +320,12 @@ def overlay(root: Path) -> tuple[Path, dict]:
         note(f'{path}: "guard" is not an object; using the core rules only')
         return path, found
     for key, values in section.items():
-        if key not in CORE_RULES:
+        if key == "push":
+            if isinstance(values, str) and values in ("ask", "allow"):
+                found[key] = values
+            else:
+                note(f"{path}: invalid guard.push; expected ask or allow; using core push rule")
+        elif key not in CORE_RULES:
             note(f"{path}: unknown key guard.{key} ignored")
         elif not isinstance(values, list):
             note(f"{path}: guard.{key} is not a list; ignored")
@@ -328,13 +348,18 @@ def rules_at(root: Path | None) -> Rules:
         if base is not None:
             roots.setdefault(project.overlay_dir(base), base)
     files = []
+    push = "ask"
     for base in roots.values():
         path, found = overlay(base)
         files.append(path)
         for key, values in found.items():
-            merged[key] += [value for value in values if value not in merged[key]]
+            if key == "push":
+                if base == root:
+                    push = values
+            else:
+                merged[key] += [value for value in values if value not in merged[key]]
     return Rules(**{key: tuple(values) for key, values in merged.items()},
-                 overlays=tuple(files))
+                 overlays=tuple(files), push=push)
 
 
 def rules(start: Path) -> Rules:
@@ -665,6 +690,7 @@ def configured_alias(cwd: Path, verb: str) -> str | None:
 
 
 def alias_findings(value: str, rest: list[str], ctx: tuple[str, Path], depth: int) -> list:
+    ctx = Context(ctx[0], ctx[1], False)
     if depth >= MAX_DEPTH:
         return [GIT_DYNAMIC[ctx[0]]]
     if value.startswith("!"):
@@ -697,9 +723,129 @@ def config_findings(args: list[str], ctx: tuple[str, Path], depth: int) -> list:
     return []
 
 
+def git_read(cwd: Path, *args: str):
+    """Bounded local metadata only. Unknown state cannot authorize a push."""
+    try:
+        result = subprocess.run(["git", "-C", str(cwd), *args], capture_output=True,
+                                text=True, timeout=1, stdin=subprocess.DEVNULL)
+        if len(result.stdout) <= 65536 and result.returncode in (0, 1):
+            return result.returncode, result.stdout.strip()
+    except (OSError, subprocess.SubprocessError, ValueError):
+        pass
+    return None
+
+
+def ordinary_push(args: list[str], cwd: Path, *, subtree=False) -> bool:
+    """Prove non-force destinations from literal argv and effective local routing."""
+    flags = {"--quiet", "--verbose", "--porcelain", "--set-upstream", "--dry-run",
+             "--thin", "--no-thin", "--progress", "--follow-tags", "--atomic", "--verify",
+             "--ipv4", "--ipv6"}
+    subtree_values = {"--prefix", "-P", "--annotate", "--onto", "--branch", "-b", "--message", "-m"}
+    words, index, positional = [], 0, False
+    while index < len(args):
+        arg = args[index]
+        index += 1
+        if "$" in arg or "`" in arg or not arg:
+            return False
+        if not positional and arg == "--":
+            positional = True
+        elif not positional and arg.startswith("-"):
+            name = arg.split("=", 1)[0]
+            if subtree and name in subtree_values:
+                if "=" not in arg:
+                    if index == len(args):
+                        return False
+                    index += 1
+            elif name in flags or (subtree and name in ("--debug", "--ignore-joins", "--rejoin", "--squash")):
+                pass
+            elif re.fullmatch(r"-[vqun46]+", arg) or (subtree and arg == "-d"):
+                pass
+            else:
+                return False  # force, deletion, mirror, broad/unknown switches stay ask.
+        elif subtree and arg == "push" and not words:
+            pass
+        else:
+            words.append(arg)
+    current = git_read(cwd, "symbolic-ref", "--quiet", "--short", "HEAD")
+    branch = current[1] if current and current[0] == 0 else None
+    raw = git_read(cwd, "config", "--null", "--get-regexp",
+                   r"^(remote\..*\.(url|pushurl|push|mirror)|branch\..*\.(remote|merge|pushremote)|remote\.pushdefault|push\.default|url\..*\.(insteadof|pushinsteadof))$")
+    if raw is None:
+        return False
+    config = {}
+    for entry in raw[1].split("\0"):
+        key, separator, value = entry.partition("\n")
+        if separator:
+            # Git section/variable names ignore case; remote and branch subsections do not.
+            section, _, tail = key.partition(".")
+            subsection, dot, variable = tail.rpartition(".")
+            key = section.lower() + "." + (subsection + dot if dot else "") + variable.lower()
+            config.setdefault(key, []).append(value)
+    def last(key, default=None):
+        return config.get(key, [default])[-1]
+    remote = words.pop(0) if words else (last(f"branch.{branch}.pushremote") or
+             last("remote.pushdefault") or last(f"branch.{branch}.remote") or "origin")
+    if not re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", remote) \
+            or f"remote.{remote}.url" not in config:
+        return False
+    if len(config[f"remote.{remote}.url"]) != 1 or f"remote.{remote}.pushurl" in config \
+            or any(key.startswith("url.") for key in config):
+        return False  # Cached fetch HEAD cannot prove a rewritten/separate push endpoint.
+    if last(f"remote.{remote}.mirror", "false").lower() not in ("false", "no", "off", "0"):
+        return False
+    head = git_read(cwd, "symbolic-ref", "--quiet", f"refs/remotes/{remote}/HEAD")
+    if not head or head[0] != 0:
+        return False  # No network/auth probes: initialize cached remote HEAD before opting in.
+    prefix = f"refs/remotes/{remote}/"
+    if not head[1].startswith(prefix):
+        return False
+    protected = {"main", "master", head[1][len(prefix):]}
+    if subtree and len(words) != 1:
+        return False
+    if not words:
+        words = config.get(f"remote.{remote}.push", [])
+        if not words:
+            mode = last("push.default", "simple")
+            upstream = last(f"branch.{branch}.merge")
+            if mode == "current" and branch:
+                words = [branch]
+            elif mode in ("simple", "upstream") and branch and upstream \
+                    and last(f"branch.{branch}.remote") == remote:
+                if mode == "simple" and upstream != "refs/heads/" + branch:
+                    return False
+                words = [upstream]
+            else:
+                return False
+    for ref in words:
+        if any(c in ref for c in "+*$`?") or not ref or ref.startswith(":"):
+            return False
+        source, colon, target = ref.partition(":")
+        if colon and (not source or not target or ":" in target):
+            return False
+        target = target if colon else ref
+        if not colon and config.get(f"remote.{remote}.push"):
+            # Git may map an explicitly supplied source via configured push refspecs.
+            return False
+        if target in ("HEAD", "@"):
+            if colon or not branch:
+                return False
+            target = branch
+        elif any(c in target for c in "~^{}["):
+            return False  # Other revision expressions cannot prove a destination.
+        if target.startswith("refs/heads/"):
+            target = target[len("refs/heads/"):]
+        elif target.startswith("refs/"):
+            continue  # Explicit tags/notes cannot change a default branch.
+        if target in protected:
+            return False
+    return True
+
+
 def git_findings(args: list[str], ctx: tuple[str, Path], depth: int = 0,
                  fed: bool = False) -> list:
-    runtime, cwd = ctx
+    ctx = Context(*ctx)
+    runtime, cwd = ctx[:2]
+    autonomous = ctx.autonomous
     aliases, i = {}, 0
     while i < len(args) and args[i].startswith("-"):
         option, attached, value = args[i].partition("=") if args[i].startswith("--") else (
@@ -713,8 +859,10 @@ def git_findings(args: list[str], ctx: tuple[str, Path], depth: int = 0,
             cwd = resolve(value, cwd)
         elif option in ("-c", "--config-env") and key.casefold().startswith("alias."):
             aliases[key[6:]] = setting if option == "-c" else None
+        if option not in ("-C", "--no-pager"):
+            autonomous = False  # Git configuration/directory overrides need approval.
     verb, rest = (args[i], args[i + 1:]) if i < len(args) else ("", [])
-    ctx = (runtime, cwd)
+    ctx = Context(runtime, cwd, autonomous)
     if "$" in verb or (fed and verb not in GIT_COMMANDS):
         return [GIT_DYNAMIC[runtime]]
     if verb and verb not in GIT_COMMANDS:
@@ -722,7 +870,13 @@ def git_findings(args: list[str], ctx: tuple[str, Path], depth: int = 0,
         if verb in aliases and value is None:
             return [GIT_DYNAMIC[runtime]]
         return alias_findings(value, rest, ctx, depth) if value else []
-    if verb in PUSH_VERBS or (verb == "subtree" and subcommand(rest)[0] == "push"):
+    subtree_verb, _ = subcommand(rest, {"-P", "--prefix"}) if verb == "subtree" else ("", [])
+    if verb == "push" or subtree_verb == "push":
+        if runtime == "claude" and autonomous and not fed and rules(cwd).push == "allow" \
+                and ordinary_push(rest, cwd, subtree=subtree_verb == "push"):
+            return []
+        return [PUSH[runtime]]
+    if verb in PUSH_VERBS:
         return [PUSH[runtime]]
     if verb in ("add", "stage") and broad_add(rest, cwd):
         return [ADD]
@@ -872,7 +1026,7 @@ def shell_targets(name: str, args: list[str], cwd: Path) -> list[tuple[str, str]
 
 
 def segment_findings(segment: list[str], ctx: tuple[str, Path], depth: int) -> list:
-    runtime, cwd = ctx
+    runtime, cwd = ctx[:2]
     found = []
     for token, target in zip(segment, segment[1:]):
         if is_redirect(token):
@@ -901,18 +1055,21 @@ def segment_findings(segment: list[str], ctx: tuple[str, Path], depth: int) -> l
 
 
 def shell_findings(command: str, ctx: tuple[str, Path], depth: int = 0) -> list:
-    runtime, cwd = ctx
+    ctx = Context(*ctx)
+    runtime, cwd = ctx[:2]
     command, bodies = heredocs(command)
     outer, more = substitutions(command)
     bodies += more
     found = []
-    for segment in segments(outer):
-        found += segment_findings(segment, (runtime, cwd), depth)
+    parts = segments(outer)
+    for segment in parts:
+        literal = len(parts) == 1 and not bodies and Path(segment[0]).name == "git"
+        found += segment_findings(segment, Context(runtime, cwd, ctx.autonomous and literal), depth)
         if segment[0] == "cd" and len(segment) == 2:
             cwd = resolve(segment[1], cwd)
     if depth < MAX_DEPTH:
         for body in bodies:
-            found += shell_findings(body, ctx, depth + 1)
+            found += shell_findings(body, Context(runtime, cwd, False), depth + 1)
     return found
 
 
@@ -1136,7 +1293,7 @@ def decide(event: dict, runtime: str) -> tuple[str, str] | None:
     elif isinstance(command, str):
         if "*** Begin Patch" in command:
             findings += changes_findings(patch_changes(command, cwd), runtime)
-        findings += shell_findings(command, (runtime, cwd))
+        findings += shell_findings(command, Context(runtime, cwd))
     if tool in EDIT_TOOLS:
         findings += changes_findings(tool_changes(data, cwd), runtime)
     raw = data.get(READ_TOOLS.get(tool, ""))
