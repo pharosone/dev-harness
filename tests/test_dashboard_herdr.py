@@ -128,6 +128,14 @@ elif head == ["pane", "run"]:
     if not command.startswith(("unset ", "cd -- ")):
         s["panes"][args[2]]["idle"] = False  # a view or a project command keeps running
     save()
+elif head == ["pane", "send-text"]:
+    s["panes"][args[2]].setdefault("typed", []).append(args[3])
+    save()
+    reply({{}})
+elif head == ["pane", "wait-output"]:
+    if s["panes"][args[2]].get("garbled"):  # the reset's mark never comes back
+        fail("timeout", "timed out waiting for output match")
+    reply({{"matched_line": opt("--match")}})
 elif head == ["pane", "process-info"]:
     pane = s["panes"][opt("--pane")]
     reply({{"process_info": {{"pane_id": opt("--pane"), "shell_pid": 100,
@@ -447,8 +455,24 @@ class HerdrDashboardTest(unittest.TestCase):
         self.assertEqual(self.pane_of(third["dispatch"]), mine)
         prepared = self.herdr_model()["panes"][mine]["ran"][-1]
         self.assertEqual(prepared, f"unset CLAUDE_CODE_EFFORT_LEVEL && cd -- {self.repo}")
+        typed = self.herdr_model()["panes"][mine]["typed"]  # reset before anything is run
+        self.assertEqual(typed[0], "\x03")
+        self.assertIn("stty sane", typed[1])
+        calls = [c[:2] for c in self.herdr_calls() if c[2:3] == [mine]]
+        self.assertLess(calls.index(["pane", "wait-output"]), len(calls) - 1 - calls[::-1].index(
+            ["pane", "run"]))
         slot = next(p for p in self.board()["panes"] if p["pane_id"] == mine)
         self.assertEqual(slot["dispatch"], third["dispatch"])
+
+    def test_a_pane_whose_prompt_does_not_come_back_is_not_reused(self):
+        self.dashboard("--open")
+        free = self.board()["panes"][-1]["pane_id"]
+        model = self.herdr_model()
+        model["panes"][free]["garbled"] = True
+        self.write_herdr(model)
+        first = self.start()
+        self.assertNotEqual(self.pane_of(first["dispatch"]), free)
+        self.assertNotIn("ran", self.herdr_model()["panes"][free])
 
     def test_a_live_lane_with_an_idle_shell_is_never_reused(self):
         self.dashboard("--open")

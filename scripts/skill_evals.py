@@ -87,6 +87,41 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def normalized_reference(data, name):
+    """Ignore only standalone Markdown release metadata in external references.
+
+    Skill directory files (including SKILL.md) always retain their exact bytes.
+    No inline version numbers, instructions, code or changelog bodies are masked.
+    """
+    if Path(name).suffix.lower() != '.md':
+        return data
+    try:
+        text = data.decode('utf-8')
+    except UnicodeError:
+        return data
+    semver = r'\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?'
+    # Fenced examples are instructions/code, even when they look like metadata.
+    lines, fence = [], None
+    for line in text.splitlines(keepends=True):
+        marker = re.match(r'^ {0,3}(`{3,}|~{3,})', line)
+        if marker:
+            token = marker.group(1)
+            if fence is None:
+                fence = token
+            elif token[0] == fence[0] and len(token) >= len(fence):
+                fence = None
+            lines.append(line)
+            continue
+        if fence is None:
+            line = re.sub(r'^Version: ' + semver + r'(?=\r?$)', 'Version: <release>', line)
+            line = re.sub(r'^Date: \d{4}-\d{2}-\d{2}(?=\r?$)', 'Date: <release-date>', line)
+            if Path(name).name == 'CHANGELOG.md':
+                line = re.sub(r'^## ' + semver + r'(?: (?:—|-) (?:\d{4}-\d{2}-\d{2}|Unreleased))?(?=\r?$)',
+                              '## <release>', line)
+        lines.append(line)
+    return ''.join(lines).encode('utf-8')
+
+
 FILE_REFERENCE = re.compile(
     r'(?<![\w/<])(?:\.{1,2}/)?[\w@.+-]+(?:/[\w.*?@+-]+)*'
     r'\.[A-Za-z][A-Za-z0-9_-]{0,15}(?![\w.-])')
@@ -220,7 +255,12 @@ def skill_inputs(item):
 def input_hashes(item):
     result = {}
     for label, path in sorted(skill_inputs(item).items()):
-        value = digest(path) if path.is_file() else None
+        value = None
+        if path.is_file():
+            data = path.read_bytes()
+            if not path.is_relative_to(item['path'].parent):
+                data = normalized_reference(data, path.name)
+            value = hashlib.sha256(data).hexdigest()
         if path.is_symlink():
             value = hashlib.sha256((input_label(path.resolve(), item['root']) + '\0' +
                                     (value or '')).encode()).hexdigest()
@@ -232,14 +272,32 @@ def content_hash(item):
     return hashlib.sha256(json.dumps(input_hashes(item), sort_keys=True).encode()).hexdigest()
 
 
-def skill_changed(item, changed, prior=None):
+def skill_changed(item, changed, prior=None, base=None):
     root = item['root']
     directory = item['path'].parent.relative_to(root).as_posix() + '/'
     inputs = set(skill_inputs(item).values())
     if prior:
         inputs.update(input_path(label, root) for label in prior.get('input_hashes', {}))
     names = {p.relative_to(root).as_posix() for p in inputs}
-    return any(p.startswith(directory) or p in names for p in changed)
+    for name in changed:
+        if name.startswith(directory):
+            return True
+        if name not in names:
+            continue
+        path = root / name
+        # Compare normalized bytes at the base, rather than old raw evidence
+        # hashes, so a metadata-only bump does not invalidate legacy history.
+        if base and path.is_file() and not path.is_symlink():
+            old = subprocess.run(['git', 'show', f'{base}:{name}'], cwd=root,
+                                 capture_output=True)
+            old_mode = subprocess.run(['git', 'ls-tree', base, '--', name], cwd=root,
+                                      capture_output=True, text=True)
+            mode = '100755' if path.stat().st_mode & 0o111 else '100644'
+            if old.returncode == 0 and old_mode.stdout.startswith(mode + ' ') \
+                    and normalized_reference(old.stdout, name) == normalized_reference(path.read_bytes(), name):
+                continue
+        return True
+    return False
 
 
 def case_hash(directory):
@@ -435,7 +493,7 @@ def check(root, base, settings, skills):
         case_changes = changed_cases(item, changed, root)
         result = latest(key, item)
         prior = previous_at_base(root, base, key, item)
-        affected = skill_changed(item, changed, result) or skill_changed(item, changed, prior)
+        affected = skill_changed(item, changed, result, base) or skill_changed(item, changed, prior, base)
         if not affected and not case_changes:
             continue
         touched = changed_cases(item, changed, root)
@@ -471,6 +529,31 @@ def claude_result(raw, model):
                        'ablation': raw.get('suite', {}).get('ablation', 'with-without')}}
 
 
+def package_native_inputs(plugin, item):
+    """Make the measured references readable inside the isolated eval checkout.
+
+    A skill symlink alone leaves harness/core references outside the sandbox.
+    Copy only its validated input bundle, retaining the core/overlay path contract.
+    """
+    prefix, _, directory = input_label(item['path'].parent, item['root']).partition(':')
+    layout = {'core': 'harness/core', 'overlay': 'harness/project', 'repo': '.'}
+    packaged = plugin / layout[prefix] / directory
+    shutil.copytree(item['path'].parent, packaged,
+                    ignore=shutil.ignore_patterns('__pycache__', '.git'))
+    for label, path in skill_inputs(item).items():
+        if not path.is_file():
+            continue
+        prefix, _, name = label.partition(':')
+        destination = plugin / layout[prefix] / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, destination)
+    # Keep the original hierarchy behind a bundle-local registration link. A
+    # literal ../../README.md from the skill still resolves beside core/skills.
+    (plugin / 'skills').mkdir(exist_ok=True)
+    (plugin / 'skills' / item['path'].parent.name).symlink_to(
+        os.path.relpath(packaged, plugin / 'skills'), target_is_directory=True)
+
+
 def run(root, args, settings, skills):
     matches = [(key, item) for key, item in skills.items()
                if args.skill in (key, Path(key).parent.name)]
@@ -499,7 +582,7 @@ def run(root, args, settings, skills):
             (plugin / '.claude-plugin').mkdir(parents=True)
             write(plugin / '.claude-plugin/plugin.json', {'name': 'skill-evals', 'version': '1.0.0'})
             (plugin / 'skills').mkdir()
-            (plugin / 'skills' / Path(key).parent.name).symlink_to(item['path'].parent)
+            package_native_inputs(plugin, item)
             for name, path in item['cases'].items():
                 shutil.copytree(path, plugin / 'evals' / name)
             cmd = ['claude', 'plugin', 'eval', str(plugin), '--trust-plugin', '--no-publish',

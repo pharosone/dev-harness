@@ -3,6 +3,32 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.6.0 — 2026-10-11
+
+- Fix-up after Claude review: setup refreezes require an exact local traceback and pure,
+  unobserved bindings; assertion inputs and opaque fixtures/helpers remain frozen. Watch
+  excludes ignored dependencies, reports unknown checkout activity once, and ignores only
+  status spinner/timer changes when detecting a stuck working lane.
+- Frozen Python tests permit archived, reasoned refreezes for AST-equivalent cleanup,
+  setup-only repairs before recorded first green with unchanged assertions, and named
+  append-only literal amendments pinned by the initial brief. Other changes still stop
+  for coordinator approval. `task_state.py green` records the first passing run.
+- Lane startup waits for a shell prompt, retries an unavailable-shell race once and resets
+  reused terminals before typing checkout/environment commands. Absent shadow profiles
+  derive from tier/role while actual dispatch remains static. Hook-trust dialogs have a
+  specific watcher alert and the user's one-key action.
+- Watch requires working state plus unchanged screen and checkout activity to report
+  frozen; early reports are not done. Progress and final reports use separate paths;
+  coordinator requests use watched flag files, never input to another pane.
+- Optional per-area service URL probes in `gates.json` fail before tests with a redacted
+  endpoint and startup hint. Both adapters require current harness profiles, never personal
+  model memory, and retain router shadow as advisory evidence.
+- Skill-eval hashing ignores narrowly defined release metadata in external Markdown
+  references; instructions, fenced examples and whole skill directories remain exact.
+  Native evals package declared references so models can read the measured bundle.
+  Compare QA cleanup drains detached supervisors before removing their temp directory.
+- Verified the existing repeated `xreview --section` behavior for headings containing commas.
+
 ## 1.5.0 — Unreleased
 
 - Optional shadow model routing: an overlay-configurable runtime registry expands all

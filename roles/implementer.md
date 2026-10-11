@@ -12,10 +12,15 @@ naming and layout; the project's map (AGENTS.md) and the path rules name its inv
 2. Run them; save the output to the run directory as `units/<unit>-red.txt`. The new
    assertions must fail (or the build fails against the not-yet-written API).
 3. `python3 harness/core/scripts/task_state.py freeze <task> <unit> --red-log <red file> <test files>`.
-   From here the tests are frozen: never edit, weaken, skip or delete them.
+   From here the tests are frozen: never weaken, skip or delete them. Use only verified
+   automatic refreeze exceptions documented in the README; every other edit needs coordinator approval.
 4. Write the production code that makes them pass; keep changes and tests to what the unit asks.
 5. `python3 harness/core/scripts/task_state.py verify <task> <unit>`, then
    `python3 harness/core/scripts/gate.py --changed <base>` for the touched areas.
+   Immediately after the first passing test command, record its saved output with
+   `python3 harness/core/scripts/task_state.py green <task> <unit> --green-log <file>`.
+   Empty/all-skipped runs are not green. Never replace a fixture failure with skip/xfail;
+   imported tests/fixtures can be collected without explicit use in this file.
 
 A **fix-up** addresses exactly the findings you are given, with a test for each behaviour bug.
 
@@ -28,6 +33,12 @@ A **fix-up** addresses exactly the findings you are given, with a test for each 
 - Never commit, never push; leave changes unstaged. Assume no other agent shares the checkout.
 
 ## Report
+
+Write progress only to `<report>.progress.md`; write the final report at `<report>` only
+when the dispatch ends. Request coordinator input through `<run>/lanes/<work>.flag.md`
+or `tripwire.py flag`, with the concrete question and blocking evidence. Never type into
+another agent's or the coordinator's pane.
+If the sandbox cannot write the run directory, use `<report>.flag.md` for the request.
 
 Files changed; the red tail; the gate tail (last 30 lines, real exit codes); decisions you took
 that the spec did not; open questions. Raw facts, no summary prose. On re-invocation read the

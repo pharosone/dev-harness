@@ -206,7 +206,7 @@ or a check, wrong types and invalid values exit 2. Other top-level project keys 
 | `checks[].name` | string, required | — | unique single word using letters, digits, `_`, `.`, `-`; starts with a letter or digit |
 | `checks[].command` | nonempty string, required | — | shell command run in the product checkout; 60-second timeout kills its process group, with at most 2 seconds for stdout draining and bounded reaping; nonzero/timeout emits `CHECK <name> failed` |
 | `checks[].every` | finite number > 0 | `120` | seconds between executions, persisted across `--once` and re-arming; cached anomalies stay open between executions |
-| `frozen_minutes` | finite number > 0 | `15` | unchanged visible screen while the lane is not working; missing screen evidence is not a freeze |
+| `frozen_minutes` | finite number > 0 | `15` | working lane with unchanged screen and no checkout file activity; idle agents or missing screen evidence are not frozen |
 | `stop_command` | nonempty string | absent | the product's own command to stop live work on repeating failures; the orchestrator runs it from the product checkout; the watcher never runs it |
 
 An Outbound-style product supplies its own checks, including worker halt, retry loops and
@@ -226,6 +226,24 @@ These example commands belong to the product; replace them with its real health 
 commands. Watch output is `CHECK pilot-worker <anomaly>` and `CHECK pilot-worker failed` on
 nonzero exit. Lane observations include Codex question dialogs, trust/hook reviews, Claude
 permission prompts, Herdr blocked state, frozen screens, exits and completed/missing reports.
+An early final/progress file is not completion while a lane is working. `done` requires
+dispatch end or an idle/done agent with a fresh final report. A request file at
+`<run>/lanes/<work>.flag.md` (or an open tripwire flag) produces `LANE <work> needs-input flag`;
+remove answered flags to clear the condition. Hook trust reviews produce `needs-input hook-trust`
+with the exact `t` action, which the user performs after inspecting the hook.
+The file channel also covers native subagent `dispatch.start` events. If the run directory is
+outside a worker's writable roots, it writes `<report>.flag.md`; only a new report-side flag
+since dispatch start counts. Open unit flags at `<run>/units/<work>-flag.md` count until
+`tripwire.py resolve` archives them. Unsafe work filenames are slugged; flag text is never copied.
+Activity scans count tracked and untracked-not-ignored files and identical-content rewrites,
+excluding `.git` and observer-owned `.harness`, plus report/progress stamps. Ignored build/test
+output, `node_modules` and `.venv` do not count. Only a working-indicator line's spinner and
+elapsed timer are normalized in the screen hash; tool output and token counters still count.
+More than 50,000 files or 5 seconds of listing/stat scanning yields unknown activity and no
+freeze. Watch emits `LANE <work> activity-unknown (<why>; frozen cannot be detected)` once per
+dispatch so a disabled freeze check is visible. Failed screen/state
+reads restart freeze evidence; unreadable evidence never proves unchanged activity. A vanished
+agent or dead supervisor is exited until its dispatch ends, even if an early report exists.
 No Herdr: only persisted dispatch facts and headless process state are available for lanes;
 product checks still execute. The watcher does not call lane status (which can submit a brief
 or end a dispatch), answer dialogs, close panes or stop the product.
@@ -301,9 +319,11 @@ The one copy of the CI gates, run by `gate.py [AREA…] [--changed BASE] [--base
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
-| `<area>` | {`paths`, `steps`} exactly | — | one area |
+| `<area>` | {`paths`, `steps`, optional `services`} | — | one area |
 | `<area>.paths` | [string] | — | every input of the area's steps that CI reads: `dir/` is a prefix, a string with `*` or `?` a glob (`**` is every path), anything else an exact file; `--changed BASE` selects the areas whose paths changed |
 | `<area>.steps` | [step], non-empty | — | run in order through `quiet.py`, logs under `.harness/logs/` |
+| `<area>.services` | [service] | `[]` | TCP liveness probes before any selected gate steps; no probe in `--dry-run` or `--pin-ci` |
+| `service` | {`name`, `url_env`, `start`, optional `timeout`} | — | single-line display name, environment variable holding the service URL, manual startup instruction and connect timeout in seconds (default 1, greater than 0 and at most 30) |
 | `step.name` | string, required | — | unique in the area, no `/` |
 | `step.cwd` | string, required | — | checkout-relative working directory |
 | `step.cmd` | [string], required | — | argv, run without a shell; `{base}` in an argument becomes `--base` (default: the `--changed` value, else `origin/main`) |
@@ -314,6 +334,15 @@ The one copy of the CI gates, run by `gate.py [AREA…] [--changed BASE] [--base
 Steps check the working tree as it is and write no sources; dependency installs belong to the
 checkout's setup. `gate.py` prints one line per step (PASS, FAIL with its digest, SKIP) and exits 0
 (all passed), 1 (a step failed) or 2 (usage or configuration error).
+
+For example, a tests area can declare
+`"services": [{"name": "test DB", "url_env": "TEST_DATABASE_URL", "start": "docker compose up -d test-db"}]`.
+Supply that variable in the shell; the harness never reads `.env` or runs the startup command.
+Postgres URLs default to port 5432 (Redis 6379, MySQL 3306, HTTP 80, HTTPS 443); other schemes
+need an explicit port. Missing/invalid URLs or a closed endpoint exit 1 before any tests,
+even with `--keep-going`: `FAIL test DB at 127.0.0.1:55473 is down; start it with …`.
+Credentials and database paths are never printed. This checks TCP reachability, not database
+authentication, migrations or protocol readiness; the tests still verify those contracts.
 
 ### ci_form and ci_pin — pinning the gates to CI
 

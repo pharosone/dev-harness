@@ -114,7 +114,10 @@ repeated here because compaction can drop path rules:
 ## Profiles
 
 `harness/core/adapters/models.json`, deep-merged with `harness/project/models.json`, is the only
-mapping. Record the resolved model and effort.
+mapping. Resolve every orchestrator and worker model/effort from these harness profiles at
+dispatch time; never use personal memory or a saved model preference. Record the resolved
+profile, model and effort. The router's shadow recommendation is advisory evidence and never
+replaces this actual profile choice.
 
 | Profile | Claude | Codex | For |
 |---|---|---|---|
@@ -153,7 +156,7 @@ From this core checkout, validate with `python3 scripts/benchmarks.py validate` 
 the offline charts with `python3 scripts/benchmarks.py render`. Rendering does not fetch new
 results; refresh the sourced JSON first. Observations older than 60 days produce warnings.
 
-## Shadow model routing — 1.5.0 unreleased
+## Shadow model routing — 1.5.0
 
 Set `harness/project/router.json` to `{"mode":"shadow"}` to add recommendations to
 `balance.py pick` and `lanes.py decide/start`. Missing configuration or `mode: "off"` retains
@@ -208,6 +211,16 @@ or HEAD. One source writer per checkout; parallel writers each get their own wor
 subagent, headless or herdr pane), never as the orchestrator. Without delegation, independent review is **not
 performed**, and the report says so.
 
+Use this brief contract for every lane: `Final report: <report>`;
+`Progress: <report>.progress.md`; `Needs coordinator input: <run>/lanes/<work>.flag.md`.
+Write the final report only when work ends. Put status updates in the progress file. An
+unresolved question goes into the flag (or `tripwire.py flag`); never type into another
+lane's or the coordinator's pane. The coordinator reads flags in the same turn as the
+watcher's `LANE <work> needs-input flag` alert and removes a flag after resolving it.
+An open unit tripwire flag also surfaces; resolve it with `tripwire.py resolve`. A worker
+whose sandbox cannot write the run directory uses `<report>.flag.md`, written after dispatch
+start. Native subagent dispatch events use the same watched channel. Flag text stays out of events.
+
 ## Lanes
 
 Every worker starts by `lanes.py decide --role R --runtime claude|codex --orchestrator
@@ -228,6 +241,12 @@ dialog must be read: answer questions you can decide from the spec and earlier a
 never answer trust/permission reviews; escalate material decisions to the user. Panes the run did not create are never
 closed or reused.
 
+Before starting an agent, lanes waits up to 15 seconds for the shell's foreground group to
+contain only the shell. An unavailable-shell refusal retries once; a shell that never becomes
+ready fails the launch. Reused terminals receive raw Ctrl+C, kitty keyboard reset and
+`stty sane`; a fresh prompt marker must appear within 5 seconds before checkout/environment
+commands are typed. A failed reset skips that pane.
+
 With herdr, `lanes.py dashboard --task T --open` opens the run's dashboard tab `📊 <task>`: on
 the left (58%) a live status view (units, lanes running/blocked/stale, pending gates, open
 tripwires, vendor shares; every 30 s), the formatted events tail and the overlay's project
@@ -241,11 +260,27 @@ with an unbounded command and the tool's maximum timeout, re-arming on expiry or
 background process and reads its output each turn and before going idle, or runs `--once` at
 those boundaries. Polling defaults to 30 seconds, repeat suppression to 600 seconds
 (`--every`, `--quiet-repeat`); cleared conditions re-arm immediately. The watcher emits
-`LANE <work> needs-input <what>`, `frozen <minutes>` (unchanged screen for 15 minutes while not
-working), `ended-no-report`, `exited` or `done`, and `CHECK <name> <anomaly>` / `failed` from the
+`LANE <work> needs-input <what>`, `frozen <minutes>` (working agent with both unchanged screen
+and no checkout file activity for 15 minutes), `ended-no-report`, `exited` or `done`, and `CHECK <name> <anomaly>` / `failed` from the
 overlay's `watch.checks`. Without herdr, lane checks use dispatch state and product checks
 still run. State lives in `<run>/lanes/_watch.json`; `watch` events appear in both dashboards,
 with `Watch: ✅ quiet` / `Watch: 🚨 N open` in the status view.
+An idle agent is not frozen. A progress or final report written while the agent is working
+does not mean done: require a recorded dispatch end, or an idle/done agent with a fresh final
+report. Lane flags surface as `needs-input flag`. Codex hook reviews surface as
+`needs-input hook-trust`; read the dialog and press `t` only after the user authorizes trust.
+Checkout activity includes tracked and untracked-not-ignored files, plus report/progress stamps,
+excluding `.git` and observer-owned `.harness`. Listing/stat work is bounded to 5 seconds and
+50,000 paths; unreadable or over-budget activity cannot prove a freeze. Watch reports
+`LANE <work> activity-unknown (<why>; frozen cannot be detected)` once per dispatch.
+Ignored dependency/build trees do not count as activity. The working-indicator line's
+spinner and elapsed timer are normalized; changes to tool output or token counts still count.
+Failed screen/state
+reads clear freeze evidence and restart its clock once fresh observations return. Unanswered
+dialogs remain visible. A vanished agent/dead supervisor remains `exited` until dispatch end.
+The hook alert names the one-key action: `the user presses t (Trust all and continue) in <pane>`.
+Codex's available bypass trusts all enabled hooks; the harness uses this narrow watch fallback
+instead of bypassing checkout hooks or editing undocumented global trust hashes.
 
 Act on every line in the same turn: answer or escalate input, nudge or cancel frozen lanes,
 inspect missing reports/exits, accept done reports, and stop the product's live process on a
@@ -333,6 +368,40 @@ strings/fragments are removed. Current docs allowlist: `docs.python.org`, `docs.
 final text: arbitrary business facts are not recognizable by pattern matching. Drafts are
 local review material, never automatically published.
 
+## Frozen test amendments
+
+Freeze after the first red run with `task_state.py freeze TASK UNIT --red-log FILE TESTS…`.
+After the first passing test command, immediately record
+`task_state.py green TASK UNIT --green-log FILE`; it verifies the frozen hashes and pins
+the first green evidence. A hash-only `verify` does not record test success.
+
+Repeating `freeze` automatically archives the previous manifest and logs its reason only for
+Python AST-equivalent edits (comments, whitespace and removed provably unused imports), or setup-only
+repairs before recorded first green with byte-identical assertion lines and hash-verified
+setup-error evidence whose innermost traceback identifies the exact frozen setup function.
+Only pure, unobserved local bindings qualify: literal/name assignments with no outward use,
+calls, properties or operators. Returned/yielded fixture values, attributes, globals, mutable
+shared data and `Fake*`/`Stub*` helpers remain frozen because they can supply assertion inputs.
+An unrelated import error or evidence without a local traceback never authorizes a setup edit.
+Assertions, test bodies, parameters and decorators stay protected;
+inline construction inside a test body remains approval-only. Mixed assertion/setup failures
+do not qualify. Legacy manifests without saved source bytes remain approval-only.
+Unknown imported bindings can be collected tests/fixtures: removing them needs approval;
+unused import cleanup is limited to known non-collection standard-library modules.
+Setup repairs may add a missing non-collecting stdlib import used only by an implicated pure
+local setup binding, but cannot remove/retarget existing imports or overwrite definitions/bindings.
+Setup/fake bodies with skip/xfail controls retain their full AST, including guards and aliases.
+First-green evidence must show actual passing tests; bare unittest `OK`, empty suites and
+all-skipped/expected-failure-only runs are refused.
+
+A brief can authorize literal additions before the initial freeze: pass `--brief BRIEF`,
+whose exact line is `task-state append-only: tests/test_tools.py:EXPECTED` (a scoped name
+such as `TestTools.test_tools.expected` also works). Only append literal elements to that
+named list, tuple or set assignment; existing elements/order and all other AST nodes must
+stay identical. Authorization is pinned at initial freeze and cannot be added retrospectively.
+Every other change stops for coordinator approval; preserve the old manifest and record the
+approval before replacing that baseline. Refreeze never offers a general bypass flag.
+
 ## Scripts
 
 Run as `python3 harness/core/scripts/<script>` (standard library only); each module docstring
@@ -340,7 +409,7 @@ documents its CLI and overlay keys.
 
 | Script | Use |
 |---|---|
-| `task_state.py init/locate/freeze/verify/import-legacy` | run directory in the primary checkout (`.harness/tasks/<task>`); freezes tests by Git blob hash, with the red log as evidence |
+| `task_state.py init/locate/freeze/green/verify/import-legacy` | run directory in the primary checkout (`.harness/tasks/<task>`); freezes tests by Git blob hash, archives safe amendments, records first green evidence |
 | `task_state.py event TASK TYPE --data JSON [--id ID]` | the only writer of the run's `events.jsonl`: one locked append, a repeated id skipped |
 | `lanes.py decide/start/status/wait/result/cancel/snapshot-cleanup/dashboard` | how a worker starts (subagent, headless CLI, herdr pane) by a tested rule; starts, watches and stops headless and pane lanes and records their events; `start --capability candidate --scratch DIR` runs a compare candidate in a private snapshot with one writable directory, `--max-budget-usd` caps a headless Claude lane, `snapshot-cleanup` removes the ended candidates' snapshots; `dashboard --open/--close` opens or closes the run's herdr dashboard tab |
 | `compare.py design/investigation/status` | two independent agents on one frozen input: approach memos and two order-swapped arbiter passes, or investigation reports, cross-critiques and a disagreement map |
@@ -401,8 +470,8 @@ reviewer does not mistake them for coverage:
   filter that selects nothing would satisfy it. CI changes are Tier 3 and reviewed.
 - `tier.py` classifies by path and size, not meaning; `check_docs_drift.py` checks that a mapped
   document changed, not that it is right.
-- Checks that live in test files are frozen together with their cases: `task_state.py verify`
-  flags a fix to such a check as a test change, and the orchestrator records why it holds.
+- Checks that live in test files are frozen together with their cases: logic changes still
+  need coordinator approval; only the verified amendment categories above refreeze automatically.
 - Codex loads a project's `.codex/` hooks only on a trusted path, and every worktree is a new
   path. Workers carry the guard on the command line (`adapters/codex.md`).
 
@@ -434,6 +503,12 @@ added/changed skill it requires an added/changed registered case and evidence ma
 current SHA-256 of the whole skill directory, declared references and every case file. It validates new-case Δ
 and existing-case regressions against the latest accepted history at REF. It makes no model calls.
 Case-only edits also require refreshed evidence. Reference-only changes also require a changed case and fresh evidence for each dependent skill. Deleted skills need no eval. Registry-only edits do not count as a new scenario or grader.
+External Markdown references normalize only standalone `Version: X.Y.Z` and
+`Date: YYYY-MM-DD` lines, and release headings in `CHANGELOG.md` (`## X.Y.Z`, optionally
+` — YYYY-MM-DD`, ` - YYYY-MM-DD`, or ` — Unreleased`). Fenced examples, inline versions,
+release bodies and all files inside the skill directory keep their exact bytes. A change
+whose normalized reference bytes equal the base is non-invalidating; other changes still
+need fresh paired evidence. Old raw-hash history remains accepted for metadata-only bumps.
 Exit codes: 0 clean, 1 unmet acceptance, 2 configuration/invalid evidence. Review histories
 as evidence: the gate checks the writer's recorded measurements, not their authenticity.
 
@@ -446,7 +521,10 @@ product's `gates.json` and the identical command to CI:
 ```
 
 Harness evals wrap `claude plugin eval` with `--ablation with-without` in an isolated plugin
-containing only the selected skill and its registered cases. Reports stay local
+containing the selected skill, its registered cases and its validated declared input bundle,
+copied at the `harness/core` and `harness/project`
+paths so the measured reference files are present in the isolated eval bundle. Runtime
+permission restrictions still apply to reads. Reports stay local
 (`--no-publish`); no real servers or author scaffold scripts run. Product runners receive
 `--skill <checkout-relative SKILL.md> --out <JSON path>` plus requested `--model` and
 `--max-cost-usd`. The command is split into argv, never interpreted as shell code. It must

@@ -173,6 +173,12 @@ retained; small modeled gaps are not claims of statistical superiority.
 
 ## Link real outcomes
 
+For `lanes.py start/decide`, absent `--profile` derives from role/tier: Tier 3 uses
+`critical-review` (roles already on `escalation`/`deep-reasoning` retain those); implementer
+Tier 0–1 uses `routine`, Tier 2 uses `implementation`; other roles use their core manifest
+profile with project-role overrides. An explicit profile wins. `--tier` remains required for
+shadow evidence; derivation never changes the actual static model/effort or launcher.
+
 The run logs additive `router.shadow` events. Both dashboards render
 `⚖ shadow: would pick … because …`, show the actual tuple separately and expose missing
 data/UNVALIDATED classification. Scoring and classification failures remain visible as skips.

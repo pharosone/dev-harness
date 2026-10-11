@@ -51,6 +51,18 @@ report path as given (absolute). After each event it writes, lanes regenerates t
 default dashboard (dashboard.py) best effort: a failure is a note on stderr, never an error.
 A report counts as the worker's only when it was written after the start: created, or its
 mtime or size changed against the stamp the state file keeps (`report_before`).
+Every worker's prompt carries, on its report line, two channels beside the report (channels):
+progress notes go to `<report>.progress.md` and the report itself is written only at the end;
+a question for the coordinator goes to `<run>/lanes/<work>.flag.md` (lane_flag; a work name
+that is not a safe file name is slugged) or through `tripwire.py flag`, and only where the
+worker cannot write the run directory to `<report>.flag.md`; the worker then ends its turn and
+waits, and never types into another pane. watch.py reports an existing lane flag, an open
+tripwire flag of the unit named --work, or a report-side flag written since the start (stamp
+`report_flag_before`) as "LANE <work> needs-input flag" (flag_raised).
+When --profile is absent, the optional shadow router gets derive_profile(role, tier): Tier 3
+is critical-review (escalation and deep-reasoning roles keep theirs), an implementer is routine
+at Tier 0-1 and implementation at Tier 2, any other role takes its profile from
+roles/manifest.json or the overlay's project.json → roles; the launch itself never changes.
 
 --capability candidate --scratch DIR (the same keywords on the importable start) gives one
 profile on both vendors, whatever the role: a shell and a private snapshot of the source, writes
@@ -167,7 +179,14 @@ intended. capability_profile(..., reads=True) adds "reads": "source and run dire
   for its later panes; those panes do not count for the placement above. Then
   `herdr agent start NAME --kind RUNTIME --pane ID -- <model/effort args; Codex adds the guard>`
   (Claude's effort goes in the pane's environment; the agent id herdr returns, if any, is kept)
-  and `herdr agent prompt NAME "<read the brief, write the report>"`. A start that returns
+  and `herdr agent prompt NAME "<read the brief, write the report>"`. The start waits first, at
+  most SHELL_READY_SECONDS (15), until `pane process-info` shows the shell at its prompt (its
+  process group in the foreground with nothing else in it: a new pane's rc files may still be
+  running); a shell that does not get there fails the launch and nothing is started, and only
+  a herdr without process-info is started unchecked. A start herdr refuses as "not an available
+  shell" (code agent_pane_busy, or that message) is retried once after another wait. A reused
+  pane's terminal is reset and its prompt verified before anything is typed there
+  (reset_shell, dashboard_herdr.prepare). A start that returns
   `agent_not_ready` records `prompt_pending`: status shows `blocked` until the agent is idle,
   then status (or wait) delivers the brief exactly once. Every status of a pane that reaches
 herdr keeps what it saw in `<run>/lanes/<dispatch>.json` under the state lock: agent_status
@@ -368,6 +387,17 @@ ENDED = ("done", "failed", "timeout", "cancelled")
 TOOL_ITEMS = ("command_execution", "file_change", "mcp_tool_call", "web_search")
 EXIT_SUBAGENT, EXIT_QUEUED, EXIT_BLOCKED = 3, 4, 5
 IDLE_REASON = "waiting: the agent ended its turn without a report"
+SHELL_READY_SECONDS = 15.0  # how long start waits for a pane's shell to reach its prompt
+SHELL_POLL_SECONDS = 0.2
+PANE_BUSY = "agent_pane_busy"  # herdr: "agent target pane ... is not an available shell"
+RESET_SECONDS = 5.0  # how long a reused pane's reset has to print its mark
+READY_MARK = "lanes-ready-"
+# Typed raw into a reused pane: pop every kitty keyboard mode, restore the line discipline,
+# print the mark. The mark is split across the format, so the typed line never matches it.
+RESET_LINE = "printf '\\033[<99u'; stty sane; printf '{mark}%s\\n' {token}"
+# Where a worker keeps its progress notes and raises a question for the coordinator; both sit
+# beside the report, which the worker writes only when it finishes.
+PROGRESS_SUFFIX, FLAG_SUFFIX = ".progress.md", ".flag.md"
 
 
 class LaneError(Exception):
@@ -1077,6 +1107,70 @@ def place_pane(run: Path, primary: Path, task: str, checkout: Path, env: dict,
     return tab["last_pane"], tab["tab_id"]
 
 
+def shell_available(info: dict) -> bool:
+    """herdr's `pane process-info` shows the shell at its prompt: the shell's process group is
+    in the foreground and nothing else is in it (rc files still running in a new pane are)."""
+    shell = info.get("shell_pid")
+    return bool(shell) and info.get("foreground_process_group_id") == shell and all(
+        process.get("pid") == shell for process in info.get("foreground_processes") or [])
+
+
+def await_shell(pane: str) -> bool | None:
+    """Poll the pane until its shell is available, at most SHELL_READY_SECONDS: True when it
+    is, False when the bound passed first, None when herdr cannot tell (no process-info)."""
+    deadline = time.monotonic() + SHELL_READY_SECONDS
+    while True:
+        try:
+            info = herdr("pane", "process-info", "--pane", pane).get("process_info") or {}
+        except LaneError:
+            return None
+        if shell_available(info):
+            return True
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(SHELL_POLL_SECONDS)
+
+
+def start_agent(name: str, kind: str, pane: str, flags: list[str]) -> dict:
+    """`herdr agent start` once the pane's shell is at its prompt (await_shell). A shell that
+    does not reach it within the bound is a LaneError and nothing is started; only a herdr
+    without process-info is started unchecked. A start herdr refuses as an unavailable shell
+    (pane_busy) is retried once, after another wait."""
+    for attempt in (1, 2):
+        if await_shell(pane) is False:
+            raise LaneError(f"pane {pane} is not an available shell: its shell did not reach "
+                            f"its prompt within {SHELL_READY_SECONDS:g} s")
+        try:
+            return herdr("agent", "start", name, "--kind", kind, "--pane", pane, "--", *flags)
+        except LaneError as exc:
+            if attempt == 2 or not pane_busy(exc):
+                raise
+    raise AssertionError("unreachable")
+
+
+def pane_busy(exc: LaneError) -> bool:
+    """herdr refused a start because the pane is not an available shell: by its error code,
+    or by its message when the code is missing."""
+    return getattr(exc, "code", None) == PANE_BUSY or "not an available shell" in str(exc)
+
+
+def reset_shell(pane: str) -> None:
+    """Reset a reused pane's terminal and verify its prompt before anything is typed there.
+
+    An agent stopped with ctrl+c can leave kitty keyboard mode on, so typed keys reach the
+    shell as escape garbage ("9;5:1u") and Enter does not submit. A raw ctrl+c (send-text)
+    drops the half-typed line, then RESET_LINE pops the keyboard modes, restores the line
+    discipline and prints a fresh mark; LaneError unless the mark appears within
+    RESET_SECONDS and the shell is back at its prompt."""
+    token = uuid.uuid4().hex[:12]
+    herdr("pane", "send-text", pane, "\x03")
+    herdr("pane", "send-text", pane, RESET_LINE.format(mark=READY_MARK, token=token) + "\r")
+    herdr("pane", "wait-output", pane, "--match", READY_MARK + token, "--timeout",
+          str(int(RESET_SECONDS * 1000)))
+    if await_shell(pane) is False:
+        raise LaneError(f"pane {pane}: the shell is not back at its prompt after the reset")
+
+
 def lane_label(state: dict) -> str:
     """The readable label of a lane's pane: "🤖 <work> · <runtime> <model>"."""
     return f"🤖 {state['work']} · {state['runtime']} {state['model']}"
@@ -1110,8 +1204,7 @@ def pane_launch(state: dict, path: Path, run: Path, primary: Path) -> None:
     with contextlib.suppress(LaneError):  # a label is a convenience, never a failed launch
         herdr("pane", "rename", pane, lane_label(state))
     try:
-        started = herdr("agent", "start", name, "--kind", state["runtime"], "--pane", pane, "--",
-                        *flags)
+        started = start_agent(name, state["runtime"], pane, flags)
     except LaneError as exc:
         if getattr(exc, "code", None) == "agent_not_ready":
             # Blocked at startup: status surfaces the dialog for the orchestrator's decision;
@@ -1127,7 +1220,64 @@ def pane_launch(state: dict, path: Path, run: Path, primary: Path) -> None:
 def send_prompt(state: dict) -> None:
     note = candidate_note(state)
     herdr("agent", "prompt", state["pane_name"], f"Read the brief at {state['brief']} and follow "
-          f"it. Write your full report to {state['report']}." + (f" {note}" if note else ""))
+          f"it. Write your full report to {state['report']}. "
+          f"{channels(state['report'], Path(state['run']), state['work'])}"
+          + (f" {note}" if note else ""))
+
+
+def progress_path(report: str | Path) -> Path:
+    return Path(f"{report}{PROGRESS_SUFFIX}")
+
+
+def lane_flag(run: Path, work: str) -> Path:
+    """The canonical request file of a lane, <run>/lanes/<work>.flag.md; a work name that is
+    not a safe file name (task_state.identifier) is slugged."""
+    name = work if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", work) else slug(work)
+    return Path(run) / "lanes" / f"{name}{FLAG_SUFFIX}"
+
+
+def unit_flag(run: Path, work: str) -> Path | None:
+    """The open tripwire flag of the unit named work (`tripwire.py flag`), if work is a unit."""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", work):
+        return None
+    return Path(run) / "units" / f"{work}-flag.md"
+
+
+def report_flag(report: str | Path) -> Path:
+    """The compatibility request file beside the report, for a worker that cannot write the
+    run directory (a sandbox confined to its checkout or scratch)."""
+    return Path(f"{report}{FLAG_SUFFIX}")
+
+
+def channels(report: str | Path, run: Path, work: str) -> str:
+    """The sentences every worker's prompt carries after its report line: progress goes
+    beside the report, a question for the coordinator goes in the lane's flag file (watch.py
+    reports it), and the worker never types into another pane."""
+    return (f"Keep progress notes in {progress_path(report)} and write the report only when you "
+            f"finish. If you need a decision the brief does not give, write the question with "
+            f"its blocking evidence to {lane_flag(run, work)} (or run `tripwire.py flag`; where "
+            f"you cannot write the run directory, to {report_flag(report)}), end your turn and "
+            "wait for the answer; never type into another pane.")
+
+
+def flag_raised(state: dict, run: Path | None = None) -> bool:
+    """The lane asks the coordinator: its canonical flag (lane_flag) or its unit's open
+    tripwire flag exists, or the report-side flag was written since the dispatch started
+    (stamp `report_flag_before`). The coordinator removes an answered flag (`tripwire.py
+    resolve` archives a tripwire one)."""
+    run = Path(run or state["run"])
+    work = str(state.get("work") or state["dispatch"])
+    unit = unit_flag(run, work)
+    if lane_flag(run, work).is_file() or (unit is not None and unit.is_file()):
+        return True
+    if not state.get("report"):
+        return False
+    current = report_stamp(report_flag(state["report"]))
+    if current is None:
+        return False
+    if "report_flag_before" not in state:  # a dispatch recorded before the stamp was kept
+        return current[0] / 1e9 >= (epoch(state.get("started")) or 0) - 1
+    return current != state["report_flag_before"]
 
 
 def same_agent(state: dict, agent: dict) -> bool:
@@ -1221,7 +1371,8 @@ def shadow_for_args(args, origin: str, *, primary: Path | None = None,
             primary, run = run_directory(args.task)
         actual = {"runtime": args.runtime, "model": getattr(args, "model", None),
                   "effort": getattr(args, "effort", None)}
-        profile = getattr(args, "profile", None)
+        profile = getattr(args, "profile", None) or derive_profile(
+            args.role, getattr(args, "tier", None), root)
         if origin == "lanes.decide" and profile and not actual["model"]:
             import xreview
             models, _ = xreview.models(root)
@@ -1243,6 +1394,30 @@ def shadow_for_args(args, origin: str, *, primary: Path | None = None,
               file=sys.stderr)
         return {"mode": "shadow", "status": "skipped", "recommendation": None,
                 "reason": f"{type(exc).__name__}; shadow skipped"}
+
+
+def derive_profile(role: str, tier: int | None, root: Path | None = None) -> str | None:
+    """The model profile the docs give role at tier, for the shadow router when --profile is
+    absent: Tier 3 is critical-review (README's profile table) unless the role's own profile
+    is escalation or deep-reasoning; an implementer is routine at Tier 0-1 and implementation
+    at Tier 2 (pharos-dev's tier table); any other role, and an implementer without a tier,
+    takes its profile from roles/manifest.json (or the overlay's project.json → roles). None
+    for a role neither knows below Tier 3."""
+    known = {}
+    with contextlib.suppress(OSError, ValueError):
+        known.update(json.loads((xreview.HARNESS / "roles" / "manifest.json").read_text(
+            encoding="utf-8")))
+    if root is not None:
+        with contextlib.suppress(Exception):
+            roles = project.load(root, "project.json", {}).get("roles") or {}
+            known.update(roles if isinstance(roles, dict) else {})
+    own = (known.get(role) or {}).get("profile") if isinstance(known.get(role), dict) else None
+    own = own if isinstance(own, str) and own else None
+    if tier == 3:
+        return own if own in ("escalation", "deep-reasoning") else "critical-review"
+    if role == "implementer" and tier is not None:
+        return "routine" if tier < 2 else "implementation"
+    return own
 
 
 def start_orchestrator(flag: str | None) -> tuple[str, dict]:
@@ -1340,6 +1515,7 @@ def launch(args, launcher: str, reason: str, budget: dict, primary: Path, run: P
              "log": str(folder / f"{dispatch}.log"), "pid": None, "child_pid": None,
              "pane_id": None, "tab_id": None, "pane_name": name if launcher == "pane" else None,
              "agent_id": None, "prompt_pending": False, "report_before": report_stamp(report),
+             "report_flag_before": report_stamp(report_flag(report)),
              "launch_pending": launcher == "pane",
              "launch_pid": os.getpid() if launcher == "pane" else None,
              "other_repo": other_repository(str(checkout), Path.cwd())
@@ -1349,7 +1525,8 @@ def launch(args, launcher: str, reason: str, budget: dict, primary: Path, run: P
              "snapshot": profile.get("snapshot"), "snapshot_base": profile.get("snapshot_base"),
              "workdir": str(where) if where else None,
              "prompt": brief.read_text(encoding="utf-8")
-             + f"\n\nWrite your full report to {report}.\n", **shadow_fields}
+             + f"\n\nWrite your full report to {report}. {channels(report, run, args.work)}\n",
+             **shadow_fields}
     if profile:
         state["prompt"] += candidate_note(state) + "\n"
     path = task_state.evidence_path(folder / f"{dispatch}.json", primary)

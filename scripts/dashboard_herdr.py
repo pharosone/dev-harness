@@ -26,9 +26,12 @@ missing or empty label or command, or another zone is exit 2.
 
 lane_pane(state, ...) is lanes.py start's placement while the run has a dashboard (the caller
 holds the herdr lock): a lane pane of the run whose dispatch ended (or the free one) and whose
-shell is idle again (`pane process-info`: the shell is the foreground process group) is reused
-— the worker's directory and environment are typed into that shell, and variables an earlier
-lane exported there are unset — else the right column's last pane is split down. Then the
+shell is idle again (`pane process-info`: the shell's process group is in the foreground and
+nothing else is in it) is reused — its terminal is reset first (lanes.reset_shell: a raw ctrl+c,
+then kitty keyboard modes popped, `stty sane` and a fresh mark the prompt must print within 5
+s), then the worker's directory and environment are typed into that shell, and variables an
+earlier lane exported there are unset; a pane whose prompt does not come back is skipped — else
+the right column's last pane is split down. Then the
 column's heights are balanced (`pane resize`, best effort). Panes the run did not create are
 never closed, reused or moved.
 
@@ -153,8 +156,7 @@ def shell_idle(pane: str) -> bool:
         info = herdr("pane", "process-info", "--pane", pane).get("process_info") or {}
     except LaneError:
         return False
-    shell = info.get("shell_pid")
-    return bool(shell) and info.get("foreground_process_group_id") == shell
+    return lanes.shell_available(info)
 
 
 # --- geometry ----------------------------------------------------------------------------
@@ -378,7 +380,10 @@ def lane_pane(state: dict, run: Path, primary: Path, cwd: Path,
 
 def prepare(pane: str, cwd: Path, env: dict, previous: list[str]) -> None:
     """Type the worker's directory and environment into a reused pane's idle shell; what an
-    earlier lane exported there and this one does not set is unset first."""
+    earlier lane exported there and this one does not set is unset first. The terminal is
+    reset and the prompt verified first (lanes.reset_shell); LaneError, with nothing typed
+    after the reset, when the prompt does not come back."""
+    lanes.reset_shell(pane)
     stale = [key for key in previous if key not in env and re.fullmatch(r"[A-Za-z_]\w*", key)]
     parts = [f"unset {' '.join(stale)}"] if stale else []
     parts.append(f"cd -- {shlex.quote(str(cwd))}")

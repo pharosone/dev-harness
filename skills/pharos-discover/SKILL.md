@@ -3,6 +3,14 @@ name: pharos-discover
 description: "Use when a feature, endpoint, screen or behaviour change in this repository needs requirements, alternative approaches and an approved specification with TDD units; also when a spec lacks its Requirements interview, its Placement, its Taste gates or a section a project interview row requires."
 ---
 
+**Dispatch authority:** resolve every orchestrator/worker model and effort from
+`harness/core/adapters/models.json` deep-merged with the active
+`harness/project/models.json` (or `$HARNESS_PROJECT/models.json`). Record profile, model
+and effort. Never select from personal memory or saved preferences; router shadow is
+advisory and cannot replace the actual static profile choice. Lane progress goes to
+`<report>.progress.md`; write final `<report>` only at the end. Requests use
+`<run>/lanes/<work>.flag.md` or `tripwire.py flag`; never type into another pane.
+
 # pharos-discover — requirements through approved specification
 
 Read `harness/core/README.md`, the active runtime adapter and, when present,

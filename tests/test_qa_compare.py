@@ -20,6 +20,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 from unittest import mock
 import unittest
 
@@ -119,6 +120,21 @@ def critique(answer_disputed=False, **extra):
 
 REPORT = "# Investigation\n\n**Answer:** Enable retries · **Confidence:** high — run\n"
 HEADLESS = {"claude": "headless", "codex": "headless"}
+
+
+def wait_for_supervisors(pids, timeout=10):
+    """dispatch.end precedes dashboard regeneration; drain writers before rmtree.
+
+    These PIDs belong to this test's detached lane supervisors, not real agents.
+    """
+    deadline = time.monotonic() + timeout
+    remaining = set(pids)
+    while remaining and time.monotonic() < deadline:
+        remaining = {pid for pid in remaining if compare.lanes.alive(pid)}
+        if remaining:
+            time.sleep(0.02)
+    if remaining:
+        compare.lanes.stop(list(remaining))
 
 
 class FolderCase(unittest.TestCase):
@@ -306,6 +322,15 @@ class CompareEndToEndTest(unittest.TestCase):
         self.input = self.temp / "interview.md"
         self.input.write_text(INTERVIEW, encoding="utf-8")
         self.addCleanup(self.unlock)
+        # Other integration tests reuse this setup without inheriting the class.
+        self.addCleanup(CompareEndToEndTest.drain_supervisors, self)
+
+    def drain_supervisors(self):
+        # A completed compare need not mean its supervisor has exited: it may
+        # still be regenerating dashboard.html after recording dispatch.end.
+        states = [json.loads(path.read_text()) for path in
+                  (self.run_dir / "lanes").glob("*.json") if not path.name.startswith("_")]
+        wait_for_supervisors([state["pid"] for state in states if state.get("pid")])
 
     def unlock(self):
         for path in self.temp.rglob("locked"):
