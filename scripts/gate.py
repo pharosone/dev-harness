@@ -48,7 +48,7 @@ Load guard. Only full test suites wait for a busy machine. Each step's command i
             `vitest run`, `cargo test`, `make test`, `rspec`, `dotnet test`, `gradle test`, tox
   targeted  one file, module, package or name filter (`pytest a_test.py`, `-k`, `--lf`,
             `unittest tests.test_x`, `go test ./pkg`, `-run`, `jest -t`, a single spec file,
-            `cargo test name`, `--filter`), or any command holding `{base}`
+            `cargo test name`, `--filter`). `{base}` substitution alone is not a test filter.
   check     anything else: lint, format, types, docs, metadata, unrecognised wrappers
 An opaque wrapper that runs a whole suite declares "scope": "full". Before the run's first
 full step gate.py asks load_guard.wait_for_capacity once: on an idle machine it returns at
@@ -342,6 +342,20 @@ def has_flag(args: list[str], *flags: str) -> bool:
     return any(arg == flag or arg.startswith(flag + "=") for arg in args for flag in flags)
 
 
+def flag_values(args: list[str], *flags: str) -> list[str]:
+    """Values of separate, equals and attached short options, in argument order."""
+    values = []
+    for index, arg in enumerate(args):
+        for flag in flags:
+            if arg == flag and index + 1 < len(args):
+                values.append(args[index + 1])
+            elif arg.startswith(flag + "="):
+                values.append(arg[len(flag) + 1:])
+            elif len(flag) == 2 and arg.startswith(flag) and len(arg) > 2:
+                values.append(arg[2:])
+    return values
+
+
 def positionals(args: list[str], valued: set[str] = frozenset()) -> list[str]:
     """Non-flag arguments; a flag in `valued` consumes the next argument."""
     found, skip = [], False
@@ -374,20 +388,31 @@ VALUED = {
 JS_FILTERS = ("-t", "--testNamePattern", "--grep", "-g", "--filter", "--testPathPattern",
               "--findRelatedTests", "-o", "--onlyChanged", "--changed", "--changedSince",
               "--test-name-pattern", "--test-only", "--related")
+NEUTRAL_FILTERS = {"", "*", ".", ".*", "^.*$"}
+BOOLEAN_FILTERS = {"--lf", "--last-failed", "-o", "--onlyChanged", "--changed", "--test-only"}
+
+
+def effective_filter(args: list[str], filters: tuple[str, ...]) -> bool:
+    if has_flag(args, *(set(filters) & BOOLEAN_FILTERS)):
+        return True
+    values = flag_values(args, *(set(filters) - BOOLEAN_FILTERS))
+    return bool(values) and values[-1].strip() not in NEUTRAL_FILTERS
 
 
 def narrowed(args: list[str], filters: tuple[str, ...], valued: set[str] = frozenset()) -> bool:
     """A name filter, or a single concrete test file / node id (no glob, no directory)."""
-    if has_flag(args, *filters):
+    if effective_filter(args, filters):
         return True
     return any("::" in arg or (TEST_FILE.search(arg.split("::")[0]) and "*" not in arg)
-               for arg in positionals(args, valued))
+               for arg in positionals(args, set(valued) | (set(filters) - BOOLEAN_FILTERS)))
 
 
 def harness_command(name: str, rest: list[str]) -> str | None:
     """The harness's own heavy commands, so a gate step running one is admitted by the
     gate's guard (its child then never waits, and the wait stays out of step time)."""
     if name == "skill_evals.py":
+        if has_flag(rest, "--help", "-h"):
+            return "check"
         return "full" if positionals(rest)[:1] == ["run"] else "check"
     if name == "xreview.py":
         if has_flag(rest, "--dry-run", "-h", "--help"):
@@ -434,12 +459,18 @@ def classify(cmd: list[str]) -> str:
                                              "--sw", "--stepwise"), VALUED["pytest"]) \
             else "full"
     if head == "unittest":
+        keywords = flag_values(rest, "-k")
+        filtered = bool(keywords) and all(value.strip() not in NEUTRAL_FILTERS for value in keywords)
         if rest[:1] == ["discover"]:
-            return "targeted" if has_flag(rest, "-k", "-p", "--pattern") else "full"
-        return "targeted" if has_flag(rest, "-k") or positionals(rest, VALUED["unittest"]) \
+            if filtered:
+                return "targeted"
+            patterns = flag_values(rest, "-p", "--pattern")
+            broad = {"*", "*.py", "test*.py", "test_*.py", "*_test.py", "*test*.py"}
+            return "targeted" if patterns and patterns[-1] not in broad else "full"
+        return "targeted" if filtered or positionals(rest, VALUED["unittest"]) \
             else "full"
     if head == "go" and rest[:1] == ["test"]:
-        if has_flag(rest, "-run"):
+        if effective_filter(rest, ("-run",)):
             return "targeted"
         packages = positionals(rest[1:], VALUED["go"])
         return "full" if not packages or any(p.endswith("...") for p in packages) \
@@ -611,11 +642,14 @@ class Timing:
             if warning:
                 print(f"gate: {warning}", file=sys.stderr, flush=True)
             note = slowdown(earlier, seconds) if passed else None
-            record["slower"] = note
+        except (OSError, ValueError, TypeError) as exc:
+            print(f"gate: timing not recorded in shared history ({exc})", file=sys.stderr, flush=True)
+        record["slower"] = note
+        try:
             self.run_log.parent.mkdir(parents=True, exist_ok=True)
             append_run(self.run_log, record, self.limit)
         except (OSError, ValueError, TypeError) as exc:
-            print(f"gate: timing not recorded ({exc})", file=sys.stderr, flush=True)
+            print(f"gate: per-run timing not recorded ({exc})", file=sys.stderr, flush=True)
         return note
 
 

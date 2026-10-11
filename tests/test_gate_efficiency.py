@@ -118,9 +118,16 @@ class GateCase(unittest.TestCase):
 class ScopeTest(unittest.TestCase):
     FULL = [
         ["go", "test", "./...", "-count=1"], ["go", "test", "-race", "./..."], ["go", "test"],
+        ["go", "test", "./...", "-run", ""], ["go", "test", "./...", "-run=.*"],
+        ["pytest", "-k", ""], ["jest", "-t", ".*"],
+        ["python3", "-m", "unittest", "discover", "-k", "*"],
+        ["python3", "-m", "unittest", "discover", "-k", ""],
         ["pytest"], ["pytest", "tests/"], ["python3", "-m", "pytest", "-q"],
         ["uv", "run", "pytest", "-x"], ["python3", "-m", "unittest"],
         ["python3", "-m", "unittest", "discover", "-s", "tests"], ["npm", "test"],
+        ["python3", "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"],
+        ["python3", "-m", "unittest", "discover", "--pattern=test*.py"],
+        ["python3", "-m", "unittest", "discover", "-ptest_*.py"],
         ["pnpm", "run", "test"], ["npx", "vitest", "run"], ["jest", "--ci"],
         ["node", "--test", "static/*.test.mjs"], ["cargo", "test"], ["make", "test"],
         ["bundle", "exec", "rspec"], ["dotnet", "test"], ["./gradlew", "test"], ["tox"],
@@ -148,6 +155,8 @@ class ScopeTest(unittest.TestCase):
         ["python3", "-m", "unittest", "tests/test_gate.py"],
         ["python3", "-m", "unittest", "-k", "refund"],
         ["python3", "-m", "unittest", "discover", "-p", "test_gate*.py"],
+        ["python3", "-m", "unittest", "discover", "-ptest_gate.py"],
+        ["python3", "-m", "unittest", "discover", "--pattern=test_gate.py"],
         ["python3", "tests/test_gate.py"], ["npm", "test", "--", "src/a.test.ts"],
         ["npx", "jest", "-t", "refund"], ["vitest", "run", "src/cart.spec.tsx"],
         ["yarn", "test", "--", "--findRelatedTests", "src/cart.ts"],
@@ -201,6 +210,19 @@ def suite(name, source="pass", **extra):
 
 
 class GuardIntegrationTest(GateCase):
+    def test_explicit_default_discovery_pattern_still_admits_a_full_suite(self):
+        tests = self.root / "tests"
+        tests.mkdir()
+        (tests / "test_one.py").write_text("import unittest\nclass T(unittest.TestCase):\n"
+                                         "    def test_one(self): self.assertTrue(True)\n")
+        item = {"name": "full", "cwd": ".", "cmd": [PY, "-m", "unittest", "discover",
+                "-s", "tests", "-p", "test_*.py"]}
+        self.configure([item])
+        result = self.gate()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(len(self.guard.calls), 1)
+        self.assertTrue(self.guard.calls[0]["heavy"])
+
     def test_idle_machine_starts_at_once_and_asks_the_guard_once(self):
         self.configure([suite("one"), suite("two")])
         started = time.monotonic()
@@ -540,6 +562,20 @@ class TimingTest(GateCase):
         result = self.gate()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("timing not recorded", result.stderr)
+
+    def test_unwritable_history_does_not_drop_writable_run_evidence(self):
+        (self.root / ".harness").mkdir()
+        (self.root / ".harness" / "gate").write_text("not a directory")
+        run_dir = self.root.parent / "run"
+        self.configure([step("one")])
+        result = self.gate("--run-dir", str(run_dir))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("timing not recorded", result.stderr)
+        record, = self.run_records(run_dir)
+        self.assertEqual(record["status"], "pass")
+        self.assertGreaterEqual(record["seconds"], 0)
+        self.assertIn("guard_wait", record)
+        self.assertIsNone(record["slower"])
 
     def test_run_records_carry_their_provenance(self):
         run_dir = self.root.parent / "run"
