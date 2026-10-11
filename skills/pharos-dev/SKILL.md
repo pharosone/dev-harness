@@ -73,7 +73,9 @@ read their evidence, own the final report.
 Every emitted line gets an action in the same turn. `LANE … needs-input`: read the dialog,
 answer questions you can decide from the spec and earlier authorizations; never answer trust/permission reviews;
 escalate material decisions to the user. A watch category is an alert, not the question text:
-read the actual dialog and those authorizations before deciding. `frozen`: inspect, nudge or cancel the lane. `exited` or
+read the actual dialog and those authorizations before deciding. `activity-unknown`: inspect
+the named checkout/scan failure and restore observable activity; freeze detection is unavailable.
+`frozen`: inspect, nudge or cancel the lane. `exited` or
 `ended-no-report`: inspect its logs and recover or report the failed dispatch. `done`: read and
 accept the report promptly, with the unit's checks and spend recording. As part of acceptance,
 or after recovering/handling an `ended-no-report` dispatch, run
@@ -136,7 +138,12 @@ power — the same profile on both vendors; the pick only chooses which vendor r
 Frozen tests allow only verified automatic amendments: Python AST-equivalent cleanup of
 provably unused imports (collected tests/fixtures and unknown bindings remain protected), or
 setup-only repair before recorded first green with unchanged assertion bytes and verified
-setup-error red evidence. Re-run `task_state.py freeze --red-log` to archive and log the
+setup-error red evidence with an innermost traceback in that exact frozen setup function.
+Only pure, unobserved local literal/name bindings qualify. Attributes, globals, returned/yielded
+fixture values, calls and construction helpers stay frozen because they can affect assertion
+operands. An unchanged assert line is insufficient; unrelated module import errors never
+authorize setup changes. When safety is uncertain, require coordinator approval.
+Re-run `task_state.py freeze --red-log` to archive and log the
 reason. All other edits require coordinator approval. To authorize named list/tuple/set
 literal additions, pin `task-state append-only: tests/test_tools.py:EXPECTED` in the initial
 brief and pass `freeze --brief <brief>`; existing elements and all other AST nodes stay

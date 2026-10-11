@@ -17,10 +17,13 @@ ended-no-report; exited; needs-input <dialog>; needs-input flag (lanes.flag_rais
 canonical <run>/lanes/<work>.flag.md, an open tripwire flag of the unit, or <report>.flag.md
 written since the start; the text is never read; removing or resolving it clears it);
 needs-input hook-trust (Codex's startup review of new or changed hooks, with the one key the
-user presses: t, Trust all and continue); frozen N only for a working agent whose screen and
-checkout files (tracked, untracked and ignored; .git and .harness/ excluded) have not changed
-for frozen_minutes. Activity that cannot be read (no checkout recorded, git failing, more than
-ACTIVITY_MAX_FILES files or ACTIVITY_SECONDS of scanning) never proves a freeze. A failed
+user presses: t, Trust all and continue); frozen N only for a working agent whose screen
+(spinner glyph and elapsed timer of its working-indicator line normalized, so one stuck tool
+call still freezes) and checkout files (tracked and untracked, not ignored; .git and .harness/
+excluded) have not changed for frozen_minutes. Activity that cannot be read (no checkout
+recorded, git failing, more than ACTIVITY_MAX_FILES files or ACTIVITY_SECONDS of scanning)
+never proves a freeze; it is said once per dispatch as "LANE <work> activity-unknown (<why>;
+frozen cannot be detected)" and never repeated. A failed
 screen/state read keeps unanswered dialogs but clears freeze evidence until fresh reads.
 Native Agent-tool subagent events use the same canonical/tripwire request channels.
 --ack closes a pending done/ended-no-report alert permanently for that dispatch after
@@ -182,41 +185,79 @@ def working_indicator(screen: str) -> bool:
                           r"Working(?:\s*\([^\n]*\)|…|\.\.\.)?\s*$", screen))
 
 
+# A working-indicator line, then its parenthesis where the elapsed timer ticks: "Working",
+# bare or after any spinner glyph ("• Working (14m 3s • esc to interrupt)", Codex), or any
+# other capitalized status verb only after a Claude or braille spinner glyph ("✻ Cogitating…
+# (59s · …)"). Ordinary output such as "Result (14m 3s)" or a "•"/"*" bullet is not one.
+WORKING_GLYPH = "[•◦●○·✢✳✶✻✽✦✧\u2800-\u28ff]"
+VERB_GLYPH = "[·✢✳✶✻✽✦✧\u2800-\u28ff]"
+STATUS_LINE = re.compile(rf"^(\s*)(?:{WORKING_GLYPH}?(\s*Working(?:…|\.\.\.)?\s*\()"
+                         rf"|{VERB_GLYPH}(\s*[A-Z][\w-]*(?:…|\.\.\.)?\s*\())(.*)$")
+ELAPSED = re.compile(r"\b(?:\d+h\s*)?(?:\d+m\s*)?\d+[hms]\b")
+
+
+def screen_digest(screen: str) -> str:
+    """The screen's hash for freeze detection, with each working-indicator line's spinner
+    glyph and elapsed timer normalized: they tick while a lane is stuck in one tool call.
+    Everything else counts, a token counter in the same parenthesis included."""
+    lines = []
+    for line in screen.splitlines():
+        match = STATUS_LINE.match(line)
+        if match:
+            head = match[2] or match[3]
+            line = f"{match[1]}<spinner>{head}{ELAPSED.sub('<elapsed>', match[4])}"
+        lines.append(line)
+    return hashlib.sha256("\n".join(lines).encode()).hexdigest()
+
+
 def checkout_activity(state: dict) -> str | None:
-    """A fingerprint of what the lane changes: HEAD and every file of its checkout, tracked,
-    untracked and ignored alike (`ls-files --cached --others`: path, mtime, size, so a file
-    rewritten with the same content and build or test output count), never .git or the run
-    state under .harness/ (the watcher writes there), plus the report and its progress notes.
-    None, which proves no freeze, for a state without a checkout, a checkout git cannot list,
-    or one past ACTIVITY_MAX_FILES files or ACTIVITY_SECONDS of scanning."""
+    """activity's fingerprint alone."""
+    return activity(state)[0]
+
+
+def activity(state: dict) -> tuple[str | None, str | None]:
+    """A fingerprint of what the lane changes, and why it is unknown when it is None.
+
+    The fingerprint covers HEAD and every file of the checkout that git tracks or would track
+    (`ls-files --cached --others --exclude-standard`: path, mtime, size, so a file rewritten
+    with the same content counts), never .git or the run state under .harness/ (the watcher
+    writes there), plus the report and its progress notes. Ignored files (build output,
+    node_modules, .venv) are not scanned. None, which proves no freeze, for a state without a
+    checkout, a checkout git cannot list, or one past ACTIVITY_MAX_FILES files or
+    ACTIVITY_SECONDS of scanning."""
     stamps = [lanes.report_stamp(Path(name)) for name in (
         [state["report"], lanes.progress_path(state["report"])] if state.get("report") else [])]
     folder = state.get("workdir") or state.get("checkout")
     if not folder:
-        return None
+        return None, "no checkout recorded"
     began = time.monotonic()
+    slow = f"scanning took over {ACTIVITY_SECONDS:g} s"
     try:
         head = subprocess.run(["git", "rev-parse", "-q", "--verify", "HEAD"], cwd=folder,
                               capture_output=True, text=True, timeout=ACTIVITY_SECONDS).stdout.strip()
         remaining = ACTIVITY_SECONDS - (time.monotonic() - began)
         if remaining <= 0:
-            return None
+            return None, slow
         done = subprocess.run(["git", "ls-files", "-z", "--cached", "--others",
-                               f"--exclude={lanes.RUN_STATE}"], cwd=folder,
+                               "--exclude-standard", f"--exclude={lanes.RUN_STATE}"], cwd=folder,
                               capture_output=True, text=True, timeout=remaining)
-    except (OSError, subprocess.TimeoutExpired):
-        return None
+    except subprocess.TimeoutExpired:
+        return None, slow
+    except OSError:
+        return None, "git cannot list the checkout"
+    if done.returncode:
+        return None, "git cannot list the checkout"
     names = sorted(set(done.stdout.split("\0")) - {""})
-    if done.returncode or len(names) > ACTIVITY_MAX_FILES:
-        return None
+    if len(names) > ACTIVITY_MAX_FILES:
+        return None, f"more than {ACTIVITY_MAX_FILES} files to scan"
     files = []
     for name in names:
         if Path(name).parts[:1] in ((lanes.RUN_STATE,), (".git",)):
             continue
         if time.monotonic() - began > ACTIVITY_SECONDS:
-            return None
+            return None, slow
         files.append([name, lanes.report_stamp(Path(folder) / name)])
-    return hashlib.sha256(json.dumps([head, files, stamps]).encode()).hexdigest()
+    return hashlib.sha256(json.dumps([head, files, stamps]).encode()).hexdigest(), None
 
 
 def herdr_call(*args: str) -> subprocess.CompletedProcess:
@@ -331,10 +372,15 @@ def lane_conditions(run: Path, memory: dict, config: dict, now: float,
             else:
                 add("needs-input", prompt or "agent_status: blocked")
         if screen is not None:
-            # Frozen: a working agent whose screen and checkout (checkout_activity) have not
-            # changed for frozen_minutes. Activity that cannot be read proves nothing.
-            digest = hashlib.sha256(screen.encode()).hexdigest()
-            files = checkout_activity(state) if working else None
+            # Frozen: a working agent whose screen (screen_digest) and checkout (activity)
+            # have not changed for frozen_minutes. Activity that cannot be read proves
+            # nothing; it is said once per dispatch, so the missing detection is visible.
+            digest = screen_digest(screen)
+            files, why = activity(state) if working else (None, None)
+            noted = memory.setdefault("activity_unknown", [])
+            if working and files is None and dispatch not in noted:
+                add("activity-unknown", f"({why}; frozen cannot be detected)")
+                noted.append(dispatch)
             previous = screens.get(dispatch, {})
             if (not working or files is None
                     or [previous.get("hash"), previous.get("files")] != [digest, files]):
@@ -368,6 +414,7 @@ def lane_conditions(run: Path, memory: dict, config: dict, now: float,
                 "line": f"LANE {work} needs-input flag", "dispatch": dispatch,
                 "work": work, "condition": "needs-input"}
     memory["screens"] = {d: s for d, s in screens.items() if d in present}
+    memory["activity_unknown"] = [d for d in memory.get("activity_unknown", []) if d in present]
     return conditions
 
 

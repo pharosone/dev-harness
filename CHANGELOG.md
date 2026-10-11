@@ -5,6 +5,10 @@ with defaults; a major release may require an overlay change and says which.
 
 ## 1.6.0 — 2026-10-11
 
+- Fix-up after Claude review: setup refreezes require an exact local traceback and pure,
+  unobserved bindings; assertion inputs and opaque fixtures/helpers remain frozen. Watch
+  excludes ignored dependencies, reports unknown checkout activity once, and ignores only
+  status spinner/timer changes when detecting a stuck working lane.
 - Frozen Python tests permit archived, reasoned refreezes for AST-equivalent cleanup,
   setup-only repairs before recorded first green with unchanged assertions, and named
   append-only literal amendments pinned by the initial brief. Other changes still stop

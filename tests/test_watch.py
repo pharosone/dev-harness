@@ -317,7 +317,7 @@ class WatchTest(unittest.TestCase):
         self.live("• Working (23s • esc to interrupt)\nI have 2 questions\nlog: (y/n)")
         self.assertEqual(self.poll(), [])
         self.live("• Working (17m • esc to interrupt)\nI have 2 questions\nlog: (y/n)")
-        self.assertEqual(self.poll(2000), [])  # a ticking indicator is a changing screen
+        self.assertNotIn("needs-input", " ".join(self.poll(2000)))
 
     def test_working_agent_prose_does_not_trigger_input(self):
         self.live("I have 2 questions about the spec\nlog: (y/n)", "working")

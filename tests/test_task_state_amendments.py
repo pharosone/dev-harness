@@ -86,10 +86,10 @@ class FreezeAmendmentTest(unittest.TestCase):
         self.prepare(old, red="NameError: name 'missing_api' is not defined\n")
         self.rejected(self.amend(old + "\nfrom pathlib import Path as test_one\n"))
 
-    def test_setup_can_add_a_missing_fixture_import(self):
+    def test_import_for_an_opaque_fixture_requires_approval(self):
         old = "def setup_function():\n    fixture = MissingFixture()\n\ndef test_one():\n    assert True\n"
         self.prepare(old, red="NameError: name 'MissingFixture' is not defined\n")
-        self.accepted(self.amend("from custom_helpers import MissingFixture\n" + old), "setup-only")
+        self.rejected(self.amend("from custom_helpers import MissingFixture\n" + old))
 
     def test_known_noncollection_stdlib_binding_can_be_unused(self):
         old = "from pathlib import Path\n\ndef test_one():\n    assert True\n"
@@ -136,15 +136,111 @@ class FreezeAmendmentTest(unittest.TestCase):
             with self.subTest(source=changed):
                 self.rejected(self.amend(changed))
 
-    def test_qualified_setup_exception_with_digits_is_supported(self):
+    def test_qualified_setup_exception_does_not_unfreeze_opaque_calls(self):
         old = "def setup_function():\n    fixture = missing_api()\n\ndef test_one():\n    assert True\n"
         self.prepare(old, red='Traceback (most recent call last):\n  File "tests/test one.py", line 2, in setup_function\npsycopg2.errors.UndefinedColumn: missing fixture column\n')
-        self.accepted(self.amend(old.replace("missing_api", "correct_api")), "setup-only")
+        self.rejected(self.amend(old.replace("missing_api", "correct_api")))
 
-    def test_setup_only_before_first_green_keeps_assertions_byte_identical(self):
+    def test_review_exact_expected_value_bypass_cannot_refreeze_or_green(self):
+        old = ('import unittest\nfrom tools import parse\n\nclass TestParse(unittest.TestCase):\n'
+               '    def setUp(self):\n        self.expected = {"a": 1}\n\n'
+               '    def test_parse(self):\n        self.assertEqual(parse("a=1"), self.expected)\n'
+               '\nif __name__ == "__main__":\n    unittest.main()\n')
+        self.prepare(old, red="ModuleNotFoundError: No module named 'tools'\n")
+        (self.worktree / "tools.py").write_text('def parse(text):\n    return {"a": "1"}\n')
+        def run_test():
+            return subprocess.run([sys.executable, str(self.test_file)], cwd=self.worktree,
+                                  env={**self.env, "PYTHONPATH": str(self.worktree)},
+                                  capture_output=True, text=True)
+        self.assertNotEqual(run_test().returncode, 0)
+        changed = old.replace('{"a": 1}', '{"a": "1"}')
+        result = self.amend(changed)
+        passing = run_test()
+        self.assertEqual(passing.returncode, 0, passing.stderr)
+        self.rejected(result)
+        green = self.red_log(passing.stderr, name="green.log")
+        self.rejected(self.run_state("green", "feature", "01", "--green-log", str(green),
+                                     cwd=self.worktree))
+
+    def test_related_setup_error_cannot_change_expected_attribute_or_alias(self):
+        old = ('import unittest\n\nclass TestParse(unittest.TestCase):\n'
+               '    def setUp(self):\n        self.expected = {"a": 1}\n'
+               '        fixture = missing_name\n\n'
+               '    def test_parse(self):\n        expected = self.expected\n'
+               '        self.assertEqual(parse("a=1"), expected)\n')
+        self.prepare(old, red='  File "tests/test one.py", line 6, in setUp\n'
+                     "NameError: name 'missing_name' is not defined\n")
+        self.rejected(self.amend(old.replace('{"a": 1}', '{"a": "1"}')))
+
+    def test_fixture_return_and_yield_values_remain_frozen(self):
+        for statement in ("return expected", "yield expected"):
+            with self.subTest(statement=statement):
+                old = ('import pytest\n\n@pytest.fixture\ndef expected():\n'
+                       '    expected = {"a": 1}\n    fixture = missing_name\n'
+                       f'    {statement}\n\ndef test_parse(expected):\n'
+                       '    assert parse("a=1") == expected\n')
+                self.prepare(old, red='  File "tests/test one.py", line 6, in expected\n'
+                             "NameError: name 'missing_name' is not defined\n")
+                self.rejected(self.amend(old.replace('{"a": 1}', '{"a": "1"}')))
+                self.manifest.unlink()
+
+    def test_setup_globals_and_mutable_values_remain_frozen(self):
+        for body in ("global expected\n    expected = {'a': 1}",
+                     "expected['a'] = 1", "expected.update(a=1)"):
+            with self.subTest(body=body):
+                old = ("expected = {}\n\ndef setup_function():\n    " + body +
+                       "\n    fixture = missing_name\n\ndef test_parse():\n"
+                       "    assert parse('a=1') == expected\n")
+                line = old.splitlines().index("    fixture = missing_name") + 1
+                self.prepare(old, red=f'  File "tests/test one.py", line {line}, in setup_function\n'
+                             "NameError: name 'missing_name' is not defined\n")
+                self.rejected(self.amend(old.replace("= 1", "= '1'").replace("a=1)", "a='1')")))
+                self.manifest.unlink()
+
+    def test_unrelated_import_error_does_not_authorize_local_setup_repair(self):
+        old = "def setup_function():\n    fixture = missing_name\n\ndef test_one():\n    assert True\n"
+        self.prepare(old, red='  File "tools.py", line 1, in <module>\n'
+                     "ModuleNotFoundError: No module named 'dependency'\n")
+        self.rejected(self.amend(old.replace("missing_name", "None")))
+
+    def test_only_the_error_implicated_setup_can_be_repaired(self):
+        old = ("def setup_function():\n    fixture = missing_name\n\n"
+               "def setup_module():\n    fixture = other_missing\n\n"
+               "def test_one():\n    assert True\n")
+        self.prepare(old, red='  File "tests/test one.py", line 2, in setup_function\n'
+                     "NameError: name 'missing_name' is not defined\n")
+        self.rejected(self.amend(old.replace("other_missing", "None")))
+
+    def test_pure_unobserved_local_setup_repair_is_accepted(self):
+        old = "def setup_function():\n    fixture = missing_name\n\ndef test_one():\n    assert True\n"
+        self.prepare(old, red='  File "tests/test one.py", line 2, in setup_function\n'
+                     "NameError: name 'missing_name' is not defined\n")
+        self.accepted(self.amend(old.replace("missing_name", "None")), "setup-only")
+
+    def test_missing_stdlib_import_for_unobserved_local_binding_is_accepted(self):
+        old = "def setup_function():\n    fixture = Path\n\ndef test_one():\n    assert True\n"
+        self.prepare(old, red='  File "tests/test one.py", line 2, in setup_function\n'
+                     "NameError: name 'Path' is not defined\n")
+        self.accepted(self.amend("from pathlib import Path\n" + old), "setup-only")
+
+    def test_external_innermost_module_frame_cannot_authorize_setup(self):
+        old = "def setup_function():\n    fixture = missing_name\n\ndef test_one():\n    assert True\n"
+        self.prepare(old, red='  File "tests/test one.py", line 2, in setup_function\n'
+                     '  File "tools.py", line 1, in <module>\n'
+                     "ModuleNotFoundError: No module named 'dependency'\n")
+        self.rejected(self.amend(old.replace("missing_name", "None")))
+
+    def test_opaque_calls_cannot_mutate_assertion_inputs_from_setup(self):
+        old = ("expected = {'a': 1}\n\ndef setup_function():\n    missing_api()\n\n"
+               "def test_parse():\n    assert parse('a=1') == expected\n")
+        self.prepare(old, red='  File "tests/test one.py", line 4, in setup_function\n'
+                     "NameError: name 'missing_api' is not defined\n")
+        self.rejected(self.amend(old.replace("missing_api()", "expected.update(a='1')")))
+
+    def test_assertion_observed_setup_remains_frozen_before_first_green(self):
         old = "import unittest\n\nclass TestOne(unittest.TestCase):\n    def setUp(self):\n        self.fixture = Fake(wrong=True)\n\n    def test_one(self):\n        self.assertEqual(self.fixture.value, 42)  # contract\n"
         self.prepare(old, red="ERROR: test_one\nTraceback (most recent call last):\n  in setUp\nTypeError: Fake got unexpected keyword 'wrong'\n")
-        self.accepted(self.amend(old.replace("wrong=True", "correct=True")), "setup-only")
+        self.rejected(self.amend(old.replace("wrong=True", "correct=True")))
 
     def test_setup_rejects_changed_assertion_bytes_or_non_setup_code(self):
         old = "import unittest\n\nclass TestOne(unittest.TestCase):\n    def setUp(self):\n        self.fixture = Fake(wrong=True)\n\n    def test_one(self):\n        self.assertEqual(self.fixture.value, 42)\n"
@@ -177,7 +273,7 @@ class FreezeAmendmentTest(unittest.TestCase):
                      'TypeError: application handler has wrong argument\n')
         self.rejected(self.amend(old.replace("missing_api", "correct_api")))
 
-    def test_setup_only_supports_pytest_fixture_and_each_setup_error_kind(self):
+    def test_fixture_returns_remain_frozen_for_each_setup_error_kind(self):
         old = "import pytest\n\n@pytest.fixture\ndef record():\n    return Fake(wrong=True)\n\ndef test_one(record):\n    assert record.value == 42\n"
         for index, error in enumerate(("ImportError: missing API", "NameError: fixture_name missing",
                                        "psycopg.errors.UndefinedColumn: missing column",
@@ -191,16 +287,16 @@ class FreezeAmendmentTest(unittest.TestCase):
                 red = self.red_log("Traceback (most recent call last):\n" + error + "\n", name=f"{unit}.log")
                 self.ok(self.freeze("feature", unit, name, cwd=self.worktree, red=red))
                 test.write_text(old.replace("wrong=True", "correct=True"))
-                self.ok(self.freeze("feature", unit, name, cwd=self.worktree, red=red))
-                self.ok(self.run_state("verify", "feature", unit, cwd=self.worktree))
+                self.assertNotEqual(self.freeze("feature", unit, name, cwd=self.worktree, red=red).returncode, 0)
+                self.assertNotEqual(self.run_state("verify", "feature", unit, cwd=self.worktree).returncode, 0)
 
-    def test_pytest_error_output_without_traceback_is_setup_evidence(self):
+    def test_pytest_traceback_does_not_unfreeze_asserted_fixture_returns(self):
         old = "import pytest\n\n@pytest.fixture\ndef record():\n    return Fake(wrong=True)\n\ndef test_one(record):\n    assert record.value == 42\n"
         self.prepare(old, red="________________ ERROR at setup of test_one ________________\n"
                      "tests/test_one.py:5: in record\n    return Fake(wrong=True)\n"
                      "E   TypeError: Fake got unexpected keyword 'wrong'\n"
                      "ERROR tests/test_one.py::test_one - TypeError: Fake\n1 error in 0.01s\n")
-        self.accepted(self.amend(old.replace("wrong=True", "correct=True")), "setup-only")
+        self.rejected(self.amend(old.replace("wrong=True", "correct=True")))
 
     @unittest.skipIf(baseline.fcntl is None, "automatic refreezes require file locking")
     def test_concurrent_refreezes_keep_exactly_one_archive(self):
@@ -226,27 +322,27 @@ class FreezeAmendmentTest(unittest.TestCase):
         self.prepare(old, red="TypeError: Fake got unexpected keyword 'wrong'\n")
         self.rejected(self.amend(old.replace("wrong=True", "correct=True")))
 
-    def test_named_fake_missing_method_is_setup_only(self):
+    def test_named_fake_method_can_change_assertion_inputs_and_needs_approval(self):
         old = ("class FakeDB:\n    def query(self):\n        return 42\n\n"
                "def test_one():\n    fixture = FakeDB()\n    assert fixture.execute() == 42\n")
         self.prepare(old, red="AttributeError: 'FakeDB' object has no attribute 'execute'\n")
         fixed = old.replace("        return 42\n", "        return 42\n\n    def execute(self):\n        return self.query()\n")
-        self.accepted(self.amend(fixed), "setup-only")
+        self.rejected(self.amend(fixed))
 
-    def test_named_stub_constructor_frame_is_setup_only(self):
+    def test_stub_constructor_assertion_input_remains_frozen(self):
         old = ("class StubDB:\n    def __init__(self):\n        self.rows = list(None)\n\n"
                "def test_one():\n    fixture = StubDB()\n    assert fixture.rows == []\n")
         self.prepare(old, red='ERROR: test_one\nTraceback (most recent call last):\n'
                      '  File "tests/test one.py", line 3, in __init__\n'
                      '    self.rows = list(None)\nTypeError: NoneType is not iterable\n')
-        self.accepted(self.amend(old.replace("list(None)", "list()")), "setup-only")
+        self.rejected(self.amend(old.replace("list(None)", "list()")))
 
-    def test_named_fake_factory_is_setup_only(self):
+    def test_named_fake_factory_assertion_input_remains_frozen(self):
         old = "def FakeRecord():\n    return missing_api()\n\ndef test_one():\n    assert FakeRecord().value == 42\n"
         self.prepare(old, red='Traceback (most recent call last):\n'
                      '  File "tests/test one.py", line 2, in FakeRecord\n'
                      '    return missing_api()\nNameError: missing_api is not defined\n')
-        self.accepted(self.amend(old.replace("return missing_api()", "return correct_api()")), "setup-only")
+        self.rejected(self.amend(old.replace("return missing_api()", "return correct_api()")))
 
     def test_other_fake_or_real_class_or_assertion_cannot_change(self):
         old = ("class FakeDB:\n    pass\n\nclass FakeOther:\n    pass\n\nclass Database:\n    pass\n\n"

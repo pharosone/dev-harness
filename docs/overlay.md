@@ -235,9 +235,13 @@ The file channel also covers native subagent `dispatch.start` events. If the run
 outside a worker's writable roots, it writes `<report>.flag.md`; only a new report-side flag
 since dispatch start counts. Open unit flags at `<run>/units/<work>-flag.md` count until
 `tripwire.py resolve` archives them. Unsafe work filenames are slugged; flag text is never copied.
-Activity scans include ignored build/test output and identical-content rewrites, excluding
-`.git` and observer-owned `.harness`, plus report/progress stamps. More than 50,000 files or
-5 seconds of listing/stat scanning yields unknown activity and no freeze. Failed screen/state
+Activity scans count tracked and untracked-not-ignored files and identical-content rewrites,
+excluding `.git` and observer-owned `.harness`, plus report/progress stamps. Ignored build/test
+output, `node_modules` and `.venv` do not count. Only a working-indicator line's spinner and
+elapsed timer are normalized in the screen hash; tool output and token counters still count.
+More than 50,000 files or 5 seconds of listing/stat scanning yields unknown activity and no
+freeze. Watch emits `LANE <work> activity-unknown (<why>; frozen cannot be detected)` once per
+dispatch so a disabled freeze check is visible. Failed screen/state
 reads restart freeze evidence; unreadable evidence never proves unchanged activity. A vanished
 agent or dead supervisor is exited until its dispatch ends, even if an early report exists.
 No Herdr: only persisted dispatch facts and headless process state are available for lanes;

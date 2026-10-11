@@ -11,10 +11,11 @@ in the manifest as evidence and are not checked by `verify`.
 Repeating `freeze` preserves and archives the old manifest when Python changes are
 AST-equivalent (including removal of unused imports), or setup-only with byte-identical
 assertions and hash-verified setup-error evidence before the first recorded green run.
-Setup includes module imports, conventional setup functions and `@pytest.fixture`
-bodies, plus top-level `Fake*`/`Stub*` construction helpers specifically named by the
-exception or located by its innermost traceback. Unrelated helpers and inline setup
-inside test functions remain approval-only.
+Setup repairs require an innermost traceback in the exact frozen setup function.
+Only pure, unobserved local bindings can change automatically. Fixtures, returned
+values, shared attributes/globals, calls and construction helpers remain frozen:
+their effect on assertion operands cannot be proved safe by this static check.
+Missing non-collecting stdlib imports may be added only for such local setup bindings.
 `green TASK UNIT --green-log FILE` verifies the frozen files and records that first pass;
 call it immediately after the first successful test command. `verify` alone is not a pass.
 At the initial freeze, `--brief FILE` pins exact brief lines of the form
@@ -462,7 +463,41 @@ def has_test_controls(node: ast.AST, aliases: set[str]) -> bool:
                for child in ast.walk(node))
 
 
-def without_setup(tree: ast.Module, helpers: set[str]) -> ast.Module:
+def pure_local_setup(tree: ast.Module, node: ast.AST) -> bool:
+    """Prove a deliberately small subset cannot supply or mutate test operands.
+
+    No Python call/property/operator is assumed pure. Reject fixtures even when
+    their return is implicit (autouse fixtures may mutate shared state). Leave
+    opaque construction helpers frozen rather than guessing their dependencies.
+    """
+    if not is_setup_function(node) or node.name not in SETUP_NAMES or node.decorator_list:
+        return False
+    local = set()
+    allowed = (ast.Constant, ast.Name, ast.List, ast.Tuple, ast.Set, ast.Dict,
+               ast.Load, ast.Store)
+    for statement in node.body:
+        if isinstance(statement, ast.Pass):
+            continue
+        if isinstance(statement, ast.Expr) and isinstance(statement.value, ast.Constant):
+            continue  # docstring / inert literal
+        if not isinstance(statement, ast.Assign):
+            return False
+        if not all(isinstance(target, ast.Name) for target in statement.targets):
+            return False
+        if any(not isinstance(child, allowed) for child in ast.walk(statement.value)):
+            return False
+        if (not isinstance(statement.value, ast.Name)
+                and any(isinstance(child, ast.Name) for child in ast.walk(statement.value))):
+            return False  # containers must not hash user-defined objects
+        local.update(target.id for target in statement.targets)
+    # Conservative across scopes: any same-named use outside this setup keeps
+    # the whole body frozen, including indirect assertion aliases in test code.
+    inside = {id(child) for child in ast.walk(node)}
+    return not any(isinstance(child, ast.Name) and child.id in local
+                   and id(child) not in inside for child in ast.walk(tree))
+
+
+def without_setup(tree: ast.Module, eligible: set[str]) -> ast.Module:
     aliases = {alias.asname or alias.name for child in ast.walk(tree)
                if isinstance(child, ast.ImportFrom) for alias in child.names
                if alias.name in TEST_CONTROLS}
@@ -474,17 +509,13 @@ def without_setup(tree: ast.Module, helpers: set[str]) -> ast.Module:
             for child in node.body:
                 if isinstance(child, (ast.Import, ast.ImportFrom)):
                     continue
-                if (isinstance(child, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
-                        and child.name in helpers and not has_test_controls(child, aliases)):
-                    child.body = [ast.Pass()]
-                    body.append(child)
-                else:
-                    body.append(self.visit(child))
+                body.append(self.visit(child))
             node.body = body
             return node
 
         def visit_FunctionDef(self, node):
-            if is_setup_function(node) and not has_test_controls(node, aliases):
+            if (node.name in eligible and pure_local_setup(tree, node)
+                    and not has_test_controls(node, aliases)):
                 node.body = [ast.Pass()]
                 return node
             return self.generic_visit(node)
@@ -494,7 +525,7 @@ def without_setup(tree: ast.Module, helpers: set[str]) -> ast.Module:
     return Strip().visit(tree)
 
 
-def setup_imports_safe(before: ast.Module, after: ast.Module) -> bool:
+def setup_imports_safe(before: ast.Module, after: ast.Module, eligible: set[str]) -> bool:
     """Setup may add missing bindings, but must retain possibly collected imports.
 
     Unknown existing imports stay exact. A new import may not overwrite an
@@ -515,8 +546,22 @@ def setup_imports_safe(before: ast.Module, after: ast.Module) -> bool:
         return keys
 
     old, new = imports(before), imports(after)
-    if imports(before, protected=True) - imports(after, protected=True):
+    if old - new:
         return False
+    safe_nodes = [node for node in ast.walk(before)
+                  if is_setup_function(node) and node.name in eligible
+                  and pure_local_setup(before, node)]
+    safe_reads = {id(child) for node in safe_nodes for child in ast.walk(node)}
+    for kind, module, level, name, alias in new - old:
+        binding = alias or (name.split('.')[0] if kind == 'Import' else name)
+        if (level or (name not in NON_COLLECTION_IMPORTS if kind == 'Import'
+                      else module not in NON_COLLECTION_IMPORTS)):
+            return False
+        reads = [child for child in ast.walk(before)
+                 if isinstance(child, ast.Name) and isinstance(child.ctx, ast.Load)
+                 and child.id == binding]
+        if not reads or any(id(child) not in safe_reads for child in reads):
+            return False
     bound = {node.name for node in ast.walk(before)
              if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
     bound.update(node.id for node in ast.walk(before)
@@ -527,16 +572,16 @@ def setup_imports_safe(before: ast.Module, after: ast.Module) -> bool:
                    for kind, _, _, name, alias in new - old)
 
 
-def setup_only(old: bytes, new: bytes, helpers: set[str]) -> bool:
+def setup_only(old: bytes, new: bytes, eligible: set[str]) -> bool:
     before, after = source_tree(old), source_tree(new)
     # An assertion must not be moved into/out of a fixture or rewritten there.
-    return (setup_imports_safe(before, after)
+    return (setup_imports_safe(before, after, eligible)
             and assertion_bytes(old, before) == assertion_bytes(new, after)
-            and tree_key(without_setup(before, helpers)) == tree_key(without_setup(after, helpers)))
+            and tree_key(without_setup(before, eligible)) == tree_key(without_setup(after, eligible)))
 
 
 def verified_setup_error(evidence: dict, source: bytes, filename: str) -> set[str] | None:
-    """Return the specific eligible construction helpers, or None for unsafe evidence."""
+    """Return uniquely traceback-implicated setup names, or None for unsafe evidence."""
     if not isinstance(evidence, dict) or not isinstance(evidence.get("path"), str):
         return None
     path = Path(evidence["path"])
@@ -556,46 +601,30 @@ def verified_setup_error(evidence: dict, source: bytes, filename: str) -> set[st
     if not errors:
         return None
     tree = source_tree(source)
-    setup_names = {node.name for node in ast.walk(tree) if is_setup_function(node)}
-    helper_nodes = construction_helpers(tree)
-    helpers = set()
+    setup_nodes = [node for node in ast.walk(tree) if is_setup_function(node)]
+    counts = Counter(node.name for node in setup_nodes)
+    eligible = set()
     previous_end = 0
     for error in errors:
         kind = error.group(1).rsplit(".", 1)[-1]
         prefix = text[previous_end:error.start()]
         previous_end = error.end()
-        named = {name for name in helper_nodes if re.search(r"\b" + re.escape(name) + r"\b", error.group(2))}
         locations = list(re.finditer(
-            r'File "([^"\n]+)", line (\d+), in ([\w.]+)'
-            r'|^([^\n]+\.py):(\d+): in ([\w.]+)', prefix, re.MULTILINE))
-        local_frame = False
-        if locations:
-            location = locations[-1]
-            file, line, function = location.groups()[:3] if location.group(1) else location.groups()[3:]
-            local_frame = file == filename or file.endswith("/" + filename)
-            if local_frame:
-                for name, node in helper_nodes.items():
-                    if node.lineno <= int(line) <= node.end_lineno and any(
-                        isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef))
-                        and child.name == function for child in ast.walk(node)):
-                        named.add(name)
-        helpers.update(named)
-        if kind in {"ImportError", "ModuleNotFoundError", "NameError", "UndefinedColumn"}:
-            continue
-        if kind in {"AttributeError", "TypeError"}:
-            frames = re.findall(r"\bin ([A-Za-z_][\w.]*)[ \t]*$", prefix, re.MULTILINE)
-            if frames:
-                # The innermost frame, not incidental fixture text elsewhere.
-                frame = frames[-1]
-                if (frame in setup_names
-                        or (named and local_frame)
-                        or frame in helper_nodes):
-                    continue
-            elif (named or re.search(r"\b(?:fixture\w*|fake\w*|stub\w*)\b", error.group(2), re.IGNORECASE)
-                  or re.search(r"\bERROR at setup of\b", prefix)):
-                continue
-        return None
-    return helpers
+            r'File "([^"\n]+)", line (\d+), in ([^\s\n]+)'
+            r'|^([^\n]+\.py):(\d+): in ([^\s\n]+)', prefix, re.MULTILINE))
+        if not locations or kind not in {"ImportError", "ModuleNotFoundError", "NameError",
+                                         "UndefinedColumn", "AttributeError", "TypeError"}:
+            return None
+        location = locations[-1]
+        file, line, function = location.groups()[:3] if location.group(1) else location.groups()[3:]
+        if file != filename and not file.endswith("/" + filename):
+            return None
+        implicated = [node for node in setup_nodes if counts[node.name] == 1
+                      and node.name == function and node.lineno <= int(line) <= node.end_lineno]
+        if len(implicated) != 1:
+            return None
+        eligible.add(implicated[0].name)
+    return eligible or None
 
 
 def saved_sources(data: dict) -> dict[str, bytes]:

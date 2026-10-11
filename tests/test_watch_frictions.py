@@ -148,15 +148,103 @@ class WatchFrictionTest(unittest.TestCase):
         self.assertEqual(self.poll(2399), [])
         self.assertEqual(self.poll(2400), ["LANE implement frozen 15"])
 
-    def test_ignored_build_output_is_activity(self):
+    # Fix-up after the Claude review: ignored files are not scanned (a node_modules or .venv
+    # tree pushed every lane past the budget, so frozen never fired), and unknown activity is
+    # said once instead of silently disabling freeze detection.
+
+    def test_ignored_output_is_not_activity(self):
         (self.checkout / ".gitignore").write_text("build/\n")
+        subprocess.run(["git", "add", ".gitignore"], cwd=self.checkout, check=True)
         (self.checkout / "build").mkdir()
         (self.checkout / "build" / "test.log").write_text("1\n")
         self.poll()
         (self.checkout / "build" / "test.log").write_text("1\n2\n")
         self.assertEqual(self.poll(1500), [])
+        self.assertEqual(self.poll(1900), ["LANE implement frozen 15"])
+
+    def test_a_large_ignored_tree_keeps_activity_known(self):
+        (self.checkout / ".gitignore").write_text("node_modules/\n")
+        subprocess.run(["git", "add", ".gitignore"], cwd=self.checkout, check=True)
+        (self.checkout / "node_modules").mkdir()
+        for n in range(5):
+            (self.checkout / "node_modules" / f"m{n}.js").write_text("x")
+        with patch.object(watch, "ACTIVITY_MAX_FILES", 3):
+            self.assertIsNotNone(watch.checkout_activity(self.state))
+            self.assertEqual(self.poll(), [])
+            self.assertEqual(self.poll(1900), ["LANE implement frozen 15"])
+
+    def test_unknown_activity_is_said_once(self):
+        del self.state["checkout"]
+        self.save_lane()
+        self.assertEqual(self.poll(), [
+            "LANE implement activity-unknown (no checkout recorded; frozen cannot be detected)"])
+        self.assertEqual(self.poll(1001), [])
+        self.assertEqual(watch.summary(self.run), "Watch: ✅ quiet")
+        self.assertEqual(self.poll(5000), [])
+
+    def test_unknown_activity_names_the_scan_budget(self):
+        for n in range(5):
+            self.touch(f"f{n}.txt", "x")
+        with patch.object(watch, "ACTIVITY_MAX_FILES", 3):
+            self.assertEqual(self.poll(), [
+                "LANE implement activity-unknown (more than 3 files to scan; frozen cannot be "
+                "detected)"])
+            self.assertEqual(self.poll(9000), [])
+
+    def test_unknown_activity_is_not_said_for_an_idle_agent(self):
+        del self.state["checkout"]
+        self.save_lane()
+        self.live("› ", "idle")
+        self.assertEqual(self.poll(), [])
+
+    # Fix-up: the working indicator's spinner glyph and elapsed timer are not screen activity,
+    # so a lane stuck in one tool call still looks frozen; token counters still are activity.
+
+    def test_screens_differing_only_in_spinner_and_timer_are_the_same(self):
+        for before, after in [
+                ("output\n⠋ Working (14m 3s • esc to interrupt)\n› ",
+                 "output\n⠙ Working (15m 12s • esc to interrupt)\n› "),
+                ("✻ Cogitating… (59s · ↓ 2.1k tokens · esc to interrupt)",
+                 "✽ Cogitating… (1h 2m 3s · ↓ 2.1k tokens · esc to interrupt)"),
+                ("• Working (3s)", "◦ Working (2m 0s)")]:
+            with self.subTest(before=before):
+                self.assertEqual(watch.screen_digest(before), watch.screen_digest(after))
+        self.assertNotEqual(watch.screen_digest("a\n• Working (3s)"),
+                            watch.screen_digest("b\n• Working (3s)"))
+        self.assertNotEqual(watch.screen_digest("✻ Cogitating… (5s · ↓ 2.1k tokens)"),
+                            watch.screen_digest("✻ Cogitating… (5s · ↓ 2.4k tokens)"))
+        self.assertNotEqual(watch.screen_digest("Built in 14m 3s"),
+                            watch.screen_digest("Built in 15m 3s"))
+
+    def test_only_a_status_line_is_normalized(self):
+        # Ordinary output keeps its timer: only bare "Working" or a status verb after a
+        # spinner glyph is a working indicator.
+        for before, after in [("Result (14m 3s)", "Result (15m 3s)"),
+                              ("• Result (14m 3s)", "• Result (15m 3s)"),
+                              ("* Result (14m 3s)", "* Result (15m 3s)"),
+                              ("Cogitating… (14m 3s)", "Cogitating… (15m 3s)")]:
+            with self.subTest(before=before):
+                self.assertNotEqual(watch.screen_digest(before), watch.screen_digest(after))
+        for before, after in [("Working (14m 3s)", "Working (15m 3s)"),
+                              ("Working… (14m 3s)", "Working… (15m 3s)"),
+                              ("✶ Cogitating… (14m 3s)", "✢ Cogitating… (15m 3s)"),
+                              ("· Pondering… (3s)", "✳ Pondering… (4s)")]:
+            with self.subTest(before=before):
+                self.assertEqual(watch.screen_digest(before), watch.screen_digest(after))
+
+    def test_a_lane_stuck_in_one_tool_call_is_frozen(self):
+        self.live("$ pytest -x\n⠋ Working (1m 3s • esc to interrupt)")
+        self.poll()
+        self.live("$ pytest -x\n⠼ Working (9m 41s • esc to interrupt)")
+        self.assertEqual(self.poll(1500), [])
+        self.live("$ pytest -x\n⠧ Working (16m 2s • esc to interrupt)")
+        self.assertEqual(self.poll(1900), ["LANE implement frozen 15"])
+
+    def test_a_growing_token_count_is_activity(self):
+        self.live("✻ Cogitating… (1m 3s · ↓ 2.1k tokens · esc to interrupt)")
+        self.poll()
+        self.live("✶ Cogitating… (16m 2s · ↓ 2.4k tokens · esc to interrupt)")
         self.assertEqual(self.poll(1900), [])
-        self.assertEqual(self.poll(2400), ["LANE implement frozen 15"])
 
     def test_a_checkout_over_the_scan_budget_is_unknown_activity(self):
         for n in range(5):

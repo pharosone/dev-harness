@@ -269,9 +269,13 @@ An idle agent is not frozen. A progress or final report written while the agent 
 does not mean done: require a recorded dispatch end, or an idle/done agent with a fresh final
 report. Lane flags surface as `needs-input flag`. Codex hook reviews surface as
 `needs-input hook-trust`; read the dialog and press `t` only after the user authorizes trust.
-Checkout activity includes tracked, untracked and ignored files, plus report/progress stamps,
+Checkout activity includes tracked and untracked-not-ignored files, plus report/progress stamps,
 excluding `.git` and observer-owned `.harness`. Listing/stat work is bounded to 5 seconds and
-50,000 paths; unreadable or over-budget activity cannot prove a freeze. Failed screen/state
+50,000 paths; unreadable or over-budget activity cannot prove a freeze. Watch reports
+`LANE <work> activity-unknown (<why>; frozen cannot be detected)` once per dispatch.
+Ignored dependency/build trees do not count as activity. The working-indicator line's
+spinner and elapsed timer are normalized; changes to tool output or token counts still count.
+Failed screen/state
 reads clear freeze evidence and restart its clock once fresh observations return. Unanswered
 dialogs remain visible. A vanished agent/dead supervisor remains `exited` until dispatch end.
 The hook alert names the one-key action: `the user presses t (Trust all and continue) in <pane>`.
@@ -374,15 +378,18 @@ the first green evidence. A hash-only `verify` does not record test success.
 Repeating `freeze` automatically archives the previous manifest and logs its reason only for
 Python AST-equivalent edits (comments, whitespace and removed provably unused imports), or setup-only
 repairs before recorded first green with byte-identical assertion lines and hash-verified
-setup-error evidence. This includes conventional setup functions, pytest fixtures, imports
-and narrowly matched `Fake*`/`Stub*` construction helpers named by the failing traceback.
+setup-error evidence whose innermost traceback identifies the exact frozen setup function.
+Only pure, unobserved local bindings qualify: literal/name assignments with no outward use,
+calls, properties or operators. Returned/yielded fixture values, attributes, globals, mutable
+shared data and `Fake*`/`Stub*` helpers remain frozen because they can supply assertion inputs.
+An unrelated import error or evidence without a local traceback never authorizes a setup edit.
 Assertions, test bodies, parameters and decorators stay protected;
 inline construction inside a test body remains approval-only. Mixed assertion/setup failures
 do not qualify. Legacy manifests without saved source bytes remain approval-only.
 Unknown imported bindings can be collected tests/fixtures: removing them needs approval;
 unused import cleanup is limited to known non-collection standard-library modules.
-Setup repairs may add missing imports, but cannot remove/retarget existing unknown imports
-or introduce imports that overwrite existing collected definitions/bindings.
+Setup repairs may add a missing non-collecting stdlib import used only by an implicated pure
+local setup binding, but cannot remove/retarget existing imports or overwrite definitions/bindings.
 Setup/fake bodies with skip/xfail controls retain their full AST, including guards and aliases.
 First-green evidence must show actual passing tests; bare unittest `OK`, empty suites and
 all-skipped/expected-failure-only runs are refused.
