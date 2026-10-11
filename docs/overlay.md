@@ -37,6 +37,23 @@ bad part and keeps every core rule, because a broken guard must not lock a sessi
 The optional shadow router is also advisory: an invalid `router.json` logs a skipped shadow
 recommendation and retains the actual static pick. It cannot block or promote a dispatch.
 
+## Efficient testing in every overlay
+
+`harness/core/rules/efficient-testing.md` is a core rule for all projects/stacks and both
+adapters, not an opt-in product rule. Product overlays declare actual commands and services;
+the principle chooses the cheapest correct isolation and owned logical namespaces on shared
+long-lived test services. Record any stronger isolation, reusable setup content hash, scoped
+cache exception and measured cold/warm wall/resource cost in
+`harness/core/prompts/implementer-brief.md`. QA verifies that evidence and real boundary
+coverage. Locally run affected tests before expanding; full suites stay in CI/pre-PR.
+
+Build/result/dependency/image caches stay enabled unless a named input is invisible to that
+cache; bypass only its affected test/step. CI may keep stricter hermetic result-cache policy.
+The adaptive load guard samples host load and memory, never imposes fixed job slots, and
+watch surfaces waiting jobs. Targeted tests and admitted descendants bypass waiting; the
+max-wait bound prevents starvation. Gate timing compares successful equivalent commands to
+prior rolling medians; >50% slowdown is advisory, never a test failure.
+
 ## project.json
 
 One JSON object. Each script reads only its own section; other top-level keys are ignored.
@@ -60,6 +77,43 @@ One JSON object. Each script reads only its own section; other top-level keys ar
 
 The guard protects this file: an edit asks the user on Claude Code and is denied on Codex, because
 it configures the guard itself.
+
+### load_guard — adaptive host admission
+
+Optional object; defaults apply without an overlay. Full test gates, `skill_evals.py run`
+and full `xreview.py` execution check the actual host before starting. This is not a fixed
+slot count and does not lock out another project when capacity remains.
+
+| Key | Default | Meaning / environment override |
+|---|---:|---|
+| `enabled` | `true` | Disable with `HARNESS_LOAD_GUARD=0`; `1` enables. The kill switch works even with unusable overlay settings. |
+| `load_per_core` | `1.5` | Wait at or above this multiple of logical CPU cores' 1-minute load; `HARNESS_LOAD_PER_CORE`. |
+| `max_wait_seconds` | `300` | Once this bound expires, start anyway; `HARNESS_LOAD_MAX_WAIT_SECONDS`. |
+| `backoff_seconds` | `2` | Short resample interval; `HARNESS_LOAD_BACKOFF_SECONDS`. |
+| `min_available_percent` | `10` | Linux available memory threshold (includes reusable page cache); `HARNESS_LOAD_MIN_AVAILABLE_PERCENT`. |
+| `max_memory_some_percent` | `10` | Linux memory PSI `some` avg10 percentage; above it is busy; `HARNESS_LOAD_MEMORY_SOME_PERCENT`. |
+| `max_memory_full_percent` | `1` | Linux memory PSI `full` avg10 percentage; above it is busy; `HARNESS_LOAD_MEMORY_FULL_PERCENT`. |
+
+`HARNESS_LOAD_GUARD_STATE_DIR` selects the host-wide same-user waiting-job registry; its
+normal location is `/tmp/harness-load-guard-<uid>`. The internal
+`HARNESS_LOAD_GUARD_ANCESTOR` records process identity and verifies actual ancestry, so
+nested heavy work in the admitted tree never waits again. It is not a fixed-slot lease.
+`watch.py` surfaces live waiting jobs across checkouts and clears stale/dead job records.
+Labels omit raw commands and credentials. Watch emits `LOAD <label> waiting (pid <pid>)`
+and shows a waiting count separately from open failures; clearing/admission re-arms the
+lane inactivity clock. Observe the queue, not a frozen-job failure. Native probes are bounded; unavailable signals
+are unknown/fail-open individually, while any known busy load or memory signal still waits.
+macOS uses native VM pressure (normal level 1); Linux also uses memory PSI stalls independently
+of available memory. Missing PSI is unknown rather than a normal-memory claim. Load ratio must
+be greater than zero and at most 64; max wait is 0–3600 seconds, backoff 0.05–10 seconds and
+memory percentages 0–100. Platform details and bounded native-probe behavior are defined by
+`harness/core/scripts/load_guard.py`. Invalid explicit settings are configuration errors for execution;
+read-only check/report/dry-run and targeted paths do not consult heavy admission.
+
+Example: `"load_guard": {"load_per_core": 1.5, "max_wait_seconds": 300}` in `project.json`.
+A busy job prints `machine busy (load L / C cores), waiting up to N s`; after the bound it
+starts, so stalled telemetry cannot starve work. CI can use a deliberate hermetic/disabled
+configuration without changing its test commands or cached local workflow.
 
 ### name
 
@@ -329,10 +383,31 @@ The one copy of the CI gates, run by `gate.py [AREA…] [--changed BASE] [--base
 | `step.cmd` | [string], required | — | argv, run without a shell; `{base}` in an argument becomes `--base` (default: the `--changed` value, else `origin/main`) |
 | `step.expect_empty_stdout` | bool | `false` | exit 0 with any output still fails (a formatter's list mode) |
 | `step.expand_globs` | bool | `false` | arguments with `*` or `?` are expanded relative to `cwd`; no match fails |
+| `step.scope` | `"full"` or `"targeted"` | inferred | Override full-suite vs narrow-test classification for opaque wrappers; `--targeted` bypasses waiting for an affected-only invocation. |
 | `step.ci_form` | [form], non-empty | the step itself | how CI runs this step when it differs on purpose (below) |
 
 Steps check the working tree as it is and write no sources; dependency installs belong to the
-checkout's setup. `gate.py` prints one line per step (PASS, FAIL with its digest, SKIP) and exits 0
+checkout's setup. Full known suite commands invoke the adaptive host guard; file/package/
+filter commands and non-test checks never wait. `--changed` selects areas rather than cases,
+so an area's full command remains heavy; a genuinely affected-only wrapper declares
+`scope: "targeted"` or uses `--targeted`. Dry-run and pin-ci never probe, wait or measure.
+
+Each executed step appends execution seconds, status and admission wait to the run directory
+selected by `--run-dir`, otherwise the checkout's logs. Comparable successful command/cwd/name
+fingerprints share a bounded rolling history in the primary checkout; failures do not establish
+a successful baseline. These are runtime output artifacts, not skill instruction inputs:
+
+```text
+<run>/gate-timings.jsonl
+<checkout>/.harness/logs/gate-timings.jsonl
+<primary>/.harness/gate/timings.json
+```
+
+After three prior successful samples, a duration over 1.5 times the prior positive median
+prints an advisory slowdown note (fast steps included) without changing
+the real exit/empty-stdout result. Guard waiting is excluded from execution duration. History
+uses file locking and atomic replacement; unavailable timing storage is reported, not a pass
+claim about performance. `gate.py` prints one line per step (PASS, FAIL with its digest, SKIP) and exits 0
 (all passed), 1 (a step failed) or 2 (usage or configuration error).
 
 For example, a tests area can declare

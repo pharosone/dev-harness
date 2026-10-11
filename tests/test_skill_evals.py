@@ -63,7 +63,7 @@ if os.environ.get('MUTATE'): Path(os.environ['MUTATE']).write_text('changed duri
 out.write_text(json.dumps(value))
 sys.exit(int(os.environ.get('EXIT','0')))
 ''')
-        patch.dict(os.environ, {'TRACE': str(self.root/'trace.json')}).start()
+        patch.dict(os.environ, {'TRACE': str(self.root/'trace.json'), 'HARNESS_LOAD_GUARD': '0'}).start()
 
     def git(self, *args):
         return subprocess.run(['git', *args], cwd=self.root, check=True,
@@ -108,6 +108,46 @@ sys.exit(int(os.environ.get('EXIT','0')))
         self.put('skills/example/eval-inputs.json', '["../../shared/rules.md"]')
         self.put('plugin/evals/case/prompt.md', 'changed scenario')
         code, output = self.run_eval(CHECK_BUNDLE='1')
+        self.assertEqual(code, 0, output)
+
+    def test_only_execution_asks_for_capacity_and_passes_guard_environment(self):
+        self.change()
+        original = ev.subprocess.run
+        environments = []
+        def execute(cmd, **kwargs):
+            if cmd[0] == 'claude':
+                environments.append(kwargs['env'])
+            return original(cmd, **kwargs)
+        def admission(root, **kwargs):
+            self.assertEqual(root, self.root)
+            self.assertEqual(kwargs['label'], 'skill-evals')
+            self.assertEqual(Path(kwargs['run']), self.root / 'run')
+            return {**kwargs['env'], 'GUARD_TEST': 'admitted'}
+        with patch.object(ev.load_guard, 'wait_for_capacity', side_effect=admission) as capacity, \
+             patch.object(ev.subprocess, 'run', side_effect=execute):
+            code, output = self.run_eval()
+            self.assertEqual(code, 0, output)
+            capacity.assert_called_once()
+            self.assertEqual(environments[0]['GUARD_TEST'], 'admitted')
+        with patch.object(ev.load_guard, 'wait_for_capacity', side_effect=AssertionError('pure operation')):
+            self.assertEqual(self.cli('check', '--base', self.base)[0], 0)
+            self.assertEqual(self.cli('report')[0], 0)
+
+    def test_codex_runner_keeps_manifest_in_guard_environment(self):
+        self.change()
+        self.put('harness/project/project.json', json.dumps({'skills': {'eval_command': 'paired'}}))
+        self.fake('paired', '''
+import json, os, sys
+from pathlib import Path
+assert os.environ['GUARD_TEST'] == 'admitted'
+assert json.loads(Path(os.environ['HARNESS_SKILL_EVAL_MANIFEST']).read_text())['cases']
+args = sys.argv[1:]
+Path(args[args.index('--out') + 1]).write_text(json.dumps({'model': 'fake', 'cost_usd': 0,
+ 'cases': [{'name': 'case', 'score_with': 1, 'score_without': 0}]}))
+''')
+        with patch.object(ev.load_guard, 'wait_for_capacity',
+                          side_effect=lambda root, **kw: {**kw['env'], 'GUARD_TEST': 'admitted'}):
+            code, output = self.cli('run', '--skill', 'example', '--runtime', 'codex')
         self.assertEqual(code, 0, output)
 
     def test_external_metadata_bump_does_not_require_new_evidence(self):

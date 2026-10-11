@@ -6,6 +6,18 @@ naming and layout; the project's map (AGENTS.md) and the path rules name its inv
 
 **Goal:** the unit's contract holds, proven by tests you saw fail first, inside the unit's paths.
 
+## Efficient testing
+
+Read `harness/core/rules/efficient-testing.md` and use
+`harness/core/prompts/implementer-brief.md`. When adding test infrastructure, state the cheapest
+correct isolation level and why cheaper levels cannot cover the boundary. Reuse shared
+services with unique owned logical state and content-hash keyed setup; keep caches enabled.
+An exception names the input the cache cannot see and the single test/step that needs it.
+Run affected cases/packages first locally. Full suites are the CI/pre-PR gate; expand earlier
+only for a concrete unresolved dependency/failure. Bound parallelism by actual machine budget
+and report cold/warm wall time, starts and CPU/memory cost (or unknown). Preserve real-service
+contract coverage, frozen assertions and the required final full suite.
+
 ## A unit dispatch
 
 1. Write only the tests for the contract you were given (exact files, cases, expected values).

@@ -11,34 +11,41 @@
     "feedback-offer",
     "review-calibration",
     "pharos-dev-profile-authority",
-    "frozen-test-amendments"
+    "frozen-test-amendments",
+    "pharos-dev-efficient-testing"
   ],
   "skills/pharos-discover/SKILL.md": [
     "compare-declined",
     "compare-offer",
     "skill-evals-discovery",
     "feedback-declined",
-    "pharos-discover-profile-authority"
+    "pharos-discover-profile-authority",
+    "pharos-discover-efficient-testing"
   ],
   "skills/pharos-investigate/SKILL.md": [
     "deep-mode-offer",
     "investigate-declined-comparison",
-    "pharos-investigate-profile-authority"
+    "pharos-investigate-profile-authority",
+    "pharos-investigate-efficient-testing"
   ],
   "skills/submit-pr/SKILL.md": [
     "submit-pr-evidence",
-    "submit-pr-profile-authority"
+    "submit-pr-profile-authority",
+    "submit-pr-efficient-testing"
   ],
   "skills/address-gh-review/SKILL.md": [
     "address-gh-round",
-    "address-gh-review-profile-authority"
+    "address-gh-review-profile-authority",
+    "address-gh-review-efficient-testing"
   ],
   "skills/manual-test-plan/SKILL.md": [
     "manual-test-scope",
-    "manual-test-plan-profile-authority"
+    "manual-test-plan-profile-authority",
+    "manual-test-plan-efficient-testing"
   ],
   "skills/design-review/SKILL.md": [
     "design-review-shape",
-    "design-review-profile-authority"
+    "design-review-profile-authority",
+    "design-review-efficient-testing"
   ]
 }

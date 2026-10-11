@@ -47,6 +47,7 @@ import sys
 
 # Importing must not write __pycache__ into a read-only installed harness.
 sys.dont_write_bytecode = True
+import load_guard
 from project import OverlayError, load as load_overlay, overlay_dir
 from review_calibration import (review_config, parse_findings, compute, record_findings,
                                 append_event, previous_blockers, finish_review, prior_ledger_findings)
@@ -547,6 +548,9 @@ def main() -> int:
                     args.max_critical if critical else None, reserve_round)
         else:
             reserve_round()
+        env = load_guard.wait_for_capacity(root, heavy=not bool(args.paths),
+                                           label='xreview', run=run_dir,
+                                           env={**os.environ, **env})
         code = run(argv, env, payload, root, report, args.timeout)
     except (ReviewError, OverlayError, OSError, ValueError) as exc:
         try:

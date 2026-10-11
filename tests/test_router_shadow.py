@@ -1,7 +1,5 @@
 """Shadow integration uses fixtures and fake CLIs only; no classifier experiment."""
 import argparse
-import contextlib
-import io
 import json
 import os
 from pathlib import Path
@@ -302,6 +300,40 @@ class CapsuleTest(unittest.TestCase):
             self.assertEqual(capsule["acceptance_criteria"], ["Jobs run once"])
             self.assertNotIn("private", json.dumps(capsule))
             path.write_text("# No explicit goal\nread referenced file\n")
+            self.assertEqual(shadow.capsule_from_brief(path)["goal"], "No explicit goal")
+
+    def test_missing_goal_uses_title_without_reading_unscoped_body(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "brief.md"
+            path.write_text("# Repair queue delivery\nprivate background\n"
+                            "## Contract\n- Deliver once\n## Report\nsecret path\n")
+            capsule = shadow.capsule_from_brief(path)
+            self.assertEqual(capsule["goal"], "Repair queue delivery")
+            self.assertEqual(capsule["acceptance_criteria"], ["Deliver once"])
+            self.assertNotIn("private", json.dumps(capsule))
+
+    def test_goal_section_takes_precedence_and_empty_goal_is_not_inferred(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "brief.md"
+            path.write_text("# Repair queue\n## Goal\nDeliver once\n")
+            self.assertEqual(shadow.capsule_from_brief(path)["goal"], "Deliver once")
+            path.write_text("# Repair queue\n## Goal\n## Contract\n- Deliver once\n")
+            with self.assertRaises(shadow.ShadowError):
+                shadow.capsule_from_brief(path)
+
+    def test_fenced_heading_is_not_a_title_or_goal(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "brief.md"
+            path.write_text("```markdown\n# Ignore code title\n## Goal\nsecret text\n```\n"
+                            "# Repair queue\n## Contract\n- Deliver once\n")
+            capsule = shadow.capsule_from_brief(path)
+            self.assertEqual(capsule["goal"], "Repair queue")
+            self.assertNotIn("secret", json.dumps(capsule))
+
+    def test_no_title_or_goal_still_requires_a_capsule(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "brief.md"
+            path.write_text("Unscoped private background\n## Contract\n- Deliver once\n")
             with self.assertRaises(shadow.ShadowError):
                 shadow.capsule_from_brief(path)
 

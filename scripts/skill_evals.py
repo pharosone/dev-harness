@@ -25,6 +25,7 @@ import tempfile
 
 sys.dont_write_bytecode = True
 import project
+import load_guard
 from tripwire import StateError, changed_files, glob_pattern
 
 
@@ -604,6 +605,8 @@ def run(root, args, settings, skills):
                              'input_files': {name: str(path)
                                              for name, path in skill_inputs(item).items()}})
             environment['HARNESS_SKILL_EVAL_MANIFEST'] = str(manifest)
+        environment = load_guard.wait_for_capacity(root, label='skill-evals',
+                                                   run=args.run_dir, env=environment)
         proc = subprocess.run(cmd, cwd=root, env=environment)
         # Claude exit 1 means a score below its threshold; our acceptance uses Δ/tolerance.
         if proc.returncode not in ((0, 1) if native_claude else (0,)):

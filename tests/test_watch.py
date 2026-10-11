@@ -5,6 +5,8 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
+from types import SimpleNamespace
 import unittest
 from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
@@ -29,6 +31,9 @@ if args[:2] == ["agent", "list"]:
 elif args[:2] == ["agent", "read"]:
     if s.get("read_failed"): sys.exit(1)
     print(s["screen"])
+elif args == ["pane", "current", "--current"]:
+    if not s.get("current_pane"): sys.exit(1)
+    print(json.dumps({{"result": {{"pane": {{"pane_id": s["current_pane"]}}}}}}))
 else:
     sys.exit(2)
 '''
@@ -92,6 +97,116 @@ class WatchTest(unittest.TestCase):
                 self.assertEqual(self.poll(), [f"LANE implement needs-input {detail}"])
                 self.live()
                 self.assertEqual(self.poll(), [])
+
+    def test_waiting_jobs_show_host_state_and_reset_lane_freeze_clock(self):
+        registry = self.root / '.harness/host-jobs'
+        self.live('Ready', 'working')
+        self.poll(1000)
+        def while_waiting(_):
+            lines = self.poll(1900)
+            self.assertEqual(len(lines), 1, lines)
+            self.assertIn('LOAD gate waiting', lines[0])
+            self.assertNotIn('frozen', ' '.join(lines))
+            self.assertIn('waiting', watch.summary(self.run))
+            self.assertEqual(self.poll(2499), [])
+        with patch.dict(os.environ, {'HARNESS_LOAD_GUARD_STATE_DIR': str(registry),
+                                     'HARNESS_LOAD_GUARD': '1', 'HARNESS_LOAD_GUARD_ANCESTOR': '',
+                                     'HERDR_PANE_ID': self.state['pane_id']}), \
+             patch.object(watch.load_guard, 'sample_capacity', side_effect=[
+                 watch.load_guard.Capacity(100, 8, True), watch.load_guard.Capacity(0, 8, True)]), \
+             patch.object(watch.load_guard, 'time', SimpleNamespace(time=time.time,
+                 monotonic=time.monotonic, sleep=while_waiting)), \
+             redirect_stderr(io.StringIO()):
+            watch.load_guard.wait_for_capacity(self.root, label='gate', run=self.run)
+            self.assertEqual(self.poll(2501), [])
+            self.assertEqual(watch.summary(self.run), 'Watch: ✅ quiet')
+            self.assertEqual(self.poll(3401), ['LANE implement frozen 15'])
+
+    def test_dead_wait_marker_does_not_hide_freeze_or_remain_open(self):
+        self.live('Ready', 'working')
+        self.poll(1000)
+        registry = self.root / '.harness/host-jobs'
+        env = {'HARNESS_LOAD_GUARD_STATE_DIR': str(registry), 'HERDR_PANE_ID': self.state['pane_id']}
+        path = watch.load_guard.wait_record(self.root, self.run, 'gate', env,
+            watch.load_guard.Capacity(100, 8, True), 300, watch.load_guard.process_info(os.getpid()))
+        record = json.loads(path.read_text())
+        record['pid'] = 999999999
+        path.write_text(json.dumps(record))
+        with patch.dict(os.environ, {'HARNESS_LOAD_GUARD_STATE_DIR': str(registry)}):
+            self.assertEqual(self.poll(1900), ['LANE implement frozen 15'])
+            self.assertEqual(list(registry.glob('*.json')), [])
+
+    def test_expired_live_wait_marker_clears_without_suppressing_freeze(self):
+        self.live('Ready', 'working')
+        self.poll(1000)
+        registry = self.root / '.harness/host-jobs'
+        env = {'HARNESS_LOAD_GUARD_STATE_DIR': str(registry), 'HERDR_PANE_ID': self.state['pane_id']}
+        path = watch.load_guard.wait_record(self.root, self.run, 'gate', env,
+            watch.load_guard.Capacity(100, 8, True), 300, watch.load_guard.process_info(os.getpid()))
+        record = json.loads(path.read_text())
+        record.update(since=time.time() - 10, expires=time.time() - 1)
+        path.write_text(json.dumps(record))
+        with patch.dict(os.environ, {'HARNESS_LOAD_GUARD_STATE_DIR': str(registry)}):
+            self.assertEqual(self.poll(1900), ['LANE implement frozen 15'])
+            self.assertFalse(path.exists())
+
+    def test_malformed_registry_env_is_reported_without_probing_or_hanging(self):
+        with patch.dict(os.environ, {'HARNESS_LOAD_GUARD_STATE_DIR': '   '}), \
+             patch.object(watch.load_guard, 'process_info', side_effect=AssertionError('metadata probe')), \
+             redirect_stderr(io.StringIO()) as output:
+            self.assertEqual(self.poll(), [])
+        self.assertIn('HARNESS_LOAD_GUARD_STATE_DIR', output.getvalue())
+        self.assertIn('monitoring unavailable', output.getvalue())
+
+    def test_missing_pane_env_still_associates_an_external_tool_wait_with_lane(self):
+        self.live('Ready', 'working', current_pane=self.state['pane_id'])
+        self.poll(1000)
+        def while_waiting(_):
+            lines = self.poll(1900)
+            self.assertTrue(any('LOAD gate waiting' in line for line in lines), lines)
+            self.assertFalse(any('frozen' in line for line in lines), lines)
+        with patch.dict(os.environ, {'HARNESS_LOAD_GUARD_STATE_DIR': str(self.root / '.harness/host-jobs'),
+                                     'HERDR_PANE_ID': '', 'HARNESS_LOAD_GUARD': '1',
+                                     'HARNESS_LOAD_GUARD_ANCESTOR': ''}), \
+             patch.object(watch.load_guard, 'sample_capacity', side_effect=[
+                 watch.load_guard.Capacity(100, 8, True), watch.load_guard.Capacity(0, 8, True)]), \
+             patch.object(watch.load_guard, 'time', SimpleNamespace(time=time.time,
+                 monotonic=time.monotonic, sleep=while_waiting)), redirect_stderr(io.StringIO()):
+            watch.load_guard.wait_for_capacity(self.root, label='gate')
+
+    def test_unavailable_current_pane_keeps_wait_visible_without_guessing_lane(self):
+        self.live('Ready', 'working')
+        self.poll(1000)
+        def while_waiting(_):
+            lines = self.poll(1900)
+            self.assertTrue(any('LOAD gate waiting' in line for line in lines), lines)
+            self.assertIn('LANE implement frozen 15', lines)
+        with patch.dict(os.environ, {'HARNESS_LOAD_GUARD_STATE_DIR': str(self.root / '.harness/host-jobs'),
+                                     'HERDR_PANE_ID': '', 'HARNESS_LOAD_GUARD': '1',
+                                     'HARNESS_LOAD_GUARD_ANCESTOR': ''}), \
+             patch.object(watch.load_guard, 'sample_capacity', side_effect=[
+                 watch.load_guard.Capacity(100, 8, True), watch.load_guard.Capacity(0, 8, True)]), \
+             patch.object(watch.load_guard, 'time', SimpleNamespace(time=time.time,
+                 monotonic=time.monotonic, sleep=while_waiting)), redirect_stderr(io.StringIO()) as output:
+            watch.load_guard.wait_for_capacity(self.root, label='gate')
+        self.assertIn('lane association unknown', output.getvalue())
+
+    def test_wait_in_another_pane_never_hides_frozen_lane(self):
+        self.live('Ready', 'working')
+        self.poll(1000)
+        def while_waiting(_):
+            lines = self.poll(1900)
+            self.assertTrue(any('LOAD xreview waiting' in line for line in lines), lines)
+            self.assertIn('LANE implement frozen 15', lines)
+        with patch.dict(os.environ, {'HARNESS_LOAD_GUARD_STATE_DIR': str(self.root / '.harness/host-jobs'),
+                                     'HARNESS_LOAD_GUARD': '1', 'HARNESS_LOAD_GUARD_ANCESTOR': '',
+                                     'HERDR_PANE_ID': 'w1:p99'}), \
+             patch.object(watch.load_guard, 'sample_capacity', side_effect=[
+                 watch.load_guard.Capacity(100, 8, True), watch.load_guard.Capacity(0, 8, True)]), \
+             patch.object(watch.load_guard, 'time', SimpleNamespace(time=time.time,
+                 monotonic=time.monotonic, sleep=while_waiting)), \
+             redirect_stderr(io.StringIO()):
+            watch.load_guard.wait_for_capacity(self.root / 'other-worktree', label='xreview')
 
     def test_herdr_blocked_without_prompt(self):
         self.live("Busy", "blocked")

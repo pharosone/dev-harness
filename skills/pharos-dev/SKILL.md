@@ -22,6 +22,20 @@ for the least spend that still covers the risk. The user steers at taste gates; 
 deterministic checks steer. You orchestrate: keep the run file, dispatch writers and reviewers,
 read their evidence, own the final report.
 
+## Efficient testing authority
+
+Apply `harness/core/rules/efficient-testing.md` to this workflow's tests and recommendations.
+Choose in-process fakes first, then one shared long-lived test service with owned logical
+isolation, then per-run services, then per-test containers only for a written correctness
+reason. Reuse expensive setup with complete content-hash keys. Keep build/result/dependency/
+image caches enabled; bypass only a named test/step for an input that its cache cannot see.
+Run affected cases/packages first locally; the full suite remains required in CI/pre-PR.
+Heavy gates/evals/reviews use `harness/core/scripts/load_guard.py` for adaptive load/memory
+admission, never fixed slots; targeted runs
+and nested admitted work do not wait. Infrastructure changes name the isolation boundary,
+cleanup and measured cold/warm wall/resource cost. Never replace required real paired model
+measurements or real-service boundary coverage with a fake.
+
 ## Start
 
 - **Spec.** It needs `Requirements interview`, the section of every project interview row
@@ -75,7 +89,8 @@ answer questions you can decide from the spec and earlier authorizations; never 
 escalate material decisions to the user. A watch category is an alert, not the question text:
 read the actual dialog and those authorizations before deciding. `activity-unknown`: inspect
 the named checkout/scan failure and restore observable activity; freeze detection is unavailable.
-`frozen`: inspect, nudge or cancel the lane. `exited` or
+`LOAD … waiting`: observe the host queue; do not treat intentional admission waiting as a
+frozen lane or cancel it for being queued. `frozen`: inspect, nudge or cancel the lane. `exited` or
 `ended-no-report`: inspect its logs and recover or report the failed dispatch. `done`: read and
 accept the report promptly, with the unit's checks and spend recording. As part of acceptance,
 or after recovering/handling an `ended-no-report` dispatch, run
@@ -157,7 +172,9 @@ Empty/all-skipped or expected-failure-only runs cannot establish first green.
    `python3 harness/core/scripts/worktree.py add <name> [--deps]`; one writer per checkout.
 2. Dispatch the writer. The description starts with `[pharos task=<task> unit=NN]` (the
    `PostToolUse(Agent)` hook records spend and runs the tripwires). The brief quotes the unit
-   contract from the spec and names the checkout, the paths, the rule files, the run directory
+   contract from the spec, uses `harness/core/prompts/implementer-brief.md` with `## Goal`,
+   and asks which test-isolation level is correct and why for any infrastructure change.
+   It names reusable setup hashes, cache exceptions and measured wall/resource cost, then the checkout, the paths, the rule files, the run directory
    and the report path. The implementer role defines the dispatch itself (tests → red log →
    `task_state.py freeze --red-log` → code → `verify` → `gate.py` →
    `task_state.py green --green-log` immediately after the first passing test command).
@@ -329,7 +346,10 @@ and quotes the tripwire lines; after a redirect, record the new scope before the
 
 ## QA and panel
 
-QA runs in a fresh context on the tier's profile, once per milestone or PR and after a unit that
+QA checks `harness/core/rules/efficient-testing.md`: isolation level/justification, owned
+namespace cleanup, content-hash setup reuse, cache exceptions, affected-first selection and
+measured infrastructure cost. It inspects advisory gate timing warnings while preserving the
+step's actual outcome. QA runs in a fresh context on the tier's profile, once per milestone or PR and after a unit that
 changes a contract later units build on (migration, auth mode, config surface): it runs
 `gate.py --changed <base> --keep-going` and the boundary checks of
 `harness/core/skills/pharos-dev/references/qa-gotchas.md` and of the project's

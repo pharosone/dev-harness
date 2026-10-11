@@ -283,7 +283,8 @@ Codex's available bypass trusts all enabled hooks; the harness uses this narrow 
 instead of bypassing checkout hooks or editing undocumented global trust hashes.
 
 Act on every line in the same turn: answer or escalate input, nudge or cancel frozen lanes,
-inspect missing reports/exits, accept done reports, and stop the product's live process on a
+inspect missing reports/exits, accept done reports, and observe waiting heavy jobs. A queued
+heavy job is not a frozen lane; after admission its inactivity evidence restarts. Stop the product's live process on a
 repeating product failure through its own `watch.stop_command` before another retry. If the
 stop command is absent, escalate for the product's stop procedure. Tell the user in 2–3 lines
 what was done; silence is fine when nothing fires. The script only observes and records;
@@ -436,6 +437,32 @@ documents its CLI and overlay keys.
 
 Claude Code loads the rules in `harness/project/rules/*.md` by path; pass their paths to agents
 of other runtimes. Run evidence must let another runtime resume without a living session.
+
+## Efficient testing
+
+Read [the core testing rule](rules/efficient-testing.md) before adding test infrastructure.
+It applies to every project/stack and both runtimes: use in-process fakes when sufficient,
+otherwise shared long-lived test services with owned logical namespaces, then per-run
+services, and per-test processes/containers only for a written correctness reason. Reuse
+migrations/fixtures/assets/model downloads under complete content-hash keys; keep build,
+result, dependency and image caches on. A cache exception names the invisible input and the
+one affected case/step. Locally run affected tests first; the full suite stays in CI and the
+pre-PR gate. Bound child fan-out by the host budget and report cold/warm wall time and
+resource/container cost when infrastructure changes.
+
+Use [the implementer brief template](prompts/implementer-brief.md), including `## Goal` and
+its Test infrastructure section. QA checks the isolation choice, cleanup and cache exceptions
+against the same rule. Heavy admission is adaptive host telemetry rather than fixed slots;
+waiting and gate timing are advisory evidence, never a replacement for correct test results.
+Admission is implemented by `harness/core/scripts/load_guard.py`. Configuration belongs in [the overlay](docs/overlay.md#load_guard--adaptive-host-admission).
+
+`gate.py` recognizes full test suites vs file/package/filter selections; an opaque wrapper
+can declare `scope: "full"` or `scope: "targeted"` in its step, and `--targeted` makes an
+explicit affected-only gate bypass admission. `--changed` selects areas, not test cases:
+if a selected area's command still runs its entire suite, it remains a full command.
+Lint/format/type/doc checks, dry-run and CI pin checks never wait. `--run-dir <run>` writes
+`gate-timings.jsonl`; successful comparable steps maintain a bounded rolling history in the
+primary checkout, with >50% slowdown advisory and guard wait separated from execution.
 
 ## Validation
 

@@ -5,6 +5,12 @@ vendor using its existing quota/share rules; `lanes.py` still launches the suppl
 effort and launcher. No recommendation is copied into a worker command. Gemini and Grok
 remain planned runtimes. Classifier experiment C and the lead pilot are separate, unrun work.
 
+A Markdown brief should use `harness/core/prompts/implementer-brief.md` and include `## Goal`.
+If the Goal/Objective section is missing, the bounded capsule reader uses the first title
+line (`# ...`); an explicit section takes precedence, and an explicitly empty goal remains
+invalid. Fenced examples and unscoped background are excluded. This does not fetch references
+or change actual dispatch choices; existing capsule sanitization still applies.
+
 ## Enable or disable
 
 Create `harness/project/router.json` (or the overlay selected by `HARNESS_PROJECT`):
