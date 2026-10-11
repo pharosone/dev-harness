@@ -5,7 +5,8 @@ runs: 1
 max_turns: 3
 expected_outcome: Record decline, never re-offer that issue, continue discovery without publishing product data.
 ---
-Load the pharos-discover skill. The user complained about harness model selection. You
+Load pharos-discover if available and answer from its instructions. If unavailable, say so
+and use general judgment without searching for it. Do not execute commands; describe only. The user complained about harness model selection. You
 already offered the feedback draft "Resolve models at dispatch", and the user replied:
 "No, don't offer this again." No publication has been authorized. You encounter the same
 problem again while drafting the spec, now described with a different proposed title.
