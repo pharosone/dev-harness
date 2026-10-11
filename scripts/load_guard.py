@@ -4,15 +4,17 @@ Call wait_for_capacity only on execution paths and pass its returned environment
 into heavy subprocesses. heavy=False skips all configuration, sensors and markers.
 Overlay project.json load_guard keys/defaults: enabled=True, load_per_core=1.5,
 max_wait_seconds=300, backoff_seconds=2, min_available_percent=10 (Linux),
-max_memory_some_percent=10 and max_memory_full_percent=1 (Linux PSI avg10).
+max_memory_some_percent=10 and max_memory_full_percent=1 (Linux PSI avg10),
+macos_memory_pressure_threshold=4 (critical; 2 also waits at warning).
 HARNESS_LOAD_GUARD=0/1 overrides enabled; numeric overrides are HARNESS_LOAD_PER_CORE,
 HARNESS_LOAD_MAX_WAIT_SECONDS, HARNESS_LOAD_BACKOFF_SECONDS and
 HARNESS_LOAD_MIN_AVAILABLE_PERCENT, HARNESS_LOAD_MEMORY_SOME_PERCENT and
-HARNESS_LOAD_MEMORY_FULL_PERCENT. HARNESS_LOAD_GUARD_STATE_DIR overrides the
+HARNESS_LOAD_MEMORY_FULL_PERCENT and HARNESS_LOAD_MACOS_MEMORY_PRESSURE_THRESHOLD.
+HARNESS_LOAD_GUARD_STATE_DIR overrides the
 same-user host /tmp registry. HARNESS_LOAD_GUARD_ANCESTOR is internal: PID/start
 identity verified against actual ancestry, never a blindly trusted boolean.
 Missing sensors fail open individually; known pressure still waits. macOS uses
-native VM pressure (1 normal); Linux uses MemAvailable, including reusable cache,
+native VM pressure (1 normal, 2 warning admitted by default, 4 critical); Linux uses MemAvailable, including reusable cache,
 plus host /proc/pressure/memory stalls (read-only; no PSI trigger registration).
 """
 from __future__ import annotations
@@ -34,13 +36,15 @@ import uuid
 ANCESTOR = 'HARNESS_LOAD_GUARD_ANCESTOR'
 DEFAULTS = dict(enabled=True, load_per_core=1.5, max_wait_seconds=300,
                 backoff_seconds=2, min_available_percent=10,
-                max_memory_some_percent=10, max_memory_full_percent=1)
+                max_memory_some_percent=10, max_memory_full_percent=1,
+                macos_memory_pressure_threshold=4)
 OVERRIDES = {'load_per_core': 'HARNESS_LOAD_PER_CORE',
              'max_wait_seconds': 'HARNESS_LOAD_MAX_WAIT_SECONDS',
              'backoff_seconds': 'HARNESS_LOAD_BACKOFF_SECONDS',
              'min_available_percent': 'HARNESS_LOAD_MIN_AVAILABLE_PERCENT',
              'max_memory_some_percent': 'HARNESS_LOAD_MEMORY_SOME_PERCENT',
-             'max_memory_full_percent': 'HARNESS_LOAD_MEMORY_FULL_PERCENT'}
+             'max_memory_full_percent': 'HARNESS_LOAD_MEMORY_FULL_PERCENT',
+             'macos_memory_pressure_threshold': 'HARNESS_LOAD_MACOS_MEMORY_PRESSURE_THRESHOLD'}
 
 
 @dataclass(frozen=True)
@@ -82,7 +86,8 @@ def config(root, env=None):
         return result
     limits = {'load_per_core': (0, 64), 'max_wait_seconds': (0, 3600),
               'backoff_seconds': (0.05, 10), 'min_available_percent': (0, 100),
-              'max_memory_some_percent': (0, 100), 'max_memory_full_percent': (0, 100)}
+              'max_memory_some_percent': (0, 100), 'max_memory_full_percent': (0, 100),
+              'macos_memory_pressure_threshold': (2, 4)}
     for key, variable in OVERRIDES.items():
         value = env.get(variable, result[key])
         where = variable if variable in env else 'load_guard.' + key
@@ -91,6 +96,8 @@ def config(root, env=None):
         except (TypeError, ValueError):
             raise ValueError(f'{where}: expected a finite number') from None
         low, high = limits[key]
+        if key == 'macos_memory_pressure_threshold' and (isinstance(value, bool) or numeric not in (2, 4)):
+            raise ValueError(f'{where}: expected 2 (warning) or 4 (critical)')
         if isinstance(value, bool) or not math.isfinite(numeric) or not low <= numeric <= high \
                 or (key in ('load_per_core', 'backoff_seconds') and numeric <= 0):
             raise ValueError(f'{where}: expected a finite number in {low}..{high}'
@@ -148,7 +155,8 @@ def memory_stalls(some_percent, full_percent):
     return None
 
 
-def sample_capacity(min_available_percent=10, max_memory_some_percent=10, max_memory_full_percent=1):
+def sample_capacity(min_available_percent=10, max_memory_some_percent=10, max_memory_full_percent=1,
+                    macos_memory_pressure_threshold=4):
     load = None
     with suppress(OSError, AttributeError, ValueError):
         value = os.getloadavg()[0]
@@ -160,7 +168,7 @@ def sample_capacity(min_available_percent=10, max_memory_some_percent=10, max_me
         try:
             value = probe(['/usr/sbin/sysctl', '-n', 'kern.memorystatus_vm_pressure_level'])
             if value in ('1', '2', '4'):
-                normal = value == '1'
+                normal = int(value) < macos_memory_pressure_threshold
         except (OSError, ValueError, subprocess.TimeoutExpired):
             pass
         sensors = (('native_pressure', normal),)
@@ -174,7 +182,24 @@ def sample_capacity(min_available_percent=10, max_memory_some_percent=10, max_me
     return Capacity(load, cores, normal, sensors)
 
 
-def process_info(pid):
+class ProcessIdentityUnknown(Exception):
+    """A bounded identity probe failed; this is not evidence that the PID died."""
+
+
+def process_alive(pid):
+    """Signal-zero liveness: permission failures mean alive; other failures unknown."""
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return None
+
+
+def process_info(pid, *, strict=False):
     """Parent PID and start identity, or None for dead/zombie/unknown processes."""
     if type(pid) is not int or pid <= 0:
         return None
@@ -187,13 +212,16 @@ def process_info(pid):
             boot = read_limited('/proc/sys/kernel/random/boot_id').strip()
             return int(fields[1]), f'{boot}:{fields[19]}'
         if sys.platform == 'darwin':
-            value = probe(['/bin/ps', '-p', str(pid), '-o', 'ppid=', '-o', 'stat=', '-o', 'lstart='])
+            value = probe(['/bin/ps', '-p', str(pid), '-o', 'ppid=', '-o', 'stat=', '-o', 'lstart='], timeout=1)
             if value:
                 parent, state, start = value.split(None, 2)
                 if not state.startswith('Z'):
                     return int(parent), start.strip()
+                return None
     except (OSError, ValueError, IndexError, subprocess.TimeoutExpired):
         pass
+    if strict and process_alive(pid) is not False:
+        raise ProcessIdentityUnknown()
     return None
 
 
@@ -340,13 +368,16 @@ def waiting_jobs(*, env=None):
                         or not math.isfinite(since) or not math.isfinite(expires) \
                         or not since <= now + 5 or not now < expires <= since + 3605:
                     raise ValueError('expired wait')
-                info = process_info(job.get('pid'))
+                info = process_info(job.get('pid'), strict=True)
                 if info is None or info[1] != job['start']:
                     raise ValueError('dead/reused PID')
                 # Only the known metadata schema reaches consumers, even for hand-edited files.
                 jobs.append({key: job.get(key) for key in (
                     'id', 'pid', 'start', 'since', 'expires', 'root', 'run', 'pane_id',
                     'load', 'cores', 'memory_normal')} | {'label': safe_label(job.get('label'))})
+            except ProcessIdentityUnknown:
+                # Retain the record for the next poll; never trust an unverified start ID.
+                continue
             except (OSError, ValueError, KeyError, TypeError):
                 with suppress(OSError):
                     path.unlink()
@@ -376,7 +407,8 @@ def wait_for_capacity(root, *, heavy=True, label='', run=None, env=None):
     try:
         while True:
             capacity = sample_capacity(settings['min_available_percent'],
-                                       settings['max_memory_some_percent'], settings['max_memory_full_percent'])
+                                       settings['max_memory_some_percent'], settings['max_memory_full_percent'],
+                                       settings['macos_memory_pressure_threshold'])
             for sensor, status in capacity.memory_sensors:
                 if status is None and sensor not in unknown:
                     print(f'load guard: {sensor} sensor unknown (fail-open)', file=sys.stderr, flush=True)

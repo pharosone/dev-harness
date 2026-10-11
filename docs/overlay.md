@@ -93,6 +93,7 @@ slot count and does not lock out another project when capacity remains.
 | `min_available_percent` | `10` | Linux available memory threshold (includes reusable page cache); `HARNESS_LOAD_MIN_AVAILABLE_PERCENT`. |
 | `max_memory_some_percent` | `10` | Linux memory PSI `some` avg10 percentage; above it is busy; `HARNESS_LOAD_MEMORY_SOME_PERCENT`. |
 | `max_memory_full_percent` | `1` | Linux memory PSI `full` avg10 percentage; above it is busy; `HARNESS_LOAD_MEMORY_FULL_PERCENT`. |
+| `macos_memory_pressure_threshold` | `4` | macOS critical pressure waits; set `2` to wait at warning too; `HARNESS_LOAD_MACOS_MEMORY_PRESSURE_THRESHOLD`. |
 
 `HARNESS_LOAD_GUARD_STATE_DIR` selects the host-wide same-user waiting-job registry; its
 normal location is `/tmp/harness-load-guard-<uid>`. The internal
@@ -103,7 +104,9 @@ Labels omit raw commands and credentials. Watch emits `LOAD <label> waiting (pid
 and shows a waiting count separately from open failures; clearing/admission re-arms the
 lane inactivity clock. Observe the queue, not a frozen-job failure. Native probes are bounded; unavailable signals
 are unknown/fail-open individually, while any known busy load or memory signal still waits.
-macOS uses native VM pressure (normal level 1); Linux also uses memory PSI stalls independently
+macOS admits normal (1) and warning (2) pressure by default; critical (4) waits. The macOS
+threshold accepts only 2 or 4. A timed-out process identity probe retains the wait record for
+the next poll; confirmed dead, expired or reused PIDs are removed. Linux uses memory PSI stalls independently
 of available memory. Missing PSI is unknown rather than a normal-memory claim. Load ratio must
 be greater than zero and at most 64; max wait is 0–3600 seconds, backoff 0.05–10 seconds and
 memory percentages 0–100. Platform details and bounded native-probe behavior are defined by

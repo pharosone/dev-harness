@@ -5,6 +5,9 @@ with defaults; a major release may require an overlay change and says which.
 
 ## 1.7.0 — 2026-10-11
 
+- Review fixes preserve full-suite admission through runner options, retain waiting records
+  when process probes time out, admit macOS warning pressure by default with a configurable
+  critical/warning threshold, and preserve prefixed top-level brief sections.
 - Efficient testing is a core rule across projects and stacks: choose the cheapest correct
   isolation, reuse long-lived services with owned namespaces, amortize setup by content hash,
   keep caches enabled and run affected tests first. Unit briefs and QA require isolation and

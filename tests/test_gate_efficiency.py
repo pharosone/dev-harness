@@ -116,6 +116,22 @@ class GateCase(unittest.TestCase):
 
 
 class ScopeTest(unittest.TestCase):
+    def test_runner_flags_preserve_underlying_test_scope(self):
+        wrappers = [
+            ["uv", "run", "--frozen"], ["uv", "run", "--with", "x"],
+            ["uv", "run", "--with=x", "--python", "3.12", "--no-sync"],
+            ["uv", "--directory", "project", "run", "--with", "x", "--"],
+            ["poetry", "run", "--"], ["pdm", "run", "--project", "project"],
+            ["npx", "--yes", "--package", "pytest"],
+            ["pnpm", "exec", "--", "uv", "run", "--frozen"],
+        ]
+        for prefix in wrappers:
+            for command, expected in [(["pytest"], "full"),
+                                      (["pytest", "tests/test_one.py"], "targeted"),
+                                      (["ruff", "check", "."], "check")]:
+                with self.subTest(prefix=prefix, command=command):
+                    self.assertEqual(gate.classify(prefix + command), expected)
+
     FULL = [
         ["go", "test", "./...", "-count=1"], ["go", "test", "-race", "./..."], ["go", "test"],
         ["go", "test", "./...", "-run", ""], ["go", "test", "./...", "-run=.*"],

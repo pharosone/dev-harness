@@ -290,12 +290,48 @@ load_guard.wait_for_capacity(root, label='gate')
     def test_mac_memory_probe_is_native_read_only_and_bounded(self):
         with patch.object(guard.sys, 'platform', 'darwin'), \
              patch.object(guard.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, '2\n')) as probe:
-            self.assertFalse(guard.sample_capacity().memory_normal)
+            self.assertTrue(guard.sample_capacity().memory_normal)
+            self.assertFalse(guard.sample_capacity(macos_memory_pressure_threshold=2).memory_normal)
             self.assertEqual(probe.call_args.args[0], ['/usr/sbin/sysctl', '-n', 'kern.memorystatus_vm_pressure_level'])
             self.assertLessEqual(probe.call_args.kwargs['timeout'], 1)
         with patch.object(guard.sys, 'platform', 'darwin'), \
              patch.object(guard.subprocess, 'run', side_effect=subprocess.TimeoutExpired('sysctl', 1)):
             self.assertIsNone(guard.sample_capacity().memory_normal)
+
+    def test_mac_critical_pressure_waits_and_threshold_is_configurable(self):
+        for level, normal in (("1", True), ("2", True), ("4", False)):
+            with self.subTest(level=level), patch.object(guard.sys, 'platform', 'darwin'), \
+                 patch.object(guard, 'probe', return_value=level):
+                self.assertEqual(guard.sample_capacity().memory_normal, normal)
+        self.settings(macos_memory_pressure_threshold=2)
+        self.assertEqual(guard.config(self.root, self.env)['macos_memory_pressure_threshold'], 2)
+        self.env['HARNESS_LOAD_MACOS_MEMORY_PRESSURE_THRESHOLD'] = '4'
+        self.assertEqual(guard.config(self.root, self.env)['macos_memory_pressure_threshold'], 4)
+        for value in (1, 3, True, 'warn'):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                guard.config(self.root, {**self.env, 'HARNESS_LOAD_MACOS_MEMORY_PRESSURE_THRESHOLD': value})
+        with patch.object(guard, 'sample_capacity', return_value=guard.Capacity(0, 8, True)) as sample:
+            guard.wait_for_capacity(self.root, env=self.env)
+            self.assertEqual(sample.call_args.args[-1], 4)
+
+    def test_mac_ps_timeout_preserves_wait_record_until_identity_recovers(self):
+        path = guard.wait_record(self.root, None, 'gate', self.env,
+                               guard.Capacity(100, 8, True), 300, (1, 'known-start'))
+        self.assertIsNotNone(path)
+        with patch.object(guard.sys, 'platform', 'darwin'), \
+             patch.object(guard, 'probe', side_effect=subprocess.TimeoutExpired('ps', 1)) as probe, \
+             patch.object(guard.os, 'kill', return_value=None) as alive:
+            self.assertEqual(guard.waiting_jobs(env=self.env), [])
+            self.assertTrue(path.exists())
+            alive.assert_called_with(os.getpid(), 0)
+            self.assertGreaterEqual(probe.call_args.kwargs['timeout'], 1)
+        with patch.object(guard, 'process_info', return_value=(1, 'known-start')):
+            self.assertEqual(len(guard.waiting_jobs(env=self.env)), 1)
+        with patch.object(guard.sys, 'platform', 'darwin'), \
+             patch.object(guard, 'probe', side_effect=subprocess.TimeoutExpired('ps', 1)), \
+             patch.object(guard.os, 'kill', side_effect=ProcessLookupError):
+            self.assertEqual(guard.waiting_jobs(env=self.env), [])
+            self.assertFalse(path.exists())
 
     def test_linux_psi_busy_even_with_reusable_memory_headroom(self):
         def read(path, *args):

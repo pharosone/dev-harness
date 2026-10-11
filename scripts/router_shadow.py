@@ -141,8 +141,8 @@ def capsule_from_brief(path: Path) -> dict:
         if heading:
             label = re.sub(r"\s+#+\s*$", "", heading[2]).strip()
             title = label.lower()
-            legacy_section = title in {"goal", "objective", "contract", "acceptance",
-                                       "acceptance criteria", "paths", "allowed paths"}
+            legacy_section = title.startswith(("goal", "objective", "contract", "acceptance",
+                                               "paths", "allowed paths"))
             if len(heading[1]) == 1 and not legacy_section and title_line is None:
                 title_line = label
             # A top-level project title is not a section. Preserve legacy section headings.

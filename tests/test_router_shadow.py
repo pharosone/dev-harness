@@ -330,6 +330,20 @@ class CapsuleTest(unittest.TestCase):
             self.assertEqual(capsule["goal"], "Repair queue")
             self.assertNotIn("secret", json.dumps(capsule))
 
+    def test_prefixed_level_one_sections_preserve_title_fallback(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "brief.md"
+            for goal_heading in ("Goal: ship X", "Objective: ship X"):
+                path.write_text(f"# Project title\n# {goal_heading}\nShip queue\n"
+                                "# Acceptance criteria:\n- Once\n# Allowed paths:\n- src/queue.py\n")
+                self.assertEqual(shadow.capsule_from_brief(path), {
+                    "goal": "Ship queue", "paths": ["src/queue.py"],
+                    "acceptance_criteria": ["Once"]})
+            path.write_text("# Project title\n# Acceptance: delivery\n- Once\n# Paths:\n- src/queue.py\n")
+            self.assertEqual(shadow.capsule_from_brief(path), {
+                "goal": "Project title", "paths": ["src/queue.py"],
+                "acceptance_criteria": ["Once"]})
+
     def test_no_title_or_goal_still_requires_a_capsule(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "brief.md"

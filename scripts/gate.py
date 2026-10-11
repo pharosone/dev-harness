@@ -334,6 +334,31 @@ PYTHON = re.compile(r"python[0-9.]*(\.exe)?$")
 TEST_FILE = re.compile(r"(^|/)(test_[^/]*\.py|[^/]*_test\.(py|go)|[^/]*[._-](test|spec)\."
                        r"[cm]?[jt]sx?|[^/]*_spec\.rb)$")
 LAUNCHERS = ({"uv", "poetry", "pipenv", "hatch", "pdm", "rye"}, {"run"})
+RUNNER_VALUES = {
+    "uv": {"--with", "--with-editable", "--with-requirements", "--python", "-p",
+           "--project", "--directory", "--package", "--group", "--extra", "--no-group",
+           "--index", "--default-index", "--index-url", "--extra-index-url", "--find-links",
+           "--config-file", "--cache-dir", "--env-file", "--resolution", "--prerelease",
+           "--exclude-newer", "--link-mode", "--keyring-provider"},
+    "poetry": {"--directory", "-C", "--project", "-P"},
+    "pipenv": {"--python"}, "hatch": {"--env", "-e"},
+    "pdm": {"--project", "-p", "--site-packages"}, "rye": {"--pyproject"},
+    "npx": {"--package", "-p", "--cache", "--userconfig"},
+    "bunx": {"--package", "-p"}, "pnpm": {"--filter", "-F", "--dir", "-C"},
+    "bundle": {"--gemfile"},
+}
+
+
+def runner_tail(args: list[str], runner: str) -> list[str]:
+    """Consume launcher options only, leaving the executable and its flags intact."""
+    index = 0
+    valued = RUNNER_VALUES.get(runner, set())
+    while index < len(args) and args[index].startswith("-"):
+        flag = args[index]
+        if flag == "--":
+            return args[index + 1:]
+        index += 2 if flag in valued else 1
+    return args[index:]
 JS_RUNNERS = {"jest", "vitest", "mocha", "ava", "playwright", "cypress", "karma", "tap"}
 PACKAGE_MANAGERS = {"npm", "pnpm", "yarn", "bun"}
 
@@ -433,10 +458,12 @@ def classify(cmd: list[str]) -> str:
         head = Path(args[0]).name
         if head == "env":
             args = [a for a in args[1:] if "=" not in a or a.startswith("-")]
-        elif head in LAUNCHERS[0] and len(args) > 1 and args[1] in LAUNCHERS[1]:
-            args = args[2:]
-        elif head in ("npx", "bunx") or (head in ("bundle", "pnpm") and args[1:2] in (["exec"], ["dlx"])):
-            args = args[2:] if head in ("bundle", "pnpm") else args[1:]
+        elif head in LAUNCHERS[0] and runner_tail(args[1:], head)[:1] == ["run"]:
+            args = runner_tail(runner_tail(args[1:], head)[1:], head)
+        elif head in ("npx", "bunx"):
+            args = runner_tail(args[1:], head)
+        elif head in ("bundle", "pnpm") and runner_tail(args[1:], head)[:1] in (["exec"], ["dlx"]):
+            args = runner_tail(runner_tail(args[1:], head)[1:], head)
         elif PYTHON.match(head) and len(args) > 2 and args[1] == "-m":
             args = args[2:]
         else:
