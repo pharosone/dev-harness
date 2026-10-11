@@ -24,7 +24,8 @@ argv = [os.path.basename(sys.argv[0]), *sys.argv[1:]]
 stdin = sys.stdin.read()
 with open(os.environ["FAKE_LOG"], "a", encoding="utf-8") as log:
     log.write(json.dumps({{"argv": argv, "stdin": stdin, "cwd": os.getcwd(),
-                          "effort": os.environ.get("CLAUDE_CODE_EFFORT_LEVEL")}}) + "\\n")
+                          "effort": os.environ.get("CLAUDE_CODE_EFFORT_LEVEL"),
+                          "guard": os.environ.get("HARNESS_LOAD_GUARD_ANCESTOR")}}) + "\\n")
 time.sleep(float(os.environ.get("FAKE_SLEEP", "0")))
 report = os.environ.get("FAKE_REPORT", "")
 if os.environ.get("FAKE_SKIP_WRITE") != "1":
@@ -115,7 +116,7 @@ class XReviewTest(unittest.TestCase):
         for directory in (self.repo / "src", self.bin, self.harness / "scripts",
                           self.harness / "prompts", self.harness / "adapters"):
             directory.mkdir(parents=True)
-        for name in ("xreview.py", "project.py", "review_calibration.py"):
+        for name in ("xreview.py", "project.py", "review_calibration.py", "load_guard.py"):
             shutil.copy(HARNESS / "scripts" / name, self.harness / "scripts" / name)
         shutil.copy(HARNESS / "prompts/xreview.md", self.harness / "prompts/xreview.md")
         self.models(MODELS)
@@ -124,8 +125,10 @@ class XReviewTest(unittest.TestCase):
             fake.write_text(FAKE_CLI.format(python=sys.executable))
             fake.chmod(0o755)
         self.env = {k: v for k, v in os.environ.items()
-                    if not k.startswith(("GIT_", "FAKE_", "CLAUDE_CODE_EFFORT", "HARNESS_PROJECT"))}
+                    if not k.startswith(("GIT_", "FAKE_", "CLAUDE_CODE_EFFORT", "HARNESS_PROJECT",
+                                         "HARNESS_LOAD_GUARD_ANCESTOR"))}
         self.env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
+                        HARNESS_LOAD_GUARD="0",
                         PATH=f"{self.bin}{os.pathsep}{os.environ.get('PATH', '')}",
                         FAKE_LOG=str(self.log), FAKE_REPORT=PASS)
         self.git("init", "-q", "-b", "main")
@@ -193,6 +196,33 @@ class XReviewTest(unittest.TestCase):
         self.assertEqual(self.review("--tier", "3", "--reviewer", "claude").returncode, 0)
         [call] = self.calls()
         self.assertEqual(call["argv"], claude_argv("claude-crit"))
+
+    def test_executing_full_review_marks_subprocess_ancestry_for_both_vendors(self):
+        for writer in ('claude', 'codex'):
+            with self.subTest(writer=writer):
+                self.log.unlink(missing_ok=True)
+                result = self.review('--tier', '2', writer=writer,
+                                     HARNESS_LOAD_GUARD='1', HARNESS_LOAD_MAX_WAIT_SECONDS='0')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                [call] = self.calls()
+                marker = json.loads(call['guard'])
+                self.assertGreater(marker['pid'], 0)
+                self.assertTrue(marker['start'])
+
+    def test_dry_run_and_targeted_review_never_validate_or_wait_for_capacity(self):
+        for arguments in [('--dry-run',), ('--paths', 'src/app.py')]:
+            with self.subTest(arguments=arguments):
+                self.log.unlink(missing_ok=True)
+                result = self.review('--tier', '2', *arguments,
+                                     HARNESS_LOAD_GUARD='1', HARNESS_LOAD_PER_CORE='invalid')
+                self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIsNone(self.calls()[0]['guard'])
+
+    def test_full_review_rejects_invalid_guard_config_before_vendor_runs(self):
+        result = self.review('--tier', '2', HARNESS_LOAD_GUARD='1', HARNESS_LOAD_PER_CORE='invalid')
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertIn('HARNESS_LOAD_PER_CORE', result.stderr)
+        self.assertEqual(self.calls(), [])
 
     def test_a_missing_other_vendor_is_an_explicit_choice(self):
         (self.bin / "codex").unlink()

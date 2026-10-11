@@ -124,13 +124,35 @@ def capsule_from_brief(path: Path) -> dict:
     result = {"goal": "", "paths": [], "acceptance_criteria": []}
     section = None
     goals = []
+    title_line = None
+    has_goal = False
+    fence = None
     for line in text.splitlines():
-        heading = re.match(r"^#{1,6}\s+(.+)", line)
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence:
+            if (marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence)
+                    and not marker[2].strip()):
+                fence = None
+            continue
+        if marker:
+            fence = marker[1]
+            continue
+        heading = re.match(r"^(#{1,6})\s+(.+)", line)
         if heading:
-            title = heading[1].strip().lower()
+            label = re.sub(r"\s+#+\s*$", "", heading[2]).strip()
+            title = label.lower()
+            legacy_section = title.startswith(("goal", "objective", "contract", "acceptance",
+                                               "paths", "allowed paths"))
+            if len(heading[1]) == 1 and not legacy_section and title_line is None:
+                title_line = label
+            # A top-level project title is not a section. Preserve legacy section headings.
+            if len(heading[1]) == 1 and not legacy_section:
+                section = None
+                continue
             section = ("goal" if title.startswith(("goal", "objective")) else
                        "acceptance_criteria" if title.startswith(("acceptance", "contract")) else
                        "paths" if title.startswith(("paths", "allowed paths")) else None)
+            has_goal |= section == "goal"
             continue
         if section and line.strip():
             item = re.sub(r"^\s*(?:[-*]|\d+\.)\s*", "", line).strip().strip("`")
@@ -138,9 +160,9 @@ def capsule_from_brief(path: Path) -> dict:
                 goals.append(item)
             else:
                 result[section].append(item)
-    result["goal"] = "\n".join(goals)
+    result["goal"] = "\n".join(goals) if has_goal else (title_line or "")
     if not result["goal"]:
-        raise ShadowError("brief lacks an explicit Goal section; provide a JSON task capsule")
+        raise ShadowError("brief lacks a nonempty Goal or title; provide a JSON task capsule")
     return result
 
 

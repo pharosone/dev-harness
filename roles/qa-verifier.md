@@ -11,6 +11,17 @@ touched areas with CI's flags (`harness/project/gates.json` defines them); its f
 disk. Report the commands and their real outcome; a failing test is a finding, never softened.
 Name anything you could not run and why.
 
+## Check efficient testing
+
+Read `harness/core/rules/efficient-testing.md`. For each test-infrastructure change, check the
+brief's chosen isolation level, the correctness reason against cheaper levels, namespace
+ownership/cleanup, content-hash setup reuse and cold/warm wall/resource measurements.
+Challenge unexplained per-test containers and suite-wide cache bypass; any exception must
+name the invisible input and narrow case/step. Confirm fakes still have the necessary real
+boundary coverage. Affected tests come first locally, full suites remain required at CI and
+pre-PR, and host parallelism is bounded. Inspect advisory gate timing regressions (>50% over
+prior rolling median) without relabeling real pass/fail or repeating unchanged full suites.
+
 ## Then ask where green could lie
 
 Read the spec's "Done when" rows and the diff, and for each claim ask what would make the gates

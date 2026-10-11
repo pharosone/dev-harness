@@ -29,6 +29,20 @@ seams will cost the most a year out. Bugs belong to the independent QA/code revi
 The deliverable is one short Markdown report: a verdict, a 0–100 design score, and a ranked list
 of findings with evidence on both sides of each boundary.
 
+## Efficient testing authority
+
+Apply `harness/core/rules/efficient-testing.md` to this workflow's tests and recommendations.
+Choose in-process fakes first, then one shared long-lived test service with owned logical
+isolation, then per-run services, then per-test containers only for a written correctness
+reason. Reuse expensive setup with complete content-hash keys. Keep build/result/dependency/
+image caches enabled; bypass only a named test/step for an input that its cache cannot see.
+Run affected cases/packages first locally; the full suite remains required in CI/pre-PR.
+Heavy gates/evals/reviews use `harness/core/scripts/load_guard.py` for adaptive load/memory
+admission, never fixed slots; targeted runs
+and nested admitted work do not wait. Infrastructure changes name the isolation boundary,
+cleanup and measured cold/warm wall/resource cost. Never replace required real paired model
+measurements or real-service boundary coverage with a fake.
+
 ## Picture first, diff last
 
 A finding about a boundary needs both sides of it, and the diff shows one. Read the diff last.

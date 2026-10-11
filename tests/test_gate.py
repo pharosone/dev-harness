@@ -29,7 +29,8 @@ import gate  # noqa: E402
 def hermetic_env():
     env = {k: v for k, v in os.environ.items()
            if not k.startswith("GIT_") and k != "HARNESS_PROJECT"}
-    env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+    # The host load guard has its own tests; a busy machine must not stall these.
+    env.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1", HARNESS_LOAD_GUARD="0")
     return env
 
 

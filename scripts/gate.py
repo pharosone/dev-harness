@@ -2,7 +2,7 @@
 """Run the project's gates from their one copy, the overlay's gates.json.
 
 Usage: gate.py [AREA ...] [--changed BASE] [--base REF] [--keep-going] [--dry-run]
-               [--config FILE]
+               [--targeted] [--run-dir DIR] [--config FILE]
        gate.py --pin-ci WORKFLOW [--config FILE]
 
 Overlay file `gates.json` (in $HARNESS_PROJECT, else <checkout>/harness/project; --config
@@ -22,6 +22,8 @@ its own directory. A step is
   expect_empty_stdout   exit 0 with any output still fails (a formatter's list mode)
   expand_globs          arguments holding `*` or `?` are expanded relative to cwd; no
                         match fails the step
+  scope                 "full" or "targeted": overrides how the step's command is classified
+                        for the load guard (below); old files without it keep working
   ci_form               read only by --pin-ci: how CI runs this step when its command
                         differs on purpose, a list of {"cwd", "cmd"} (CI commands that
                         together stand for the step) or {"cwd", "uses"} (an action prefix
@@ -41,6 +43,33 @@ quiet.py with logs under <checkout>/.harness/logs/; the run stops at the first
 failure unless --keep-going. One line per step: PASS, FAIL (its digest above it) or
 SKIP. Exit codes: 0 all passed, 1 a step failed, 2 usage or configuration error.
 
+Load guard. Only full test suites wait for a busy machine. Each step's command is one of
+  full      a whole suite: `go test ./...`, bare `pytest`/`unittest`/`npm test`/`jest`/
+            `vitest run`, `cargo test`, `make test`, `rspec`, `dotnet test`, `gradle test`, tox
+  targeted  one file, module, package or name filter (`pytest a_test.py`, `-k`, `--lf`,
+            `unittest tests.test_x`, `go test ./pkg`, `-run`, `jest -t`, a single spec file,
+            `cargo test name`, `--filter`). `{base}` substitution alone is not a test filter.
+  check     anything else: lint, format, types, docs, metadata, unrecognised wrappers
+An opaque wrapper that runs a whole suite declares "scope": "full". Before the run's first
+full step gate.py asks load_guard.wait_for_capacity once: on an idle machine it returns at
+once; on a busy one it waits (bounded) and says so. Its environment marks this process tree,
+so nested heavy commands never wait again. Targeted and check steps never ask. --changed
+picks areas, not test sets: a full-suite step of a changed area is still full. --targeted
+declares the whole run narrow (an opaque wrapper given a narrow selection): nothing waits.
+A broken guard fails open. --dry-run and --pin-ci neither wait nor measure.
+
+Timings. Every executed step is measured from command start to exit, apart from any
+guard wait (recorded separately as guard_wait). One JSON line per step (run id, time,
+checkout, commit, area/step, cwd, resolved argv, scope, fingerprint, status, exit,
+seconds, guard_wait, slower) goes to DIR/gate-timings.jsonl with --run-dir, else to the
+checkout's bounded .harness/logs/gate-timings.jsonl. Passing runs also join a history in the
+primary checkout's .harness/gate/timings.json, keyed by a fingerprint of area, step name,
+cwd and the resolved argv ({base} and globs expanded), so a changed command starts afresh;
+failures never join it. It keeps the last 20 runs per step for 30 days and 200 steps, under
+an exclusive lock with atomic replacement. A passing step over 1.5x its median of at least 3
+earlier runs gets a `NOTE` line: advisory, never a failure, including fast steps. A
+history that cannot be read or written is a stderr warning, never a failed gate.
+
 --pin-ci WORKFLOW (a GitHub workflow, relative to the checkout) runs nothing: it checks
 that gates.json is the local copy of the CI gates, step for step. Every gate step must run
 in CI as a gating command (enabled step and job, not followed by `||`, `|` or `&`) in its
@@ -58,7 +87,9 @@ it checks that each command runs, not what its arguments are.
 """
 
 import argparse
+import contextlib
 import glob
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -66,7 +97,9 @@ import posixpath
 import re
 import shlex
 import socket
+import statistics
 import sys
+import tempfile
 import time
 from urllib.parse import urlsplit
 
@@ -77,9 +110,25 @@ from quiet import default_log, digest, execute, slug
 from task_state import StateError, git
 from tripwire import glob_pattern
 
+try:
+    import fcntl
+except ImportError:  # no flock (Windows): history writes stay atomic, not serialized
+    fcntl = None
+try:
+    import load_guard
+except ImportError:  # an older installed core without the guard: run unguarded
+    load_guard = None
+
 CONFIG = "gates.json"
 RESERVED = {"comment", "ci_pin"}
-STEP_KEYS = {"name", "cwd", "cmd", "expect_empty_stdout", "expand_globs", "ci_form"}
+STEP_KEYS = {"name", "cwd", "cmd", "expect_empty_stdout", "expand_globs", "ci_form", "scope"}
+SCOPES = ("full", "targeted")
+SLOWER = 1.5          # advisory note above this multiple of the rolling median
+MIN_RUNS = 3          # successful runs before a median means anything
+HISTORY_SAMPLES = 20  # successful runs kept per step fingerprint
+HISTORY_DAYS = 30     # older samples expire
+HISTORY_STEPS = 200   # fingerprints kept; the least recently run go first
+RUN_LOG_BYTES = 1 << 20  # the default run log keeps its newer half past this size
 PIN_KEYS = {"setup", "setup_actions", "ci_only_jobs"}
 
 
@@ -183,6 +232,8 @@ def parse(data, where: str) -> tuple[dict, dict]:
                     raise ConfigError(f"{place}/{name}: {flag} must be true or false")
             if "ci_form" in step:
                 check_ci_form(step["ci_form"], f"{place}/{name}")
+            if step.get("scope", "full") not in SCOPES:
+                raise ConfigError(f"{place}/{name}: scope must be \"full\" or \"targeted\"")
     return areas, check_pin(data.get("ci_pin", {}), where)
 
 
@@ -279,7 +330,379 @@ def resolve(step: dict, root: Path, base: str) -> list[str]:
     return expanded
 
 
-def run_step(area: str, step: dict, root: Path, base: str) -> bool:
+PYTHON = re.compile(r"python[0-9.]*(\.exe)?$")
+TEST_FILE = re.compile(r"(^|/)(test_[^/]*\.py|[^/]*_test\.(py|go)|[^/]*[._-](test|spec)\."
+                       r"[cm]?[jt]sx?|[^/]*_spec\.rb)$")
+LAUNCHERS = ({"uv", "poetry", "pipenv", "hatch", "pdm", "rye"}, {"run"})
+RUNNER_VALUES = {
+    "uv": {"--with", "--with-editable", "--with-requirements", "--python", "-p",
+           "--project", "--directory", "--package", "--group", "--extra", "--no-group",
+           "--index", "--default-index", "--index-url", "--extra-index-url", "--find-links",
+           "--config-file", "--cache-dir", "--env-file", "--resolution", "--prerelease",
+           "--exclude-newer", "--link-mode", "--keyring-provider", "--color", "--no-extra",
+           "--only-group", "--python-platform", "--index-strategy", "--upgrade-package",
+           "--fork-strategy", "--exclude-newer-package", "--no-sources-package",
+           "--reinstall-package", "--config-setting", "--config-settings-package",
+           "--no-build-isolation-package", "--no-build-package", "--no-binary-package",
+           "--refresh-package", "--allow-insecure-host", "-w", "-i", "-f", "-P", "-C"},
+    "poetry": {"--directory", "-C", "--project", "-P"},
+    "pipenv": {"--python"}, "hatch": {"--env", "-e"},
+    "pdm": {"--project", "-p"}, "rye": {"--pyproject"},
+    "npx": {"--package", "-p", "--cache", "--userconfig", "--node-options"},
+    "bunx": {"--package", "-p"}, "pnpm": {"--filter", "-F", "--dir", "-C"},
+    "bundle": {"--gemfile"},
+}
+
+
+def runner_tail(args: list[str], runner: str) -> list[str]:
+    """Consume launcher options only, leaving the executable and its flags intact."""
+    index = 0
+    valued = RUNNER_VALUES.get(runner, set())
+    while index < len(args) and args[index].startswith("-"):
+        flag = args[index]
+        if flag == "--":
+            return args[index + 1:]
+        index += 2 if flag in valued else 1
+    return args[index:]
+JS_RUNNERS = {"jest", "vitest", "mocha", "ava", "playwright", "cypress", "karma", "tap"}
+PACKAGE_MANAGERS = {"npm", "pnpm", "yarn", "bun"}
+
+
+def has_flag(args: list[str], *flags: str) -> bool:
+    return any(arg == flag or arg.startswith(flag + "=") for arg in args for flag in flags)
+
+
+def flag_values(args: list[str], *flags: str) -> list[str]:
+    """Values of separate, equals and attached short options, in argument order."""
+    values = []
+    for index, arg in enumerate(args):
+        for flag in flags:
+            if arg == flag and index + 1 < len(args):
+                values.append(args[index + 1])
+            elif arg.startswith(flag + "="):
+                values.append(arg[len(flag) + 1:])
+            elif len(flag) == 2 and arg.startswith(flag) and len(arg) > 2:
+                values.append(arg[2:])
+    return values
+
+
+def positionals(args: list[str], valued: set[str] = frozenset()) -> list[str]:
+    """Non-flag arguments; a flag in `valued` consumes the next argument."""
+    found, skip = [], False
+    for arg in args:
+        if skip:
+            skip = False
+        elif arg.startswith("-"):
+            skip = arg in valued
+        else:
+            found.append(arg)
+    return found
+
+
+# Flags whose value is the next argument, so it is never read as a test file or package.
+VALUED = {
+    "pytest": {"--maxfail", "-n", "--numprocesses", "-c", "--rootdir", "-p", "-m", "-o",
+               "--override-ini", "--confcutdir", "--basetemp", "--junitxml", "--durations",
+               "--cov", "--cov-report", "--tb", "-W", "--timeout", "--dist", "-r",
+               "--import-mode", "--log-level"},
+    "unittest": {"-s", "--start-directory", "-t", "--top-level-directory", "-p", "--pattern",
+                 "-k"},
+    "go": {"-tags", "-count", "-timeout", "-p", "-parallel", "-coverprofile", "-covermode",
+           "-coverpkg", "-o", "-bench", "-benchtime", "-cpu", "-shuffle", "-exec", "-run",
+           "-skip", "-mod", "-modfile", "-ldflags", "-gcflags", "-vet", "-C"},
+    "js": {"-c", "--config", "--reporter", "--reporters", "-w", "--maxWorkers", "--project",
+           "--environment", "--testTimeout", "--outputFile", "--shard", "--pool", "--dir",
+           "--root", "-r", "--require", "--test-reporter", "--test-reporter-destination",
+           "--test-concurrency", "--timeout", "--workers", "-j"},
+}
+JS_FILTERS = ("-t", "--testNamePattern", "--grep", "-g", "--filter", "--testPathPattern",
+              "--findRelatedTests", "-o", "--onlyChanged", "--changed", "--changedSince",
+              "--test-name-pattern", "--test-only", "--related")
+NEUTRAL_FILTERS = {"", "*", ".", ".*", "^.*$"}
+BOOLEAN_FILTERS = {"--lf", "--last-failed", "-o", "--onlyChanged", "--changed", "--test-only"}
+
+
+def effective_filter(args: list[str], filters: tuple[str, ...]) -> bool:
+    if has_flag(args, *(set(filters) & BOOLEAN_FILTERS)):
+        return True
+    values = flag_values(args, *(set(filters) - BOOLEAN_FILTERS))
+    return bool(values) and values[-1].strip() not in NEUTRAL_FILTERS
+
+
+def narrowed(args: list[str], filters: tuple[str, ...], valued: set[str] = frozenset()) -> bool:
+    """A name filter, or a single concrete test file / node id (no glob, no directory)."""
+    if effective_filter(args, filters):
+        return True
+    return any("::" in arg or (TEST_FILE.search(arg.split("::")[0]) and "*" not in arg)
+               for arg in positionals(args, set(valued) | (set(filters) - BOOLEAN_FILTERS)))
+
+
+def harness_command(name: str, rest: list[str]) -> str | None:
+    """The harness's own heavy commands, so a gate step running one is admitted by the
+    gate's guard (its child then never waits, and the wait stays out of step time)."""
+    if name == "skill_evals.py":
+        if has_flag(rest, "--help", "-h"):
+            return "check"
+        return "full" if positionals(rest)[:1] == ["run"] else "check"
+    if name == "xreview.py":
+        if has_flag(rest, "--dry-run", "-h", "--help"):
+            return "check"
+        return "targeted" if has_flag(rest, "--paths") else "full"
+    return None
+
+
+def classify(cmd: list[str]) -> str:
+    """How heavy a gate command is, from its argv: "full" (a whole test suite: the load
+    guard may hold it while the machine is busy), "targeted" (one file, module, package or
+    name filter: never waits) or "check" (lint, format, types, docs, metadata, anything
+    not recognised as a test runner: never waits). `{base}` proves nothing on its own: an
+    opaque wrapper is check whatever its arguments, and declares "scope" when it runs a
+    whole suite."""
+    args = list(cmd)
+    while args:  # peel launchers: env, uv run, npx, bundle exec, python -m
+        head = Path(args[0]).name
+        if head == "env":
+            args = [a for a in args[1:] if "=" not in a or a.startswith("-")]
+        elif head in LAUNCHERS[0] and runner_tail(args[1:], head)[:1] == ["run"]:
+            args = runner_tail(runner_tail(args[1:], head)[1:], head)
+        elif head in ("npx", "bunx"):
+            args = runner_tail(args[1:], head)
+        elif head in ("bundle", "pnpm") and runner_tail(args[1:], head)[:1] in (["exec"], ["dlx"]):
+            args = runner_tail(runner_tail(args[1:], head)[1:], head)
+        elif PYTHON.match(head) and len(args) > 2 and args[1] == "-m":
+            args = args[2:]
+        else:
+            break
+    if not args:
+        return "check"
+    head, rest = Path(args[0]).name, args[1:]
+    if PYTHON.match(head) or head.endswith(".py"):
+        if PYTHON.match(head):  # python [flags] script.py args; -c and -m X handled above
+            if "-c" in rest:
+                return "check"
+            found = positionals(rest, {"-X", "-W"})
+            if not found:
+                return "check"
+            head, rest = Path(found[0]).name, rest[rest.index(found[0]) + 1:]
+        return harness_command(head, rest) or ("targeted" if TEST_FILE.search(head)
+                                               else "check")
+    if head in ("pytest", "py.test"):
+        return "targeted" if narrowed(rest, ("-k", "--lf", "--last-failed", "--deselect",
+                                             "--sw", "--stepwise"), VALUED["pytest"]) \
+            else "full"
+    if head == "unittest":
+        keywords = flag_values(rest, "-k")
+        filtered = bool(keywords) and all(value.strip() not in NEUTRAL_FILTERS for value in keywords)
+        if rest[:1] == ["discover"]:
+            if filtered:
+                return "targeted"
+            patterns = flag_values(rest, "-p", "--pattern")
+            broad = {"*", "*.py", "test*.py", "test_*.py", "*_test.py", "*test*.py"}
+            return "targeted" if patterns and patterns[-1] not in broad else "full"
+        return "targeted" if filtered or positionals(rest, VALUED["unittest"]) \
+            else "full"
+    if head == "go" and rest[:1] == ["test"]:
+        if effective_filter(rest, ("-run",)):
+            return "targeted"
+        packages = positionals(rest[1:], VALUED["go"])
+        return "full" if not packages or any(p.endswith("...") for p in packages) \
+            else "targeted"
+    if head == "cargo" and rest[:1] in (["test"], ["nextest"]):
+        return "targeted" if positionals(rest[1:] if rest[:1] == ["test"] else rest[2:]) \
+            else "full"
+    if head in PACKAGE_MANAGERS:
+        script = rest[1:2] if rest[:1] == ["run"] else rest[:1]
+        if not script or not script[0].startswith("test"):
+            return "check"
+        extra = rest[rest.index("--") + 1:] if "--" in rest else rest[1 + (rest[:1] == ["run"]):]
+        return "targeted" if narrowed(extra, JS_FILTERS, VALUED["js"]) else "full"
+    if head in JS_RUNNERS or (head == "node" and rest[:1] == ["--test"]):
+        if head == "vitest" and rest[:1] in (["run"], ["watch"]):
+            rest = rest[1:]  # a mode, not a test selection
+        files = positionals(rest, VALUED["js"])
+        return "targeted" if narrowed(rest, JS_FILTERS, VALUED["js"]) \
+            or (head == "node" and len(files) == 1 and "*" not in files[0]
+                and not files[0].endswith("/")) else "full"
+    if head in ("rspec", "dotnet") and (head == "rspec" or rest[:1] == ["test"]):
+        return "targeted" if narrowed(rest, ("--filter", "-e", "--example", "--tag"),
+                                      {"-r", "--require", "-f", "--format", "-o", "--out",
+                                       "-c", "--configuration", "-l", "--logger"}) else "full"
+    if head in ("mvn", "mvnw", "gradle", "gradlew") and any(a.endswith("test") for a in rest):
+        return "targeted" if any(a.startswith("-Dtest=") for a in rest) \
+            or has_flag(rest, "--tests") else "full"
+    if head in ("make", "just", "task", "tox", "nox"):
+        targets = positionals(rest)
+        if head in ("tox", "nox"):
+            return "full"
+        return "full" if any(t.startswith("test") for t in targets) else "check"
+    return "check"
+
+
+def step_scope(step: dict) -> str:
+    """The step's declared "scope", else classify(cmd)."""
+    return step.get("scope") or classify(step["cmd"])
+
+
+def fingerprint(area: str, step: dict, cmd: list[str]) -> str:
+    """Steps compare only with themselves: the same area, name, cwd and resolved argv."""
+    key = json.dumps([area, step["name"], step["cwd"], cmd], separators=(",", ":"))
+    return hashlib.sha256(key.encode()).hexdigest()[:16]
+
+
+def slowdown(samples: list[float], seconds: float) -> dict | None:
+    """The advisory verdict on one successful run against its earlier successful runs."""
+    if len(samples) < MIN_RUNS:
+        return None
+    median = statistics.median(samples)
+    if median > 0 and seconds > SLOWER * median:
+        return {"median": round(median, 3), "ratio": round(seconds / median, 1)
+                if median else None, "runs": len(samples)}
+    return None
+
+
+@contextlib.contextmanager
+def locked(path: Path):
+    """An exclusive lock beside path, shared by every gate on the machine."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path.with_name(path.name + ".lock"), "a") as handle:
+        if fcntl:
+            fcntl.flock(handle, fcntl.LOCK_EX)
+        yield
+
+
+def replace_text(path: Path, text: str) -> None:
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=path.parent, delete=False,
+                                     prefix=f".{path.name}.") as stream:
+        stream.write(text)
+    os.replace(stream.name, path)
+
+
+def timing_home(root: Path) -> Path:
+    """Timings live in the primary checkout, so every worktree of a lane shares them."""
+    try:
+        record = git("worktree", "list", "--porcelain", "-z", cwd=root).split("\0\0", 1)[0]
+        first = record.split("\0")[0]
+        if first.startswith("worktree ") and "bare" not in record.split("\0"):
+            root = Path(first[len("worktree "):])
+    except (StateError, OSError):
+        pass
+    return root / ".harness" / "gate"
+
+
+def remember(root: Path, record: dict, now: float | None = None,
+             home: Path | None = None) -> tuple[list[float], str]:
+    """Add a run to the step's bounded history; return the earlier successful seconds of
+    the same fingerprint and a warning (empty when none). Only passing runs join the
+    baseline: a failure's time says nothing about how long the step takes."""
+    now = time.time() if now is None else now
+    path = (home or timing_home(root)) / "timings.json"
+    warning = ""
+    with locked(path):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+            steps = data.get("steps", {}) if isinstance(data, dict) else None
+            if not isinstance(steps, dict):
+                raise ValueError("not a timing history")
+        except (ValueError, OSError) as exc:
+            warning = f"timing history unreadable ({exc}); starting it anew at {path}"
+            steps = {}
+        horizon = now - HISTORY_DAYS * 86400
+        kept = {}
+        for key, entry in steps.items():
+            samples = [s for s in (entry.get("samples", []) if isinstance(entry, dict) else [])
+                       if isinstance(s, dict) and isinstance(s.get("seconds"), (int, float))
+                       and isinstance(s.get("at"), (int, float)) and s["at"] >= horizon]
+            if samples:
+                kept[key] = {"label": entry.get("label", ""),
+                             "samples": samples[-HISTORY_SAMPLES:]}
+        earlier = [s["seconds"] for s in kept.get(record["fingerprint"], {}).get("samples", [])]
+        if record["status"] == "pass":
+            entry = kept.setdefault(record["fingerprint"], {"samples": []})
+            entry["label"] = record["label"]
+            entry["samples"] = (entry["samples"] + [{
+                "seconds": round(record["seconds"], 3), "at": now, "run": record["run"],
+                "commit": record["commit"]}])[-HISTORY_SAMPLES:]
+        newest = sorted(kept, key=lambda key: kept[key]["samples"][-1]["at"], reverse=True)
+        kept = {key: kept[key] for key in newest[:HISTORY_STEPS]}
+        replace_text(path, json.dumps({"version": 1, "steps": kept}, indent=1) + "\n")
+    return earlier, warning
+
+
+def append_run(path: Path, record: dict, limit: int | None) -> None:
+    """One JSON line per step; a bounded log keeps its newer half past limit bytes."""
+    with locked(path):
+        with path.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(record) + "\n")
+        if limit and path.stat().st_size > limit:
+            lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+            replace_text(path, "".join(lines[len(lines) // 2:]))
+
+
+class Timing:
+    """One gate run's measurements: where they go and what they share."""
+
+    def __init__(self, root: Path, run_dir: Path | None, targeted: bool = False):
+        self.root = root
+        self.targeted = targeted  # --targeted: the whole run is narrow, whatever the steps
+        self.run_log = (run_dir / "gate-timings.jsonl") if run_dir else \
+            root / ".harness" / "logs" / "gate-timings.jsonl"
+        self.limit = None if run_dir else RUN_LOG_BYTES
+        self.run = f"{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-{os.getpid()}"
+        try:
+            self.commit = git("rev-parse", "HEAD", cwd=root)
+        except (StateError, OSError):
+            self.commit = ""
+        self.guard_wait = 0.0  # charged to the next step measured, then reset
+        self.home = timing_home(root)
+
+    def measure(self, area: str, step: dict, cmd: list[str], code: int, passed: bool,
+                seconds: float) -> dict | None:
+        """Record one step; return the advisory slowdown, never raise."""
+        record = {
+            "run": self.run, "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "checkout": str(self.root), "commit": self.commit, "area": area,
+            "step": step["name"], "label": f"{area}/{step['name']}", "cwd": step["cwd"],
+            "argv": cmd,
+            "scope": "targeted" if self.targeted and step_scope(step) == "full"
+            else step_scope(step), "fingerprint": fingerprint(area, step, cmd),
+            "status": "pass" if passed else "fail", "exit": code,
+            "seconds": round(seconds, 3), "guard_wait": round(self.guard_wait, 3)}
+        self.guard_wait = 0.0
+        note = None
+        try:
+            earlier, warning = remember(self.root, record, home=self.home)
+            if warning:
+                print(f"gate: {warning}", file=sys.stderr, flush=True)
+            note = slowdown(earlier, seconds) if passed else None
+        except (OSError, ValueError, TypeError) as exc:
+            print(f"gate: timing not recorded in shared history ({exc})", file=sys.stderr, flush=True)
+        record["slower"] = note
+        try:
+            self.run_log.parent.mkdir(parents=True, exist_ok=True)
+            append_run(self.run_log, record, self.limit)
+        except (OSError, ValueError, TypeError) as exc:
+            print(f"gate: per-run timing not recorded ({exc})", file=sys.stderr, flush=True)
+        return note
+
+
+@contextlib.contextmanager
+def environment(env: dict | None):
+    """os.environ is env for the block (quiet.execute's child inherits it), then restored."""
+    if env is None:
+        yield
+        return
+    saved = dict(os.environ)
+    os.environ.clear()
+    os.environ.update(env)
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
+
+
+def run_step(area: str, step: dict, root: Path, base: str, timing: Timing | None = None,
+             env: dict | None = None) -> bool:
     label = f"{area}/{step['name']}"
     started = time.monotonic()
     try:
@@ -288,20 +711,65 @@ def run_step(area: str, step: dict, root: Path, base: str) -> bool:
         print(f"FAIL {label} ({exc})", flush=True)
         return False
     log = default_log(root, slug(["gate", area, step["name"]]))
-    code = execute(cmd, log, cwd=root / step["cwd"])
+    with environment(env):
+        code = execute(cmd, log, cwd=root / step["cwd"])
     seconds = time.monotonic() - started
+    passed = False
     if code:
         reason = f"exit={code}"
     elif step.get("expect_empty_stdout") and log.stat().st_size:
         reason = "unexpected output"
     else:
+        passed = True
+    note = timing.measure(area, step, cmd, code, passed, seconds) if timing else None
+    if passed:
         print(f"PASS {label} {seconds:.1f}s", flush=True)
+        if note:
+            ratio = f"{note['ratio']}x its" if note["ratio"] else "above its"
+            print(f"NOTE {label} took {seconds:.1f}s, {ratio} median {note['median']:.1f}s over "
+                  f"{note['runs']} runs (advisory; a cache off, a new per-test service or a "
+                  "busy machine?)", flush=True)
         return True
     # Indented, so a digest line can never be read as another step's summary.
     for line in digest(code, log, with_log=False).splitlines():
         print(f"  {line}")
     print(f"FAIL {label} ({reason}) {seconds:.1f}s log: {log}", flush=True)
     return False
+
+
+def guard_settings(root: Path) -> None:
+    """Fail fast (ConfigError, exit 2) on unusable guard settings in project.json or the
+    environment, before any step runs; the guard's kill switch wins over them."""
+    check = getattr(load_guard, "config", None)
+    if check is None:
+        return
+    try:
+        check(root, dict(os.environ))
+    except ValueError as exc:
+        raise ConfigError(f"load guard: {exc}") from None
+
+
+def wait_for_guard(root: Path, run_dir: Path | None) -> tuple[float, dict | None]:
+    """Ask the host load guard once, before the run's first full-suite step. Return the
+    seconds spent waiting and the admitted environment for every later step: it marks this
+    process tree, so nested heavy commands (skill_evals.py run, xreview.py) never wait
+    again. Invalid settings are a ConfigError (exit 2); any other guard failure fails
+    open, since missing telemetry must never block the user's check."""
+    if load_guard is None:
+        return 0.0, None
+    started = time.monotonic()
+    try:
+        admitted = load_guard.wait_for_capacity(root, heavy=True, label="gate", run=run_dir,
+                                                env=dict(os.environ))
+    except ValueError as exc:
+        raise ConfigError(f"load guard: {exc}") from None
+    except Exception as exc:  # noqa: BLE001 - advisory machinery never fails a gate
+        print(f"gate: load guard unavailable ({exc}); running now", file=sys.stderr, flush=True)
+        return time.monotonic() - started, None
+    waited = time.monotonic() - started
+    if waited >= 0.1:
+        print(f"gate: waited {waited:.1f}s for the load guard", flush=True)
+    return waited, admitted
 
 
 # --- A reader for the subset of GitHub-workflow YAML that CI files use ----------------------
@@ -628,9 +1096,15 @@ def main() -> int:
     parser.add_argument("--config", help=f"gates file (default: the overlay's {CONFIG})")
     parser.add_argument("--pin-ci", metavar="WORKFLOW",
                         help="check gates.json against a CI workflow; runs nothing")
+    parser.add_argument("--targeted", action="store_true",
+                        help="the selected steps test a narrow set: never wait for the load guard")
+    parser.add_argument("--run-dir", metavar="DIR",
+                        help="also append each step's timing to DIR/gate-timings.jsonl")
     args = parser.parse_args()
-    if args.pin_ci and (args.areas or args.changed or args.keep_going or args.dry_run):
-        parser.error("--pin-ci takes no AREA, --changed, --keep-going or --dry-run")
+    if args.pin_ci and (args.areas or args.changed or args.keep_going or args.dry_run
+                        or args.run_dir or args.targeted):
+        parser.error("--pin-ci takes no AREA, --changed, --keep-going, --dry-run, --targeted "
+                     "or --run-dir")
     try:
         root = Path(git("rev-parse", "--show-toplevel")).resolve()
         if args.pin_ci:
@@ -670,12 +1144,30 @@ def main() -> int:
         print(f"FAIL {problem}", flush=True)
         return 1
 
+    run_dir = Path(args.run_dir).resolve() if args.run_dir else None
+    full = not args.targeted and any(step_scope(step) == "full" for _, step in steps)
+    try:
+        if full:
+            guard_settings(root)
+    except ConfigError as exc:
+        print(f"gate: {exc}", file=sys.stderr)
+        return 2
+    timing = Timing(root, run_dir, args.targeted)
+    guarded, admitted = not full, None
     passed = failed = skipped = 0
     for area, step in steps:
         if failed and not args.keep_going:
             print(f"SKIP {area}/{step['name']}")
             skipped += 1
-        elif run_step(area, step, root, base):
+            continue
+        if not guarded and step_scope(step) == "full":
+            guarded = True
+            try:
+                timing.guard_wait, admitted = wait_for_guard(root, run_dir)
+            except ConfigError as exc:
+                print(f"gate: {exc}", file=sys.stderr)
+                return 2
+        if run_step(area, step, root, base, timing, admitted):
             passed += 1
         else:
             failed += 1

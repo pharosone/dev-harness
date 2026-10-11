@@ -10,12 +10,15 @@ any stack (proposed upstream, never edited in place), in the project file otherw
 
 ## Tests
 
-- **Cached results lie.** A test runner that reuses a cached pass when its inputs look unchanged
-  misses state outside those inputs (containers, env, embedded files). Gates run with the cache
-  disabled.
-- **A package filter narrows the gate.** Invariant tests often live in one package and guard
-  code in another; a change in one can break another's test. Gates run the whole suite of the
-  touched module, not the touched package.
+- **A cache cannot prove an input it cannot see.** Name the external state, environment or
+  generated/embedded input missing from the cache key; fix the key or bypass only that
+  affected case/step. Keep ordinary build/result/dependency/image caches enabled. CI may use
+  an explicitly declared hermetic result-cache policy; local gates do not disable caches
+  suite-wide by default. Follow `harness/core/rules/efficient-testing.md`.
+- **A package filter can miss a cross-package invariant.** Include affected boundary tests
+  in other packages when their guards depend on the change. Start with that affected set
+  locally; broaden for a concrete unresolved dependency/failure. The CI/pre-PR full suite
+  remains required, rather than repeating the whole module for every local edit.
 - **An ordering or invariant test must be proven by breaking the invariant.** Remove the guard
   (the state predicate, the scope predicate, the sticky update) and confirm the test goes red;
   a test that passes both ways pins nothing.

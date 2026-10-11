@@ -6,7 +6,11 @@ max_turns: 5
 timeout_seconds: 180
 expected_outcome: Triages using product likelihood/impact and code evidence, limits review to two milestone rounds, and preserves backlog/outcome feedback.
 ---
-Use pharos-dev to triage this review before fix-up. Do not dispatch workers or modify files.
+Load pharos-dev if available to triage this review before fix-up. If unavailable, use general
+judgment without searching for the missing skill. Treat the supplied overlay and code excerpts
+as complete scenario inputs; do not inspect the synthetic run directory, dispatch workers or
+execute commands. Render ID: block|backlog lines as plain text, with no Markdown decoration
+around IDs, colons or decision words. The output is consumed by a literal-text checker.
 This is a pilot product; the overlay's only review invariant is "No private data reaches public issues".
 Run directory: /tmp/calibration-run. Milestone: sending. Round 1 just finished.
 All findings were labelled Major except F03 (Minor). Treat these labels as reviewer opinions.

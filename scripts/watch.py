@@ -47,6 +47,7 @@ import sys
 import time
 
 import lanes
+import load_guard
 import project
 import task_state
 
@@ -281,7 +282,7 @@ def live_agents() -> list[dict] | None:
 
 
 def lane_conditions(run: Path, memory: dict, config: dict, now: float,
-                    agents: list[dict] | None, primary: Path) -> dict:
+                    agents: list[dict] | None, primary: Path, waiting=()) -> dict:
     events, _ = task_state.read_events(run)
     ends = {e.get("dispatch") for e in events if e.get("type") == "dispatch.end"}
     conditions = {}
@@ -371,6 +372,14 @@ def lane_conditions(run: Path, memory: dict, config: dict, now: float,
                 add("needs-input", f"{HOOK_TRUST}: {HOOK_TRUST_ACTION.format(pane=pane)}")
             else:
                 add("needs-input", prompt or "agent_status: blocked")
+        if any((state.get('pane_id') and job.get('pane_id') == state['pane_id'])
+               or any(pid and load_guard.descendant(job['pid'], pid)
+                      for pid in (state.get('pid'), state.get('child_pid')))
+               for job in waiting):
+            # A live bounded capacity wait is known activity. Drop the old freeze
+            # clock; when the wait clears, start a fresh clock from the next read.
+            screens.pop(dispatch, None)
+            continue
         if screen is not None:
             # Frozen: a working agent whose screen (screen_digest) and checkout (activity)
             # have not changed for frozen_minutes. Activity that cannot be read proves
@@ -494,7 +503,12 @@ def poll(run: Path, primary: Path, root: Path, config: dict, quiet_repeat=600,
          *, now: float | None = None) -> list[str]:
     now = time.time() if now is None else now
     with watch_state(run, primary) as memory:
-        current = lane_conditions(run, memory, config, now, live_agents(), primary)
+        waiting = load_guard.waiting_jobs()
+        current = lane_conditions(run, memory, config, now, live_agents(), primary, waiting)
+        for job in waiting:
+            current[f"load:{job['id']}"] = {
+                'line': f"LOAD {job['label']} waiting (pid {job['pid']})",
+                'condition': 'waiting', 'job': job['id']}
         current.update(product_conditions(root, memory, config, now))
         previous = memory.get("open", {})
         emitted = []
@@ -519,10 +533,13 @@ def summary(run: Path) -> str:
     if not path.is_file():
         return "Watch: not armed"
     try:
-        count = len(json.loads(path.read_text())["open"])
+        conditions = json.loads(path.read_text())["open"]
+        waiting = sum(c.get('condition') == 'waiting' for c in conditions.values())
+        count = len(conditions) - waiting
     except (OSError, ValueError, KeyError, TypeError):
         return "Watch: state unreadable"
-    return f"Watch: 🚨 {count} open" if count else "Watch: ✅ quiet"
+    status = f"Watch: 🚨 {count} open" if count else "Watch: ✅ quiet"
+    return status + (f"; {waiting} waiting" if waiting else '')
 
 
 def main(argv=None) -> int:

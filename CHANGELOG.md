@@ -3,6 +3,25 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.7.0 — 2026-10-11
+
+- Review fixes preserve full-suite admission through runner options, retain waiting records
+  when process probes time out, admit macOS warning pressure by default with a configurable
+  critical/warning threshold, and preserve prefixed top-level brief sections.
+- Efficient testing is a core rule across projects and stacks: choose the cheapest correct
+  isolation, reuse long-lived services with owned namespaces, amortize setup by content hash,
+  keep caches enabled and run affected tests first. Unit briefs and QA require isolation and
+  measured infrastructure cost evidence; full suites remain required in CI and before PRs.
+- Heavy full gates, skill evals and cross-review sample actual host load and memory pressure
+  instead of taking fixed slots. Idle capacity starts immediately; busy jobs wait briefly up
+  to a configurable bound, nested heavy work never waits again, and targeted tests bypass
+  the guard. Watch surfaces waiting jobs.
+- Gate steps record execution wall time and warn, without changing pass/fail, when a step
+  exceeds its previous rolling median by more than 50%.
+- Worker briefs include an explicit Goal section. The shadow router can derive a missing
+  goal from the Markdown title, while explicit goals take precedence and fenced examples
+  never become routing instructions.
+
 ## 1.6.0 — 2026-10-11
 
 - Fix-up after Claude review: setup refreezes require an exact local traceback and pure,

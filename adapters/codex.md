@@ -7,6 +7,13 @@ spend a weekly limit before anyone sees a result. Skills resolve through `.agent
 (`$pharos-dev`) or their `skills/<name>/SKILL.md`. `AGENTS.md` is loaded automatically: do not
 read it again.
 
+- **Efficient testing:** read `harness/core/rules/efficient-testing.md`. Choose the cheapest
+  correct isolation: fake, shared long-lived service with owned logical state, per-run service,
+  then justified per-test infrastructure. Reuse content-keyed setup and keep caches on;
+  exceptions name an invisible input and one case/step. Run affected tests first locally,
+  full suites at CI/pre-PR, and bound parallelism by host capacity. Infrastructure changes
+  report isolation and measured cold/warm wall/resource cost. Use
+  `harness/core/prompts/implementer-brief.md`, including `## Goal`, for unit dispatches.
 - **Profile authority:** resolve orchestrator and worker model/effort at dispatch time from
   `harness/core/adapters/models.json` deep-merged with `harness/project/models.json`.
   Never use personal memory or saved model preferences. Record the resolved profile/model/effort;
