@@ -36,6 +36,7 @@ DENIED = [
     "gh workflow run env-power.yml extra",
     "gh workflow run env-power.yml --json",
     "gh workflow run env-power.yml -F payload=@notes.txt",
+    "gh workflow run env-power.yml -F @notes.txt",
     "gh workflow run env-power.yml --field=payload=@notes.txt",
     "gh workflow run env-power.yml -Racme/infra",
     "gh workflow run env-power.yml --ref",

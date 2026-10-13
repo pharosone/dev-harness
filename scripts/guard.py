@@ -1035,7 +1035,7 @@ def allowed_workflow(name: str, args: list[str], ctx: Context) -> bool:
             if repo is not None:
                 return False
             repo = value
-        if flag in ("-F", "--field") and value.partition("=")[2].startswith("@"):
+        if flag in ("-F", "--field") and "@" in (value[:1], value.partition("=")[2][:1]):
             return False  # -F key=@path sends a file's content
     if len(words) != 3 or words[:2] != ["workflow", "run"]:
         return False
