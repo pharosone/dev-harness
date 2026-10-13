@@ -18,8 +18,16 @@ with defaults; a major release may require an overlay change and says which.
   `workdir`), a path with glob characters is never exempt, and a path the guard cannot
   inspect stays denied rather than failing open. Editing the key still requires the
   guard-configuration approval.
-- `.env` rule fixes that apply without the key: a glob such as `cat web/.env.prod*` is
-  denied, and an overlay path with a symlink loop no longer crashes the guard open.
+- Optional `guard.allow_workflows` lists workflow files (`[OWNER/REPO:]FILE.yml`) that an
+  owner-authorized Claude session may dispatch with `gh workflow run`; every other workflow,
+  form and Codex lane keeps the deploy rule. Only one literal `gh` command with `-f`, `-F`
+  (no `@file`), `--ref` and `-R` options qualifies, and only the command repository's
+  overlay counts. Repository wrapper scripts were never deploy commands to the guard and
+  need no entry, so there is no separate entry-point list.
+- `kubectl rollout status` and `kubectl rollout history` are reads and no longer denied.
+- `.env` rule fixes that apply without the key: a shell glob whose literal part starts with
+  `.env.` (such as one ending in `prod*`) is denied, and an overlay path with a symlink
+  loop no longer crashes the guard open.
 
 ## 1.7.1 — 2026-10-11
 

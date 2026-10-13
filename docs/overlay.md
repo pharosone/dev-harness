@@ -158,9 +158,10 @@ text before authorizing an issue or PR. See [Feedback](../README.md#feedback).
 
 ### guard
 
-Every key is optional. Lists **add to** the core rules. Two keys relax a core rule, each
-described below: the scalar `push` (owner-authorized pushes) and `env_exempt` (tracked env
-files); neither relaxes any other core rule.
+Every key is optional. Lists **add to** the core rules. Three keys relax a core rule, each
+described below and read only from the command repository's own overlay: the scalar `push`
+(owner-authorized pushes), `env_exempt` (committed env files) and `allow_workflows` (vetted
+workflow dispatches); none relaxes any other core rule.
 Unknown keys and invalid entries print a note and are skipped. The guard reads the overlay of the
 command's repository and that of the checkout holding the core.
 
@@ -173,6 +174,7 @@ command's repository and that of the checkout holding the core.
 | `prod_compose` | [string] | none | basename globs of production compose files; `docker compose` / `docker-compose` with a matching file is denied |
 | `generated` | [{`path`, `hint`?}] | none | directories of generated output; `path` matches as a run of path segments anywhere, any case; shell writes and file edits there are denied with `"<path> is generated output; <hint>"` (default hint: "edit its source and regenerate it instead of changing it by hand.") |
 | `env_exempt` | [string] | none | repository-relative globs of committed, secret-free env files the `.env` rule skips, e.g. `"web/.env.*"`; loosens: command repository only (see below) |
+| `allow_workflows` | [string] | none | workflow files `[OWNER/REPO:]FILE.yml` that a Claude session may dispatch with `gh workflow run`, e.g. `"env-power.yml"`; loosens: command repository only (see below) |
 
 An owner who authorized autonomous work may opt in with `"guard": {"push": "allow"}`.
 The command repository's overlay must authorize it; a separate core checkout's permission
@@ -211,6 +213,21 @@ through the guard-configuration rule above. Skill evals refuse env files as inpu
 overlay docs and skills that the evals hash should quote env paths only inside JSON or
 fenced examples.
 
+`allow_workflows` lets an owner name the GitHub Actions workflows a Claude session may
+dispatch itself, such as powering a dev environment or a read-only data check, while every
+other `gh workflow run` stays a denied deploy. Loosens: command repository only. An entry is
+a workflow file name (`.yml`/`.yaml`); `OWNER/REPO:FILE` matches only with that exact
+`-R`/`--repo`, a bare file only without one. It applies to one literal `gh` command with no
+other command, pipe, wrapper, variable prefix or substitution, whose only options are
+`-f`/`--raw-field`, `-F`/`--field` (never `@file`), `-r`/`--ref` and `-R`/`--repo`; a workflow
+named by title or ID, `--json` and anything else keep the deploy rule. Inputs and refs are
+not checked, so list only workflows whose every input is acceptable. Codex lanes stay
+denied, as for pushes: remote side effects belong to the owner-authorized orchestrator.
+The guard recognizes deploy tools by name (helm, kubectl, gh, railway, fly, ssh to deploy
+hosts, production compose files) and does not inspect a repository's own scripts, so vetted
+release or ops wrappers need no entry; what they run is the owner's review. `kubectl
+rollout status` and `kubectl rollout history` are reads and are not denied.
+
 ```json
 "guard": {
   "deploy_hosts": ["deploy.tasklist.example"],
@@ -218,7 +235,8 @@ fenced examples.
   "deploy_host_files": ["infra/*.hosts"],
   "prod_compose": ["compose.prod*"],
   "generated": [{"path": "web/src/api-client/", "hint": "run npm run gen in web/ instead."}],
-  "env_exempt": ["web/.env.development", "web/.env.production"]
+  "env_exempt": ["web/.env.development", "web/.env.production"],
+  "allow_workflows": ["env-power.yml", "acme/infra:plan.yml"]
 }
 ```
 

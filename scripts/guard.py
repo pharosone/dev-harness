@@ -16,7 +16,8 @@ wrappers (sudo, env [-S], nohup, nice, timeout, xargs, quiet.py --) is inspected
                                               deny: stage explicit paths
   git commit -a|--all|-am..., or with a whole-tree pathspec       deny: stage explicit paths
   git clean without -n, git stash -u|-a       deny: they remove untracked personal files
-  helm/kubectl mutations, gh workflow run, railway up|deploy|redeploy, fly|flyctl deploy;
+  helm/kubectl mutations (not kubectl rollout status|history), gh workflow run (except a
+  file guard.allow_workflows lists), railway up|deploy|redeploy, fly|flyctl deploy;
   ssh/scp/sftp/rsync as a deploy user, to a deploy host, or to an IPv4 host named in a
   deploy host file (read at decision time); docker compose with a production compose
   file                                        deny: deploys go through CD
@@ -42,7 +43,7 @@ also free-form or via shell); names compare case-insensitively and through symli
 Project rules come from the "guard" object of the overlay's project.json (project.py:
 $HARNESS_PROJECT, else <repo>/harness/project), read from the command's repository and
 from the checkout that holds this core. Every key is optional and every list adds to the
-core rules. Two keys loosen a core rule, so only the overlay of the repository they apply
+core rules. Three keys loosen a core rule, so only the overlay of the repository they apply
 to counts; a separate core checkout's overlay never loosens another repository's rules.
 The sole permission opt-in is guard.push=allow: on Claude only, one literal
 git push / git subtree push to verified non-force, non-default destinations may run without
@@ -62,6 +63,12 @@ An overlay cannot remove any other core rule.
                      be as well (and named, if it is an env file), a `..` after a symlink
                      must not lead elsewhere, and a path with * ? [ is never exempt; so a
                      staged or untracked .env.local or a symlink to .env stays denied
+  allow_workflows    workflow files [OWNER/REPO:]FILE.yml that `gh workflow run` may dispatch
+                     without the deploy rule, e.g. ["env-power.yml", "acme/ops:plan.yml"]
+                     (the prefix must equal -R/--repo; none means no -R): Claude only, one
+                     literal gh command with only -f/-F/--ref/-R options and no -F @file;
+                     every other form keeps the deploy rule. Repository scripts are not
+                     deploy commands to the guard, so vetted wrappers need no entry
   deploy_hosts       host names or IPv4 addresses, e.g. ["deploy.example.com"]: an
                      ssh/scp/sftp/rsync argument naming one, or a subdomain of a name, is a
                      deploy (names compare case-insensitively, label by label)
@@ -209,7 +216,11 @@ CORE_RULES = {
     "prod_compose": (),
     "generated": (),
     "env_exempt": (),  # loosens the .env rule: the command repository's overlay only
+    "allow_workflows": (),  # loosens the deploy rule: the command repository's overlay only
 }
+LOOSENING = ("env_exempt", "allow_workflows")  # list keys read from the own overlay only
+WORKFLOW_ENTRY = re.compile(r"(?:[\w.-]+/[\w.-]+:)?[\w.-]+\.ya?ml", re.ASCII)
+GH_RUN_VALUED = {"-f", "--raw-field", "-F", "--field", "-r", "--ref", "-R", "--repo"}
 GENERATED_HINT = "edit its source and regenerate it instead of changing it by hand."
 GUARD_FILE = Path(__file__).resolve()
 VENDORED_GUARD = "harness/core/scripts/guard.py"
@@ -276,6 +287,7 @@ class Rules(NamedTuple):
     prod_compose: tuple[str, ...]
     generated: tuple[tuple[str, tuple[str, str]], ...]  # (/segment/, deny finding)
     env_exempt: tuple[str, ...]  # from the repository's own overlay only
+    allow_workflows: tuple[str, ...]  # from the repository's own overlay only
     overlays: tuple[Path, ...]  # the project.json files these rules were read from
     push: str  # owner opt-in from the command repository; never authorizes Codex
 
@@ -283,7 +295,7 @@ class Rules(NamedTuple):
 class Context(NamedTuple):
     runtime: str
     cwd: Path
-    autonomous: bool = True  # only a literal, single git command may use the opt-in
+    autonomous: bool = True  # only a literal, single git or gh command may use an opt-in
 
 
 def note(message: str) -> None:
@@ -309,6 +321,8 @@ def overlay_entry(key: str, value):
     if key == "deploy_host_files" and (os.path.isabs(value) or ".." in Path(value).parts):
         return None
     if key == "env_exempt" and not env_exempt_glob(value):
+        return None
+    if key == "allow_workflows" and not WORKFLOW_ENTRY.fullmatch(value):
         return None
     return value
 
@@ -382,7 +396,7 @@ def rules_at(root: Path | None) -> Rules:
             if key == "push":
                 if base == root:
                     push = values
-            elif key == "env_exempt":  # loosens a core rule: the repository's own overlay only
+            elif key in LOOSENING:  # loosens a core rule: the repository's own overlay only
                 if base == root:
                     merged[key] = list(values)
             else:
@@ -979,7 +993,10 @@ def deploys(name: str, args: list[str], segment: list[str], cwd: Path) -> bool:
     if name == "helm":
         return subcommand(args, HELM_VALUED)[0] in HELM_VERBS
     if name == "kubectl":
-        return subcommand(args, KUBECTL_VALUED)[0] in KUBECTL_VERBS
+        verb, rest = subcommand(args, KUBECTL_VALUED)
+        if verb == "rollout":  # status and history only read
+            return subcommand(rest, KUBECTL_VALUED)[0] not in ("status", "history")
+        return verb in KUBECTL_VERBS
     if name in REMOTE_SHELLS:
         return remote_deploy(args, cwd)
     if name == "docker-compose" or (name == "docker"
@@ -994,6 +1011,36 @@ def deploys(name: str, args: list[str], segment: list[str], cwd: Path) -> bool:
     if name in ("fly", "flyctl"):
         return subcommand(args, FLY_VALUED)[0] == "deploy"
     return False
+
+
+def allowed_workflow(name: str, args: list[str], ctx: Context) -> bool:
+    """`gh [-R REPO] workflow run FILE [-f|-F|--ref|-R VALUE]...` as one literal command on
+    Claude, naming an entry of the command repository's guard.allow_workflows."""
+    if name != "gh" or ctx.runtime != "claude" or not ctx.autonomous:
+        return False
+    repo, words, i = None, [], 0
+    while i < len(args):
+        flag, eq, value = args[i].partition("=")
+        if args[i] in GH_RUN_VALUED and i + 1 < len(args):
+            flag, value, i = args[i], args[i + 1], i + 2
+        elif flag.startswith("--") and eq and flag in GH_RUN_VALUED:
+            i += 1
+        elif args[i].startswith("-"):
+            return False  # --json, attached short values, anything unvetted
+        else:
+            words.append(args[i])
+            i += 1
+            continue
+        if flag in ("-R", "--repo"):
+            if repo is not None:
+                return False
+            repo = value
+        if flag in ("-F", "--field") and value.partition("=")[2].startswith("@"):
+            return False  # -F key=@path sends a file's content
+    if len(words) != 3 or words[:2] != ["workflow", "run"]:
+        return False
+    entry = f"{repo}:{words[2]}" if repo is not None else words[2]
+    return entry in rules(ctx.cwd).allow_workflows
 
 
 SUBSTITUTE = re.compile(r"(?:^|[;\s{])s([^\w\s\\])((?:\\.|(?!\1).)*)\1((?:\\.|(?!\1).)*)\1")
@@ -1072,7 +1119,7 @@ def segment_findings(segment: list[str], ctx: tuple[str, Path], depth: int) -> l
         found += python_findings(args, ctx, depth)
     if name == "git":
         found += git_findings(args, ctx, depth, fed)
-    if deploys(name, args, segment, cwd):
+    if deploys(name, args, segment, cwd) and not allowed_workflow(name, args, ctx):
         found.append(DEPLOY)
     if name in READERS and any(env_path(arg, cwd) for arg in args):
         found.append(ENV)
@@ -1092,7 +1139,7 @@ def shell_findings(command: str, ctx: tuple[str, Path], depth: int = 0) -> list:
     found = []
     parts = segments(outer)
     for segment in parts:
-        literal = len(parts) == 1 and not bodies and Path(segment[0]).name == "git"
+        literal = len(parts) == 1 and not bodies and Path(segment[0]).name in ("git", "gh")
         found += segment_findings(segment, Context(runtime, cwd, ctx.autonomous and literal), depth)
         if segment[0] == "cd" and len(segment) == 2:
             cwd = resolve(segment[1], cwd)

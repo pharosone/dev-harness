@@ -104,7 +104,8 @@ Skills cannot grant permissions. Reuse answers and approvals already given and a
 missing decisions. An unanswered prompt, a preselected option or an elapsed timeout is not
 approval. Hard limits are enforced by `harness/core/scripts/guard.py` on both runtimes, and
 repeated here because compaction can drop path rules:
-- never deploy from a session;
+- never deploy from a session; an owner may list vetted workflow files a Claude
+  orchestrator may dispatch in `guard.allow_workflows`;
 - stage explicit paths only (`git add <paths>`, never `-A` or `.`);
 - by default, Claude asks for each push; an owner may authorize autonomous ordinary feature
   pushes with `project.json` → `guard.push: "allow"`. Codex lanes always remain denied.
