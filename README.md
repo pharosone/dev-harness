@@ -111,7 +111,8 @@ repeated here because compaction can drop path rules:
   Force/lease, mirror, deletions, main/master or cached remote HEAD, hidden verbs and
   ambiguous/compound pushes still ask. Changing the policy itself asks once. See
   [guard configuration](docs/overlay.md#guard);
-- never read or write `.env` files;
+- never read or write `.env` files, except tracked, secret-free ones the overlay names in
+  `guard.env_exempt` ([guard configuration](docs/overlay.md#guard));
 - never touch personal untracked agents and skills;
 - never put secrets in briefs, reports or logs.
 

@@ -20,15 +20,16 @@ wrappers (sudo, env [-S], nohup, nice, timeout, xargs, quiet.py --) is inspected
   ssh/scp/sftp/rsync as a deploy user, to a deploy host, or to an IPv4 host named in a
   deploy host file (read at decision time); docker compose with a production compose
   file                                        deny: deploys go through CD
-  file readers on .env / .env.* (not .env.example, any case, symlinks too), redirects to
-  or from them, and tee/cp/mv/ln/dd/rm/truncate/sed -i on them    deny
+  file readers on .env / .env.* (not .env.example, any case, symlinks too; guard.env_exempt
+  below), redirects to or from them, and tee/cp/mv/ln/dd/rm/truncate/sed -i on them    deny
   shell writes (> >> tee cp mv ln dd sed -i truncate) into a generated directory, and
   writes or removals of personal files                            deny
   writes or removals of the guard or its configuration (see below),
   git config core.worktree|core.hooksPath changes                 ask on claude, deny on codex
 Files (Edit, Write, MultiEdit, NotebookEdit, Read, Grep path and glob; Codex apply_patch,
 also free-form or via shell); names compare case-insensitively and through symlinks:
-  .env / .env.* (not .env.example) edits and reads, settings.local.json edits   deny
+  .env / .env.* (not .env.example; guard.env_exempt below) edits and reads,
+  settings.local.json edits                                                   deny
   edits under a generated directory                                           deny
   edits of existing untracked files (ignored ones too) under .claude/agents|skills,
   .codex/agents, .agents/skills (personal files)                              deny
@@ -41,7 +42,9 @@ also free-form or via shell); names compare case-insensitively and through symli
 Project rules come from the "guard" object of the overlay's project.json (project.py:
 $HARNESS_PROJECT, else <repo>/harness/project), read from the command's repository and
 from the checkout that holds this core. Every key is optional and every list adds to the
-core rules. The sole permission opt-in is guard.push=allow: on Claude only, one literal
+core rules. Two keys loosen a core rule, so only the overlay of the repository they apply
+to counts; a separate core checkout's overlay never loosens another repository's rules.
+The sole permission opt-in is guard.push=allow: on Claude only, one literal
 git push / git subtree push to verified non-force, non-default destinations may run without
 a per-push confirmation. Default ask and Codex deny remain. Force/lease, mirror, deletions,
 main/master/cached remote HEAD, hidden verbs, compound commands and uncertain routing ask.
@@ -50,6 +53,13 @@ Config edits still use the SELF rule. Missing cached remote HEAD or unreadable m
 asks; use git remote set-head <remote> -a to initialize it (no network probes in the guard).
 An overlay cannot remove any other core rule.
   push               "ask" (default) or "allow", owner-authorized Claude orchestrator only
+  env_exempt         repository-relative globs of tracked, secret-free env files, e.g.
+                     ["web/.env.*"]; * stays within one path segment, no .. or **, the last
+                     segment starts with .env. and never matches .env itself. A file is
+                     exempt only while Git tracks it as that exact path in the repository
+                     holding it, whose own overlay names it; the file a symlink resolves to
+                     must be tracked as well (and named, if it is an env file), so an
+                     untracked .env.local or a symlink to .env stays denied
   deploy_hosts       host names or IPv4 addresses, e.g. ["deploy.example.com"]: an
                      ssh/scp/sftp/rsync argument naming one, or a subdomain of a name, is a
                      deploy (names compare case-insensitively, label by label)
@@ -196,6 +206,7 @@ CORE_RULES = {
     "deploy_host_files": (".github/workflows/*deploy*", "deploy/"),
     "prod_compose": (),
     "generated": (),
+    "env_exempt": (),  # loosens the .env rule: the file's own repository's overlay only
 }
 GENERATED_HINT = "edit its source and regenerate it instead of changing it by hand."
 GUARD_FILE = Path(__file__).resolve()
@@ -262,6 +273,7 @@ class Rules(NamedTuple):
     deploy_host_files: tuple[str, ...]
     prod_compose: tuple[str, ...]
     generated: tuple[tuple[str, tuple[str, str]], ...]  # (/segment/, deny finding)
+    env_exempt: tuple[str, ...]  # from the repository's own overlay only
     overlays: tuple[Path, ...]  # the project.json files these rules were read from
     push: str  # owner opt-in from the command repository; never authorizes Codex
 
@@ -294,7 +306,18 @@ def overlay_entry(key: str, value):
         return None
     if key == "deploy_host_files" and (os.path.isabs(value) or ".." in Path(value).parts):
         return None
+    if key == "env_exempt" and not env_exempt_glob(value):
+        return None
     return value
+
+
+def env_exempt_glob(value: str) -> bool:
+    """A repository-relative glob of env files that can never name .env itself."""
+    parts = value.split("/")
+    last = parts[-1].casefold()
+    return (not os.path.isabs(value) and "\\" not in value and "**" not in value
+            and all(p not in ("", ".", "..") for p in parts)
+            and last.startswith(".env.") and not fnmatchcase(".env", last))
 
 
 OVERLAYS: dict[Path, dict] = {}
@@ -356,6 +379,9 @@ def rules_at(root: Path | None) -> Rules:
             if key == "push":
                 if base == root:
                     push = values
+            elif key == "env_exempt":  # loosens a core rule: the repository's own overlay only
+                if base == root:
+                    merged[key] = list(values)
             else:
                 merged[key] += [value for value in values if value not in merged[key]]
     return Rules(**{key: tuple(values) for key, values in merged.items()},
@@ -564,7 +590,7 @@ def python_findings(args: list[str], ctx: tuple[str, Path], depth: int) -> list:
     if not code:
         return []
     strings = [a or b for a, b in PY_STRING.findall(code)]
-    found = [ENV for s in strings if is_env_file(s)]
+    found = [ENV for s in strings if is_env_file(s) and env_path(s, ctx[1])]
     if PY_EXEC.search(code) and depth < MAX_DEPTH:
         commands = list(strings)
         for body in re.findall(r"\[([^\[\]]*)\]", code):
@@ -1087,9 +1113,42 @@ def real(path: Path) -> Path:
 
 
 def env_path(raw: str, cwd: Path) -> bool:
-    """An .env name, or a path whose symlinks resolve to one."""
-    return is_env_file(raw) or (not raw.startswith("-")
-                                and is_env_file(real(resolve(raw, cwd)).name))
+    """An .env name, or a path whose symlinks resolve to one, that guard.env_exempt does not
+    exempt; an option or a glob is judged by its name alone."""
+    if raw.startswith("-") or any(c in raw for c in "*?["):
+        return is_env_file(raw)
+    path = resolve(raw, cwd)
+    return (is_env_file(raw) or env_named(path)) and not env_exempt(path)
+
+
+def env_named(path: Path) -> bool:
+    return is_env_file(path.name) or is_env_file(real(path).name)
+
+
+def env_blocked(path: Path) -> bool:
+    return env_named(path) and not env_exempt(path)
+
+
+def env_exempt(path: Path) -> bool:
+    """A file the guard.env_exempt globs of its repository's own overlay name: the path and
+    the file it resolves to are each tracked as that exact file in their repository, and
+    each one with an env name matches a glob there."""
+    for candidate in dict.fromkeys((path, real(path))):
+        root = repo_root(candidate.parent)
+        if root is None or candidate.is_dir():
+            return False
+        name = candidate.relative_to(root).as_posix()
+        parts = name.split("/")
+        if is_env_file(candidate.name) and not any(
+                len(glob.split("/")) == len(parts)
+                and all(map(fnmatchcase, parts, glob.split("/")))
+                for glob in rules_at(root).env_exempt):
+            return False
+        result = git_status(str(root), "--literal-pathspecs", "ls-files", "-z",
+                            "--error-unmatch", "--", name)
+        if result is None or result.returncode != 0 or result.stdout != name.encode() + b"\0":
+            return False
+    return True
 
 
 def posix(path: Path) -> str:
@@ -1187,7 +1246,7 @@ def target_findings(raw: str, cwd: Path, runtime: str, kind: str) -> list:
 
 
 def file_findings(path: Path, old: str, new: str, runtime: str) -> list:
-    if is_env_file(path.name) or is_env_file(real(path).name):
+    if env_blocked(path):
         return [ENV]
     if is_local_settings(path):
         return [LOCAL_SETTINGS]

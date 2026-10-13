@@ -158,8 +158,9 @@ text before authorizing an issue or PR. See [Feedback](../README.md#feedback).
 
 ### guard
 
-Every key is optional. Lists **add to** the core rules. The scalar `push` is the sole
-owner-authorized relaxation described below; it cannot relax any other core rule.
+Every key is optional. Lists **add to** the core rules. Two keys relax a core rule, each
+described below: the scalar `push` (owner-authorized pushes) and `env_exempt` (tracked env
+files); neither relaxes any other core rule.
 Unknown keys and invalid entries print a note and are skipped. The guard reads the overlay of the
 command's repository and that of the checkout holding the core.
 
@@ -171,6 +172,7 @@ command's repository and that of the checkout holding the core.
 | `deploy_host_files` | [string] | `.github/workflows/*deploy*`, `deploy/` | repository-relative globs, or directories ending in `/` (read recursively), whose IPv4 literals are deploy hosts; read at decision time; absolute paths and `..` are rejected |
 | `prod_compose` | [string] | none | basename globs of production compose files; `docker compose` / `docker-compose` with a matching file is denied |
 | `generated` | [{`path`, `hint`?}] | none | directories of generated output; `path` matches as a run of path segments anywhere, any case; shell writes and file edits there are denied with `"<path> is generated output; <hint>"` (default hint: "edit its source and regenerate it instead of changing it by hand.") |
+| `env_exempt` | [string] | none | repository-relative globs of tracked, secret-free env files the `.env` rule skips, e.g. `"web/.env.*"`; loosens: command repository only (see below) |
 
 An owner who authorized autonomous work may opt in with `"guard": {"push": "allow"}`.
 The command repository's overlay must authorize it; a separate core checkout's permission
@@ -187,13 +189,28 @@ Separate push URLs, multiple URLs and URL rewrites ask because cached fetch HEAD
 prove the push repository’s default branch. Cached remote HEAD is required; initialize it
 with `git remote set-head <remote> -a`. The guard never contacts a remote to resolve it.
 
+`env_exempt` loosens the `.env` rule for env files that are committed and hold no secrets,
+such as a frontend's build-time `web/.env.production`; reads and edits of them then run
+without a decision on both runtimes. Loosens: command repository only. A file counts only
+under the overlay of the repository that holds it, so a separate core checkout's overlay,
+or another repository's, exempts nothing there. An entry is a path relative to that
+repository: `*`, `?` and `[...]` stay within one path segment, `..`, `**`, absolute paths
+and backslashes are rejected, and the last segment must start with `.env.`, so no entry
+can name `.env` itself. A file is exempt only while Git tracks that exact path (not a
+directory) in its repository. A path whose symlinks resolve elsewhere needs the link and
+its target tracked, and a target with an env name must match a glob too, so an untracked
+`.env.local` under the same glob, a new file, and a link to `.env` or to an untracked file
+all stay denied. A glob argument (`cat web/.env.*`) or Grep's `glob` is judged by its name
+alone and stays denied. Editing the key goes through the guard-configuration rule above.
+
 ```json
 "guard": {
   "deploy_hosts": ["deploy.tasklist.example"],
   "deploy_users": ["release"],
   "deploy_host_files": ["infra/*.hosts"],
   "prod_compose": ["compose.prod*"],
-  "generated": [{"path": "web/src/api-client/", "hint": "run npm run gen in web/ instead."}]
+  "generated": [{"path": "web/src/api-client/", "hint": "run npm run gen in web/ instead."}],
+  "env_exempt": ["web/.env.development", "web/.env.production"]
 }
 ```
 
@@ -691,7 +708,7 @@ class GatesTest(unittest.TestCase):
 
 | Overlay | Core | Result |
 |---|---|---|
-| `guard` lists | core rules and defaults | added; nothing is removed |
+| `guard` lists | core rules and defaults | added; nothing is removed (`env_exempt` frees only the tracked env files it names) |
 | `interview.extra_rows` | nine core rows | inserted after Contracts, in order |
 | `roles` in `project.json` | eight core roles | added; a core role name is an error |
 | `roles/<core-role>.md` | the core role | appended under `## Project specifics` |
