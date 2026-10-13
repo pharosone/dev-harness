@@ -10,9 +10,12 @@ with defaults; a major release may require an overlay change and says which.
   is empty, so every `.env` file stays denied. Only the overlay of the repository holding
   the file counts; a separate core checkout's overlay exempts nothing. Entries cannot name
   `.env` itself (`..`, `**` and absolute paths are rejected, the last segment starts with
-  `.env.`). A file is exempt only while Git tracks that exact path, and a symlink needs the
-  link and its target tracked (an env-named target must match a glob too), so untracked
-  `.env.local`, new files and links to `.env` stay denied. Editing the key still requires the guard-configuration approval.
+  `.env.`). A file is exempt only while that exact path is in the index and in `HEAD`, and
+  a symlink needs the link and its target tracked (an env-named target must match a glob
+  too), so untracked or merely staged local overrides, new files and links to `.env` stay
+  denied. A path is checked as the file the kernel opens (`..` after a symlink), and a
+  path the guard cannot inspect stays denied rather than failing open. Editing the key
+  still requires the guard-configuration approval.
 
 ## 1.7.1 — 2026-10-11
 

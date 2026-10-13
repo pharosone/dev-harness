@@ -56,10 +56,11 @@ An overlay cannot remove any other core rule.
   env_exempt         repository-relative globs of tracked, secret-free env files, e.g.
                      ["web/.env.*"]; * stays within one path segment, no .. or **, the last
                      segment starts with .env. and never matches .env itself. A file is
-                     exempt only while Git tracks it as that exact path in the repository
-                     holding it, whose own overlay names it; the file a symlink resolves to
-                     must be tracked as well (and named, if it is an env file), so an
-                     untracked .env.local or a symlink to .env stays denied
+                     exempt only while that exact path is in the index and in HEAD of the
+                     repository holding it, whose own overlay names it; the file a symlink
+                     resolves to must be as well (and named, if it is an env file), and a
+                     `..` after a symlink must not lead elsewhere, so a staged or untracked
+                     .env.local or a symlink to .env stays denied
   deploy_hosts       host names or IPv4 addresses, e.g. ["deploy.example.com"]: an
                      ssh/scp/sftp/rsync argument naming one, or a subdomain of a name, is a
                      deploy (names compare case-insensitively, label by label)
@@ -1112,43 +1113,74 @@ def real(path: Path) -> Path:
     return Path(os.path.realpath(path))
 
 
+def opened(raw: str, cwd: Path) -> Path | None:
+    """The file the kernel opens for raw (unlike resolve(), symlinks resolve before `..`), or
+    None when that cannot be told."""
+    try:
+        return real(cwd / os.path.expanduser(raw))
+    except (OSError, ValueError):
+        return None
+
+
 def env_path(raw: str, cwd: Path) -> bool:
     """An .env name, or a path whose symlinks resolve to one, that guard.env_exempt does not
-    exempt; an option or a glob is judged by its name alone."""
+    exempt; an option or a glob is decided by its name alone."""
     if raw.startswith("-") or any(c in raw for c in "*?["):
         return is_env_file(raw)
-    path = resolve(raw, cwd)
-    return (is_env_file(raw) or env_named(path)) and not env_exempt(path)
+    path, actual = resolve(raw, cwd), opened(raw, cwd)
+    return (is_env_file(raw) or env_named(path, actual)) and not env_exempt(path, actual)
 
 
-def env_named(path: Path) -> bool:
-    return is_env_file(path.name) or is_env_file(real(path).name)
+def env_named(path: Path, actual: Path | None) -> bool:
+    try:
+        return any(is_env_file(p.name) for p in (path, real(path), actual) if p is not None)
+    except (OSError, ValueError):  # e.g. a NUL byte: no file has that name
+        return is_env_file(path.name)
 
 
-def env_blocked(path: Path) -> bool:
-    return env_named(path) and not env_exempt(path)
+def env_blocked(path: Path, actual: Path | None) -> bool:
+    return env_named(path, actual) and not env_exempt(path, actual)
 
 
-def env_exempt(path: Path) -> bool:
+def env_exempt(path: Path, actual: Path | None) -> bool:
     """A file the guard.env_exempt globs of its repository's own overlay name: the path and
-    the file it resolves to are each tracked as that exact file in their repository, and
-    each one with an env name matches a glob there."""
-    for candidate in dict.fromkeys((path, real(path))):
-        root = repo_root(candidate.parent)
-        if root is None or candidate.is_dir():
+    the file it resolves to are each tracked as that exact file in their repository and
+    committed there, and each one with an env name matches a glob there. actual is the file
+    the kernel opens (opened()); unknown, or not the one path resolves to, exempts nothing.
+    Any error means not exempt: a crash would fail open."""
+    try:
+        if actual is None or actual != real(path):
             return False
-        name = candidate.relative_to(root).as_posix()
-        parts = name.split("/")
-        if is_env_file(candidate.name) and not any(
-                len(glob.split("/")) == len(parts)
-                and all(map(fnmatchcase, parts, glob.split("/")))
-                for glob in rules_at(root).env_exempt):
-            return False
-        result = git_status(str(root), "--literal-pathspecs", "ls-files", "-z",
-                            "--error-unmatch", "--", name)
-        if result is None or result.returncode != 0 or result.stdout != name.encode() + b"\0":
-            return False
-    return True
+        for candidate in dict.fromkeys((path, real(path))):
+            root = repo_root(candidate.parent)
+            if root is None or candidate.is_dir():
+                return False
+            name = candidate.relative_to(root).as_posix()
+            parts = name.split("/")
+            if is_env_file(candidate.name) and not any(
+                    len(glob.split("/")) == len(parts)
+                    and all(map(fnmatchcase, parts, glob.split("/")))
+                    for glob in rules_at(root).env_exempt):
+                return False
+            if not committed(root, name):
+                return False
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def committed(root: Path, name: str) -> bool:
+    """name is exactly one file in the index and in HEAD: staging a file is not enough."""
+    entry = os.fsencode(name) + b"\0"
+    index = git_status(str(root), "--literal-pathspecs", "ls-files", "-z", "--error-unmatch",
+                       "--", name)
+    head = git_status(str(root), "--literal-pathspecs", "ls-tree", "-z", "HEAD", "--", name)
+    if index is None or index.returncode != 0 or index.stdout != entry:
+        return False
+    if head is None or head.returncode != 0 or head.stdout.count(b"\0") != 1:
+        return False
+    meta, _, tail = head.stdout.partition(b"\t")
+    return tail == entry and meta.split()[1:2] == [b"blob"]
 
 
 def posix(path: Path) -> str:
@@ -1245,8 +1277,8 @@ def target_findings(raw: str, cwd: Path, runtime: str, kind: str) -> list:
     return found
 
 
-def file_findings(path: Path, old: str, new: str, runtime: str) -> list:
-    if env_blocked(path):
+def file_findings(path: Path, old: str, new: str, runtime: str, actual: Path | None) -> list:
+    if env_blocked(path, actual):
         return [ENV]
     if is_local_settings(path):
         return [LOCAL_SETTINGS]
@@ -1289,15 +1321,17 @@ def applied(current: str, edits: list[tuple[str, str, bool]]) -> tuple[str, str]
     return "\n".join([current, *removed]), "\n".join([result, *added])
 
 
-def patch_changes(text: str, cwd: Path) -> list[tuple[Path, str, str]]:
-    """(path, before, after) per file of an apply_patch body, hunks applied to the file."""
+def patch_changes(text: str, cwd: Path) -> list[tuple[Path, str, str, Path | None]]:
+    """(path, before, after, opened path) per file of an apply_patch body, hunks applied to
+    the file."""
     files = []
     for line in text.splitlines():
         match = PATCH_PATH.fullmatch(line.strip())
         if match:
-            path = resolve(match.group(1).strip(), cwd)
+            raw = match.group(1).strip()
+            path = resolve(raw, cwd)
             moved = line.strip().startswith("*** Move to") and files
-            files.append((path, files[-1][1] if moved else path, [[[], []]]))
+            files.append((path, files[-1][1] if moved else path, [[[], []]], opened(raw, cwd)))
         elif files and line.startswith("@@"):
             files[-1][2].append([[], []])
         elif files and line and line[0] in "-+ ":
@@ -1307,26 +1341,27 @@ def patch_changes(text: str, cwd: Path) -> list[tuple[Path, str, str]]:
             if line[0] in "+ ":
                 new.append(line[1:])
     return [(path, *applied(current_text(base), [("\n".join(old), "\n".join(new), False)
-                                                  for old, new in hunks if old or new]))
-            for path, base, hunks in files]
+                                                  for old, new in hunks if old or new]), actual)
+            for path, base, hunks, actual in files]
 
 
-def tool_changes(data: dict, cwd: Path) -> list[tuple[Path, str, str]]:
+def tool_changes(data: dict, cwd: Path) -> list[tuple[Path, str, str, Path | None]]:
     raw = data.get("file_path") or data.get("notebook_path")
     if not isinstance(raw, str) or not raw:
         return []
-    path = resolve(raw, cwd)
+    path, actual = resolve(raw, cwd), opened(raw, cwd)
     current = current_text(path)
     if "content" in data:
-        return [(path, current, str(data["content"]))]
+        return [(path, current, str(data["content"]), actual)]
     edits = data.get("edits") if isinstance(data.get("edits"), list) else [data]
     edits = [(str(e.get("old_string") or ""), str(e.get("new_string") or ""),
               bool(e.get("replace_all"))) for e in edits if isinstance(e, dict)]
-    return [(path, *applied(current, edits))]
+    return [(path, *applied(current, edits), actual)]
 
 
-def changes_findings(changes: list[tuple[Path, str, str]], runtime: str) -> list:
-    return [f for change in changes for f in file_findings(*change, runtime)]
+def changes_findings(changes: list[tuple[Path, str, str, Path | None]], runtime: str) -> list:
+    return [f for path, old, new, actual in changes
+            for f in file_findings(path, old, new, runtime, actual)]
 
 
 # Decision

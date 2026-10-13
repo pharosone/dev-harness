@@ -190,18 +190,24 @@ prove the push repository’s default branch. Cached remote HEAD is required; in
 with `git remote set-head <remote> -a`. The guard never contacts a remote to resolve it.
 
 `env_exempt` loosens the `.env` rule for env files that are committed and hold no secrets,
-such as a frontend's build-time `web/.env.production`; reads and edits of them then run
-without a decision on both runtimes. Loosens: command repository only. A file counts only
-under the overlay of the repository that holds it, so a separate core checkout's overlay,
-or another repository's, exempts nothing there. An entry is a path relative to that
-repository: `*`, `?` and `[...]` stay within one path segment, `..`, `**`, absolute paths
-and backslashes are rejected, and the last segment must start with `.env.`, so no entry
-can name `.env` itself. A file is exempt only while Git tracks that exact path (not a
-directory) in its repository. A path whose symlinks resolve elsewhere needs the link and
-its target tracked, and a target with an env name must match a glob too, so an untracked
-`.env.local` under the same glob, a new file, and a link to `.env` or to an untracked file
-all stay denied. A glob argument (`cat web/.env.*`) or Grep's `glob` is judged by its name
-alone and stays denied. Editing the key goes through the guard-configuration rule above.
+such as a frontend's build-time settings (`["web/.env.production"]`); reads and edits of
+them then run without a decision on both runtimes. Loosens: command repository only. A file
+counts only under the overlay of the repository that holds it, so a separate core
+checkout's overlay, or another repository's, exempts nothing there. An entry is a path
+relative to that repository: `*`, `?` and `[...]` stay within one path segment, `..`, `**`,
+absolute paths and backslashes are rejected, and the last segment must start with `.env.`,
+so no entry can name `.env` itself. A file is exempt only while that exact path (a file,
+not a directory) is in the index and in `HEAD` of its repository: staging a file does not
+exempt it. A path whose symlinks resolve elsewhere needs the link and its target tracked,
+and a target with an env name must match a glob too; a `..` after a symlink must lead to
+the same file the lexical path names. So an untracked or merely staged local override
+under the same glob, a new file, and a link to `.env` or to an untracked file all stay
+denied. A glob argument (`cat web/.env.*`) or Grep's `glob` is decided by its name alone
+and stays denied. Committing a file makes it tracked, so prefer exact names when a glob
+could also cover a local override, and keep local overrides ignored. Editing the key goes
+through the guard-configuration rule above. Skill evals refuse env files as inputs, so
+overlay docs and skills that the evals hash should quote env paths only inside JSON or
+fenced examples.
 
 ```json
 "guard": {

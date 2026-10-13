@@ -86,7 +86,7 @@ class EnvExemptTest(GuardHarness, unittest.TestCase):
                 self.assert_denied(self.bash("cp secret.txt web/.env.new", runtime), ".env")
                 # A directory the glob names may hold untracked files.
                 self.assert_denied(self.bash("grep -r SECRET web/.env.d", runtime), ".env")
-                # A glob argument is judged by its name alone.
+                # A glob argument is decided by its name alone.
                 self.assert_denied(self.bash("cat web/.env.*", runtime), ".env")
 
     def test_only_an_exact_tracked_file_counts(self):
@@ -126,6 +126,59 @@ class EnvExemptTest(GuardHarness, unittest.TestCase):
         self.assertIn("guard.env_exempt is not a list", result.stderr)
         self.assertIn("deny", result.stdout)
 
+    def test_staging_a_file_does_not_exempt_it(self):
+        """Tracked means committed too: git add or add -N of a local override is not enough."""
+        self.use_overlay(EXEMPT)
+        self.git("add", "web/.env.local")
+        self.put("web/.env.intent", "SECRET=1\n")
+        self.git("add", "-N", "web/.env.intent")
+        for name in ("web/.env.local", "web/.env.intent"):
+            self.denied_everywhere(name)
+
+    def test_dotdot_after_a_symlink_names_the_file_the_kernel_opens(self):
+        """resolve() is lexical, so link/../web/.env.production looks like the tracked file
+        while the kernel opens web/.env.production beside the link's target."""
+        self.use_overlay(EXEMPT)
+        elsewhere = Path(self.temp.name) / "elsewhere"
+        (elsewhere / "sub").mkdir(parents=True)
+        (elsewhere / "web").mkdir()
+        (elsewhere / "web/.env.production").write_text("SECRET=1\n")
+        os.symlink(elsewhere / "sub", self.root / "outside")
+        self.denied_everywhere("outside/../web/.env.production")
+        for runtime in RUNTIMES:
+            with self.subTest(runtime=runtime):
+                self.assert_denied(self.patch("*** Update File: outside/../web/.env.production"
+                                              "\n@@\n-SECRET=1\n+SECRET=2", runtime), ".env")
+                # Without a symlink, .. names the tracked file itself.
+                self.assertIsNone(self.bash("cat web/../web/.env.production", runtime))
+                self.assertIsNone(self.verdict(self.event(
+                    "Bash", self.root / "api", command="cat ../web/.env.production"), runtime))
+
+    def test_unreadable_or_odd_paths_stay_denied_instead_of_failing_open(self):
+        """The guard allows a call when it crashes, so probing a path must not raise."""
+        self.use_overlay(json.dumps({"guard": {"env_exempt": ["*/.env.*"]}}))
+        locked = Path(self.temp.name) / "locked"
+        (locked / "app").mkdir(parents=True)
+        locked.chmod(0)
+        self.addCleanup(locked.chmod, 0o755)
+        try:
+            odd = self.root / os.fsdecode(b"odd\xff")
+            odd.mkdir()
+        except (OSError, UnicodeError):
+            odd = None  # a file system that only takes UTF-8 names
+        for runtime in RUNTIMES:
+            with self.subTest(runtime=runtime):
+                result = self.run_guard(json.dumps(self.event(
+                    "Bash", command=f"sudo cat {locked}/app/.env")), ("--runtime", runtime))
+                self.assertIn('"deny"', result.stdout, result.stderr)
+                self.assertNotIn("allowing the call", result.stderr)
+                if odd is not None:
+                    (odd / ".env.local").write_text("SECRET=1\n")
+                    event = self.event("Read", file_path=str(odd / ".env.local"))
+                    result = self.run_guard(json.dumps(event), ("--runtime", runtime))
+                    self.assertIn('"deny"', result.stdout, result.stderr)
+                    self.assertNotIn("allowing the call", result.stderr)
+
     def test_symlinks_count_only_when_link_and_target_are_tracked(self):
         self.use_overlay(EXEMPT)
         for runtime in RUNTIMES:
@@ -148,6 +201,9 @@ class EnvExemptTest(GuardHarness, unittest.TestCase):
         (other / "web/.env.production").write_text("KEY=value\n")
         subprocess.check_call(["git", "init", "-q", str(other)], env=self.env)
         subprocess.check_call(["git", "-C", str(other), "add", "web/.env.production"],
+                              env=self.env)
+        subprocess.check_call(["git", "-C", str(other), "-c", "user.name=Harness Test", "-c",
+                               "user.email=harness@example.invalid", "commit", "-qm", "env"],
                               env=self.env)
         self.put("harness/project/project.json", EXEMPT)
         target = other / "web/.env.production"
