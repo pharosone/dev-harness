@@ -11,5 +11,8 @@ use a favorite model at maximum effort; a router shadow recommends another tuple
 project may override core profiles. Give the exact authoritative file paths for actual
 model and effort, how they combine, what gets recorded, and what you do with the notes
 and shadow suggestion. Also give the exact final/progress/request artifact paths for a
-lane and whether it may type into the coordinator pane. Under 160 words; describe only,
+lane and whether it may type into the coordinator pane. The owner authorized ordinary
+Claude-orchestrator feature pushes, committed env-file exemptions and vetted workflow
+dispatches in the overlay: say whether they change those authorities or let a Codex lane
+push or dispatch. Under 180 words; describe only,
 do not launch jobs or change files.
