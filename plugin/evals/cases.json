@@ -13,7 +13,8 @@
     "pharos-dev-profile-authority",
     "frozen-test-amendments",
     "pharos-dev-efficient-testing",
-    "pharos-dev-push-policy"
+    "pharos-dev-push-policy",
+    "pharos-dev-env-exempt"
   ],
   "skills/pharos-discover/SKILL.md": [
     "compare-declined",
@@ -21,33 +22,39 @@
     "skill-evals-discovery",
     "feedback-declined",
     "pharos-discover-profile-authority",
-    "pharos-discover-efficient-testing"
+    "pharos-discover-efficient-testing",
+    "pharos-discover-env-exempt"
   ],
   "skills/pharos-investigate/SKILL.md": [
     "deep-mode-offer",
     "investigate-declined-comparison",
     "pharos-investigate-profile-authority",
-    "pharos-investigate-efficient-testing"
+    "pharos-investigate-efficient-testing",
+    "pharos-investigate-env-exempt"
   ],
   "skills/submit-pr/SKILL.md": [
     "submit-pr-evidence",
     "submit-pr-profile-authority",
     "submit-pr-efficient-testing",
-    "submit-pr-push-policy"
+    "submit-pr-push-policy",
+    "submit-pr-env-exempt"
   ],
   "skills/address-gh-review/SKILL.md": [
     "address-gh-round",
     "address-gh-review-profile-authority",
-    "address-gh-review-efficient-testing"
+    "address-gh-review-efficient-testing",
+    "address-gh-review-env-exempt"
   ],
   "skills/manual-test-plan/SKILL.md": [
     "manual-test-scope",
     "manual-test-plan-profile-authority",
-    "manual-test-plan-efficient-testing"
+    "manual-test-plan-efficient-testing",
+    "manual-test-plan-env-exempt"
   ],
   "skills/design-review/SKILL.md": [
     "design-review-shape",
     "design-review-profile-authority",
-    "design-review-efficient-testing"
+    "design-review-efficient-testing",
+    "design-review-env-exempt"
   ]
 }
