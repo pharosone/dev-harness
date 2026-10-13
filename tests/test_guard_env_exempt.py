@@ -192,10 +192,8 @@ class EnvExemptTest(GuardHarness, unittest.TestCase):
         for name in ("y.txt", "z.txt", "web/.env.staging"):
             self.denied_everywhere(name)
 
-    def test_the_overlay_of_another_repository_exempts_nothing_here(self):
-        """Repository overlays at <repo>/harness/project: one repository's key frees only its
-        own files."""
-        del self.env["HARNESS_PROJECT"]
+    def other_repo(self):
+        """A second repository with a committed web/.env.production."""
         other = Path(self.temp.name) / "other"
         (other / "web").mkdir(parents=True)
         (other / "web/.env.production").write_text("KEY=value\n")
@@ -205,17 +203,106 @@ class EnvExemptTest(GuardHarness, unittest.TestCase):
         subprocess.check_call(["git", "-C", str(other), "-c", "user.name=Harness Test", "-c",
                                "user.email=harness@example.invalid", "commit", "-qm", "env"],
                               env=self.env)
+        return other
+
+    def test_only_files_of_the_command_repository_are_exempt(self):
+        """Repository overlays at <repo>/harness/project: a file is exempt only in a session of
+        its own repository, whose overlay names it."""
+        del self.env["HARNESS_PROJECT"]
+        other = self.other_repo()
         self.put("harness/project/project.json", EXEMPT)
         target = other / "web/.env.production"
+        (other / "harness/project").mkdir(parents=True)
+        (other / "harness/project/project.json").write_text(EXEMPT)
         for runtime in RUNTIMES:
             with self.subTest(runtime=runtime):
                 self.assertIsNone(self.bash("cat web/.env.production", runtime))
                 self.assert_denied(self.bash(f"cat {target}", runtime), ".env")
                 self.assert_denied(self.verdict(self.event("Read", file_path=str(target)),
                                                 runtime), ".env")
-        (other / "harness/project").mkdir(parents=True)
-        (other / "harness/project/project.json").write_text(EXEMPT)
-        self.assertIsNone(self.bash(f"cat {target}"))
+                self.assertIsNone(self.verdict(self.event("Read", other,
+                                                          file_path=str(target)), runtime))
+
+    def test_an_overlay_outside_the_repository_frees_only_the_command_repository(self):
+        """An absolute $HARNESS_PROJECT is every repository's overlay; it still exempts only
+        files of the repository the command runs in."""
+        self.use_overlay(EXEMPT)
+        target = self.other_repo() / "web/.env.production"
+        for runtime in RUNTIMES:
+            with self.subTest(runtime=runtime):
+                self.assert_denied(self.bash(f"cat {target}", runtime), ".env")
+                self.assert_denied(self.verdict(self.event("Read", file_path=str(target)),
+                                                runtime), ".env")
+
+    def test_paths_with_glob_characters_still_resolve_symlinks_and_are_never_exempt(self):
+        os.symlink(".env", self.root / "a[1]")
+        (self.root / "app/[id]").mkdir(parents=True)
+        os.symlink("../../.env", self.root / "app/[id]/cfg")
+        for overlay in (None, EXEMPT):
+            if overlay:
+                self.use_overlay(overlay)
+            for name in ("a[1]", "app/[id]/cfg"):
+                for runtime in RUNTIMES:
+                    with self.subTest(name=name, runtime=runtime, overlay=overlay):
+                        self.assert_denied(self.read(name, runtime), ".env")
+                        self.assert_denied(self.verdict(self.event(
+                            "Grep", path=self.path(name), pattern="KEY"), runtime), ".env")
+                        self.assert_denied(self.bash(f"cat '{name}'", runtime), ".env")
+            for runtime in RUNTIMES:
+                with self.subTest(runtime=runtime, overlay=overlay):
+                    self.assert_denied(self.bash("cat web/.env.prod*", runtime), ".env")
+
+    def test_index_states_that_hide_or_conflict_stay_denied(self):
+        self.use_overlay(EXEMPT)
+        self.git("update-index", "--skip-worktree", "web/.env.development")
+        self.git("update-index", "--assume-unchanged", "api/.env.production")
+        self.use_overlay(json.dumps({"guard": {"env_exempt": ["web/.env.*", "api/.env.*"]}}))
+        for name in ("web/.env.development", "api/.env.production"):
+            self.denied_everywhere(name)
+        self.git("checkout", "-qb", "side")
+        self.put("web/.env.production", "KEY=side\n")
+        self.git("commit", "-qam", "side")
+        self.git("checkout", "-q", "main")
+        self.put("web/.env.production", "KEY=main\n")
+        self.git("commit", "-qm", "main", "--", "web/.env.production")
+        subprocess.run(["git", "merge", "-q", "side"], cwd=self.root, env=self.env,
+                       capture_output=True)
+        self.assertIn("UU web/.env.production", self.git("status", "--porcelain"))
+        self.denied_everywhere("web/.env.production")
+
+    def test_a_codex_workdir_is_resolved_like_the_kernel_does(self):
+        self.use_overlay(EXEMPT)
+        elsewhere = Path(self.temp.name) / "elsewhere"
+        (elsewhere / "sub").mkdir(parents=True)
+        (elsewhere / "web").mkdir()
+        (elsewhere / "web/.env.production").write_text("SECRET=1\n")
+        os.symlink(elsewhere / "sub", self.root / "outside")
+        for workdir in ("outside/..", str(self.root / "outside/..")):
+            with self.subTest(workdir=workdir):
+                event = self.event("Bash", command="cat web/.env.production", workdir=workdir)
+                self.assert_denied(self.verdict(event, "codex"), ".env")
+                event = self.event("apply_patch", workdir=workdir, command=(
+                    "*** Begin Patch\n*** Update File: web/.env.production\n@@\n-SECRET=1\n"
+                    "+SECRET=2\n*** End Patch\n"))
+                self.assert_denied(self.verdict(event, "codex"), ".env")
+        event = self.event("Bash", command="cat .env.production", workdir="web")
+        self.assertIsNone(self.verdict(event, "codex"))
+
+    def test_an_overlay_that_cannot_be_located_does_not_fail_open(self):
+        """A symlink loop in a relative $HARNESS_PROJECT makes locating an overlay raise."""
+        self.env["HARNESS_PROJECT"] = "cfg/harness"
+        nested = self.root / "nested"
+        (nested / "cfg").mkdir(parents=True)
+        subprocess.check_call(["git", "init", "-q", str(nested)], env=self.env)
+        (nested / ".env").write_text("SECRET=1\n")
+        os.symlink("harness", nested / "cfg/harness")
+        for runtime in RUNTIMES:
+            for cwd, command in ((self.root, "cat nested/.env"), (nested, "cat .env")):
+                with self.subTest(runtime=runtime, cwd=cwd):
+                    event = self.event("Bash", cwd, command=command)
+                    result = self.run_guard(json.dumps(event), ("--runtime", runtime))
+                    self.assertIn('"deny"', result.stdout, result.stderr)
+                    self.assertNotIn("allowing the call", result.stderr)
 
     def test_the_core_checkouts_overlay_does_not_exempt_the_command_repository(self):
         """A separate core checkout's overlay still adds rules but cannot loosen the .env rule

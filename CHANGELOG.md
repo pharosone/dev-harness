@@ -5,17 +5,21 @@ with defaults; a major release may require an overlay change and says which.
 
 ## 1.8.0 — 2026-10-13
 
-- Optional `guard.env_exempt` lists repository-relative globs of tracked, secret-free env
+- Optional `guard.env_exempt` lists repository-relative globs of committed, secret-free env
   files, e.g. `["web/.env.*"]`, that agents may read and edit on both runtimes. The default
-  is empty, so every `.env` file stays denied. Only the overlay of the repository holding
-  the file counts; a separate core checkout's overlay exempts nothing. Entries cannot name
-  `.env` itself (`..`, `**` and absolute paths are rejected, the last segment starts with
-  `.env.`). A file is exempt only while that exact path is in the index and in `HEAD`, and
-  a symlink needs the link and its target tracked (an env-named target must match a glob
-  too), so untracked or merely staged local overrides, new files and links to `.env` stay
-  denied. A path is checked as the file the kernel opens (`..` after a symlink), and a
-  path the guard cannot inspect stays denied rather than failing open. Editing the key
-  still requires the guard-configuration approval.
+  is empty, so every `.env` file stays denied. Only files of the command's repository count,
+  under its overlay; a separate core checkout's or another repository's overlay exempts
+  nothing. Entries cannot name `.env` itself (`..`, `**` and absolute paths are rejected,
+  the last segment starts with `.env.`). A file is exempt only while that exact path is a
+  file in `HEAD` and one plain index entry, and a symlink needs the link and its target
+  tracked (an env-named target must match a glob too), so untracked, staged-only,
+  conflicted, skip-worktree or assume-unchanged files, new files and links to `.env` stay
+  denied. A path is checked as the file the kernel opens (`..` after a symlink, Codex
+  `workdir`), a path with glob characters is never exempt, and a path the guard cannot
+  inspect stays denied rather than failing open. Editing the key still requires the
+  guard-configuration approval.
+- `.env` rule fixes that apply without the key: a glob such as `cat web/.env.prod*` is
+  denied, and an overlay path with a symlink loop no longer crashes the guard open.
 
 ## 1.7.1 — 2026-10-11
 

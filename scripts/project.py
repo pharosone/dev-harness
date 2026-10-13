@@ -42,7 +42,8 @@ def overlay_dir(root: Path) -> Path:
     override = os.environ.get("HARNESS_PROJECT")
     if override:
         path = Path(override)
-        return (path if path.is_absolute() else root / path).resolve()
+        # realpath, not Path.resolve(): a symlink loop must not raise (the guard fails open).
+        return Path(os.path.realpath(path if path.is_absolute() else root / path))
     return root / "harness" / "project"
 
 

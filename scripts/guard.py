@@ -53,14 +53,15 @@ Config edits still use the SELF rule. Missing cached remote HEAD or unreadable m
 asks; use git remote set-head <remote> -a to initialize it (no network probes in the guard).
 An overlay cannot remove any other core rule.
   push               "ask" (default) or "allow", owner-authorized Claude orchestrator only
-  env_exempt         repository-relative globs of tracked, secret-free env files, e.g.
+  env_exempt         repository-relative globs of committed, secret-free env files, e.g.
                      ["web/.env.*"]; * stays within one path segment, no .. or **, the last
                      segment starts with .env. and never matches .env itself. A file is
-                     exempt only while that exact path is in the index and in HEAD of the
-                     repository holding it, whose own overlay names it; the file a symlink
-                     resolves to must be as well (and named, if it is an env file), and a
-                     `..` after a symlink must not lead elsewhere, so a staged or untracked
-                     .env.local or a symlink to .env stays denied
+                     exempt only in the command's repository, while that exact path is a
+                     file in HEAD and one plain index entry (not staged-only, conflicted,
+                     skip-worktree or assume-unchanged); the file a symlink resolves to must
+                     be as well (and named, if it is an env file), a `..` after a symlink
+                     must not lead elsewhere, and a path with * ? [ is never exempt; so a
+                     staged or untracked .env.local or a symlink to .env stays denied
   deploy_hosts       host names or IPv4 addresses, e.g. ["deploy.example.com"]: an
                      ssh/scp/sftp/rsync argument naming one, or a subdomain of a name, is a
                      deploy (names compare case-insensitively, label by label)
@@ -207,7 +208,7 @@ CORE_RULES = {
     "deploy_host_files": (".github/workflows/*deploy*", "deploy/"),
     "prod_compose": (),
     "generated": (),
-    "env_exempt": (),  # loosens the .env rule: the file's own repository's overlay only
+    "env_exempt": (),  # loosens the .env rule: the command repository's overlay only
 }
 GENERATED_HINT = "edit its source and regenerate it instead of changing it by hand."
 GUARD_FILE = Path(__file__).resolve()
@@ -322,6 +323,7 @@ def env_exempt_glob(value: str) -> bool:
 
 
 OVERLAYS: dict[Path, dict] = {}
+COMMAND_REPO: Path | None = None  # realpath of the command's repository, set by decide()
 
 
 def overlay(root: Path) -> tuple[Path, dict]:
@@ -1105,7 +1107,8 @@ def shell_findings(command: str, ctx: tuple[str, Path], depth: int = 0) -> list:
 def is_env_file(path: str) -> bool:
     name = os.path.basename(path.rstrip("/")).casefold()
     if any(c in name for c in "*?[") and name.startswith("."):
-        return any(fnmatchcase(probe, name) for probe in (".env", ".env.local"))
+        return (any(fnmatchcase(probe, name) for probe in (".env", ".env.local"))
+                or re.split(r"[*?\[]", name, maxsplit=1)[0].startswith(".env."))
     return name == ".env" or (name.startswith(".env.") and name != ".env.example")
 
 
@@ -1124,11 +1127,15 @@ def opened(raw: str, cwd: Path) -> Path | None:
 
 def env_path(raw: str, cwd: Path) -> bool:
     """An .env name, or a path whose symlinks resolve to one, that guard.env_exempt does not
-    exempt; an option or a glob is decided by its name alone."""
-    if raw.startswith("-") or any(c in raw for c in "*?["):
+    exempt; an option is decided by its name alone, and a path with *, ? or [ is never
+    exempt (the shell may expand it)."""
+    if raw.startswith("-"):
         return is_env_file(raw)
     path, actual = resolve(raw, cwd), opened(raw, cwd)
-    return (is_env_file(raw) or env_named(path, actual)) and not env_exempt(path, actual)
+    named = is_env_file(raw) or env_named(path, actual)
+    if any(c in raw for c in "*?["):
+        return named
+    return named and not env_exempt(path, actual)
 
 
 def env_named(path: Path, actual: Path | None) -> bool:
@@ -1143,17 +1150,17 @@ def env_blocked(path: Path, actual: Path | None) -> bool:
 
 
 def env_exempt(path: Path, actual: Path | None) -> bool:
-    """A file the guard.env_exempt globs of its repository's own overlay name: the path and
-    the file it resolves to are each tracked as that exact file in their repository and
-    committed there, and each one with an env name matches a glob there. actual is the file
-    the kernel opens (opened()); unknown, or not the one path resolves to, exempts nothing.
-    Any error means not exempt: a crash would fail open."""
+    """A file of the command's repository that its overlay's guard.env_exempt globs name:
+    the path and the file it resolves to are each committed and cleanly tracked as that
+    exact file there, and each one with an env name matches a glob. actual is the file the
+    kernel opens (opened()); unknown, or not the one path resolves to, exempts nothing. Any
+    error means not exempt: a crash would fail open."""
     try:
         if actual is None or actual != real(path):
             return False
         for candidate in dict.fromkeys((path, real(path))):
             root = repo_root(candidate.parent)
-            if root is None or candidate.is_dir():
+            if root is None or real(root) != COMMAND_REPO or candidate.is_dir():
                 return False
             name = candidate.relative_to(root).as_posix()
             parts = name.split("/")
@@ -1165,22 +1172,26 @@ def env_exempt(path: Path, actual: Path | None) -> bool:
             if not committed(root, name):
                 return False
         return True
-    except (OSError, ValueError):
+    except Exception:  # never let the exemption crash the guard open
         return False
 
 
 def committed(root: Path, name: str) -> bool:
-    """name is exactly one file in the index and in HEAD: staging a file is not enough."""
-    entry = os.fsencode(name) + b"\0"
-    index = git_status(str(root), "--literal-pathspecs", "ls-files", "-z", "--error-unmatch",
-                       "--", name)
+    """name is exactly one file in HEAD and one plain index entry (stage 0, not skip-worktree
+    or assume-unchanged): staging a file is not enough, and the index cannot hide edits."""
+    entry = os.fsencode(name)
+    index = git_status(str(root), "--literal-pathspecs", "ls-files", "-z", "-s", "-v",
+                       "--error-unmatch", "--", name)
     head = git_status(str(root), "--literal-pathspecs", "ls-tree", "-z", "HEAD", "--", name)
-    if index is None or index.returncode != 0 or index.stdout != entry:
-        return False
-    if head is None or head.returncode != 0 or head.stdout.count(b"\0") != 1:
-        return False
-    meta, _, tail = head.stdout.partition(b"\t")
-    return tail == entry and meta.split()[1:2] == [b"blob"]
+    for result, kind in ((index, None), (head, b"blob")):
+        if result is None or result.returncode != 0 or result.stdout.count(b"\0") != 1:
+            return False
+        meta, _, tail = result.stdout[:-1].partition(b"\t")
+        fields = meta.split()
+        if tail != entry or (fields[1:2] != [kind] if kind else (
+                fields[:1] != [b"H"] or fields[3:4] != [b"0"])):
+            return False
+    return True
 
 
 def posix(path: Path) -> str:
@@ -1374,8 +1385,12 @@ def decide(event: dict, runtime: str) -> tuple[str, str] | None:
         return None
     cwd = Path(event["cwd"]) if isinstance(event.get("cwd"), str) else Path.cwd()
     if isinstance(data.get("workdir"), str) and data["workdir"]:
-        cwd = resolve(data["workdir"], cwd)
+        # Codex changes into workdir like the kernel does: symlinks resolve before `..`.
+        cwd = opened(data["workdir"], cwd) or resolve(data["workdir"], cwd)
     rules(cwd)  # read the overlays now, so a broken one is noted on every call
+    global COMMAND_REPO
+    root = repo_root(cwd)
+    COMMAND_REPO = real(root) if root is not None else None
     findings = []
     command = data.get("command", data.get("cmd"))
     if isinstance(command, list) and all(isinstance(part, str) for part in command):
