@@ -98,7 +98,7 @@ sys.exit(int(os.environ.get('EXIT','0')))
                             '--max-cost-usd', '1', '--run-dir', str(self.root/'run'))
 
     def accept_runs(self, count=ev.BASELINE_RUNS):
-        """The accepted results a case needs before a regression is judged."""
+        """The accepted results a case needs before a regression is checked."""
         for _ in range(count):
             self.assertEqual(self.run_eval()[0], 0)
 

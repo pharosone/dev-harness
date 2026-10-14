@@ -9,7 +9,7 @@ with defaults; a major release may require an overlay change and says which.
   the skill over accepted results that measured the same case content, instead of the
   single latest accepted run, so one lucky run no longer raises the bar for every later
   change. Results of older case content or without case hashes are not compared, and a
-  case needs three comparable accepted results before a regression is judged. Findings
+  case needs three comparable accepted results before a regression is checked. Findings
   name the median they missed.
 - Dashboard regeneration reads the run and writes the page under one exclusive lock, so a
   compare and its detached lane supervisors can no longer leave a stale page that shows a

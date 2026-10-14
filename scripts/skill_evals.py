@@ -446,7 +446,7 @@ def git_json(root, base, path):
         raise EvalError(f'{base}:{relative_path}: invalid JSON') from None
 
 
-BASELINE_RUNS = 3  # comparable accepted results a case needs before a regression is judged
+BASELINE_RUNS = 3  # comparable accepted results a case needs before a regression is checked
 
 
 def accepted_at_base(root, base, key, item):
