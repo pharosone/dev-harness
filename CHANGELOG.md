@@ -3,6 +3,32 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.8.0 — 2026-10-13
+
+- Optional `guard.env_exempt` lists repository-relative globs of committed, secret-free env
+  files, e.g. `["web/.env.*"]`, that agents may read and edit on both runtimes. The default
+  is empty, so every `.env` file stays denied. Only files of the command's repository count,
+  under its overlay; a separate core checkout's or another repository's overlay exempts
+  nothing. Entries cannot name `.env` itself (`..`, `**` and absolute paths are rejected,
+  the last segment starts with `.env.`). A file is exempt only while that exact path is a
+  file in `HEAD` and one plain index entry, and a symlink needs the link and its target
+  tracked (an env-named target must match a glob too), so untracked, staged-only,
+  conflicted, skip-worktree or assume-unchanged files, new files and links to `.env` stay
+  denied. A path is checked as the file the kernel opens (`..` after a symlink, Codex
+  `workdir`), a path with glob characters is never exempt, and a path the guard cannot
+  inspect stays denied rather than failing open. Editing the key still requires the
+  guard-configuration approval.
+- Optional `guard.allow_workflows` lists workflow files (`[OWNER/REPO:]FILE.yml`) that an
+  owner-authorized Claude session may dispatch with `gh workflow run`; every other workflow,
+  form and Codex lane keeps the deploy rule. Only one literal `gh` command with `-f`, `-F`
+  (no `@file`), `--ref` and `-R` options qualifies, and only the command repository's
+  overlay counts. Repository wrapper scripts were never deploy commands to the guard and
+  need no entry, so there is no separate entry-point list.
+- `kubectl rollout status` and `kubectl rollout history` are reads and no longer denied.
+- `.env` rule fixes that apply without the key: a shell glob whose literal part starts with
+  `.env.` (such as one ending in `prod*`) is denied, and an overlay path with a symlink
+  loop no longer crashes the guard open.
+
 ## 1.7.1 — 2026-10-11
 
 - Optional `guard.push: "allow"` lets an owner-authorized Claude orchestrator push ordinary

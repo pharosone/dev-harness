@@ -16,19 +16,21 @@ wrappers (sudo, env [-S], nohup, nice, timeout, xargs, quiet.py --) is inspected
                                               deny: stage explicit paths
   git commit -a|--all|-am..., or with a whole-tree pathspec       deny: stage explicit paths
   git clean without -n, git stash -u|-a       deny: they remove untracked personal files
-  helm/kubectl mutations, gh workflow run, railway up|deploy|redeploy, fly|flyctl deploy;
+  helm/kubectl mutations (not kubectl rollout status|history), gh workflow run (except a
+  file guard.allow_workflows lists), railway up|deploy|redeploy, fly|flyctl deploy;
   ssh/scp/sftp/rsync as a deploy user, to a deploy host, or to an IPv4 host named in a
   deploy host file (read at decision time); docker compose with a production compose
   file                                        deny: deploys go through CD
-  file readers on .env / .env.* (not .env.example, any case, symlinks too), redirects to
-  or from them, and tee/cp/mv/ln/dd/rm/truncate/sed -i on them    deny
+  file readers on .env / .env.* (not .env.example, any case, symlinks too; guard.env_exempt
+  below), redirects to or from them, and tee/cp/mv/ln/dd/rm/truncate/sed -i on them    deny
   shell writes (> >> tee cp mv ln dd sed -i truncate) into a generated directory, and
   writes or removals of personal files                            deny
   writes or removals of the guard or its configuration (see below),
   git config core.worktree|core.hooksPath changes                 ask on claude, deny on codex
 Files (Edit, Write, MultiEdit, NotebookEdit, Read, Grep path and glob; Codex apply_patch,
 also free-form or via shell); names compare case-insensitively and through symlinks:
-  .env / .env.* (not .env.example) edits and reads, settings.local.json edits   deny
+  .env / .env.* (not .env.example; guard.env_exempt below) edits and reads,
+  settings.local.json edits                                                   deny
   edits under a generated directory                                           deny
   edits of existing untracked files (ignored ones too) under .claude/agents|skills,
   .codex/agents, .agents/skills (personal files)                              deny
@@ -41,7 +43,9 @@ also free-form or via shell); names compare case-insensitively and through symli
 Project rules come from the "guard" object of the overlay's project.json (project.py:
 $HARNESS_PROJECT, else <repo>/harness/project), read from the command's repository and
 from the checkout that holds this core. Every key is optional and every list adds to the
-core rules. The sole permission opt-in is guard.push=allow: on Claude only, one literal
+core rules. Three keys loosen a core rule, so only the overlay of the repository they apply
+to counts; a separate core checkout's overlay never loosens another repository's rules.
+The sole permission opt-in is guard.push=allow: on Claude only, one literal
 git push / git subtree push to verified non-force, non-default destinations may run without
 a per-push confirmation. Default ask and Codex deny remain. Force/lease, mirror, deletions,
 main/master/cached remote HEAD, hidden verbs, compound commands and uncertain routing ask.
@@ -50,6 +54,21 @@ Config edits still use the SELF rule. Missing cached remote HEAD or unreadable m
 asks; use git remote set-head <remote> -a to initialize it (no network probes in the guard).
 An overlay cannot remove any other core rule.
   push               "ask" (default) or "allow", owner-authorized Claude orchestrator only
+  env_exempt         repository-relative globs of committed, secret-free env files, e.g.
+                     ["web/.env.*"]; * stays within one path segment, no .. or **, the last
+                     segment starts with .env. and never matches .env itself. A file is
+                     exempt only in the command's repository, while that exact path is a
+                     file in HEAD and one plain index entry (not staged-only, conflicted,
+                     skip-worktree or assume-unchanged); the file a symlink resolves to must
+                     be as well (and named, if it is an env file), a `..` after a symlink
+                     must not lead elsewhere, and a path with * ? [ is never exempt; so a
+                     staged or untracked .env.local or a symlink to .env stays denied
+  allow_workflows    workflow files [OWNER/REPO:]FILE.yml that `gh workflow run` may dispatch
+                     without the deploy rule, e.g. ["env-power.yml", "acme/ops:plan.yml"]
+                     (the prefix must equal -R/--repo; none means no -R): Claude only, one
+                     literal gh command with only -f/-F/--ref/-R options and no -F @file;
+                     every other form keeps the deploy rule. Repository scripts are not
+                     deploy commands to the guard, so vetted wrappers need no entry
   deploy_hosts       host names or IPv4 addresses, e.g. ["deploy.example.com"]: an
                      ssh/scp/sftp/rsync argument naming one, or a subdomain of a name, is a
                      deploy (names compare case-insensitively, label by label)
@@ -196,7 +215,12 @@ CORE_RULES = {
     "deploy_host_files": (".github/workflows/*deploy*", "deploy/"),
     "prod_compose": (),
     "generated": (),
+    "env_exempt": (),  # loosens the .env rule: the command repository's overlay only
+    "allow_workflows": (),  # loosens the deploy rule: the command repository's overlay only
 }
+LOOSENING = ("env_exempt", "allow_workflows")  # list keys read from the own overlay only
+WORKFLOW_ENTRY = re.compile(r"(?:[\w.-]+/[\w.-]+:)?[\w.-]+\.ya?ml", re.ASCII)
+GH_RUN_VALUED = {"-f", "--raw-field", "-F", "--field", "-r", "--ref", "-R", "--repo"}
 GENERATED_HINT = "edit its source and regenerate it instead of changing it by hand."
 GUARD_FILE = Path(__file__).resolve()
 VENDORED_GUARD = "harness/core/scripts/guard.py"
@@ -262,6 +286,8 @@ class Rules(NamedTuple):
     deploy_host_files: tuple[str, ...]
     prod_compose: tuple[str, ...]
     generated: tuple[tuple[str, tuple[str, str]], ...]  # (/segment/, deny finding)
+    env_exempt: tuple[str, ...]  # from the repository's own overlay only
+    allow_workflows: tuple[str, ...]  # from the repository's own overlay only
     overlays: tuple[Path, ...]  # the project.json files these rules were read from
     push: str  # owner opt-in from the command repository; never authorizes Codex
 
@@ -269,7 +295,7 @@ class Rules(NamedTuple):
 class Context(NamedTuple):
     runtime: str
     cwd: Path
-    autonomous: bool = True  # only a literal, single git command may use the opt-in
+    autonomous: bool = True  # only a literal, single git or gh command may use an opt-in
 
 
 def note(message: str) -> None:
@@ -294,10 +320,24 @@ def overlay_entry(key: str, value):
         return None
     if key == "deploy_host_files" and (os.path.isabs(value) or ".." in Path(value).parts):
         return None
+    if key == "env_exempt" and not env_exempt_glob(value):
+        return None
+    if key == "allow_workflows" and not WORKFLOW_ENTRY.fullmatch(value):
+        return None
     return value
 
 
+def env_exempt_glob(value: str) -> bool:
+    """A repository-relative glob of env files that can never name .env itself."""
+    parts = value.split("/")
+    last = parts[-1].casefold()
+    return (not os.path.isabs(value) and "\\" not in value and "**" not in value
+            and all(p not in ("", ".", "..") for p in parts)
+            and last.startswith(".env.") and not fnmatchcase(".env", last))
+
+
 OVERLAYS: dict[Path, dict] = {}
+COMMAND_REPO: Path | None = None  # realpath of the command's repository, set by decide()
 
 
 def overlay(root: Path) -> tuple[Path, dict]:
@@ -356,6 +396,9 @@ def rules_at(root: Path | None) -> Rules:
             if key == "push":
                 if base == root:
                     push = values
+            elif key in LOOSENING:  # loosens a core rule: the repository's own overlay only
+                if base == root:
+                    merged[key] = list(values)
             else:
                 merged[key] += [value for value in values if value not in merged[key]]
     return Rules(**{key: tuple(values) for key, values in merged.items()},
@@ -564,7 +607,7 @@ def python_findings(args: list[str], ctx: tuple[str, Path], depth: int) -> list:
     if not code:
         return []
     strings = [a or b for a, b in PY_STRING.findall(code)]
-    found = [ENV for s in strings if is_env_file(s)]
+    found = [ENV for s in strings if is_env_file(s) and env_path(s, ctx[1])]
     if PY_EXEC.search(code) and depth < MAX_DEPTH:
         commands = list(strings)
         for body in re.findall(r"\[([^\[\]]*)\]", code):
@@ -950,7 +993,10 @@ def deploys(name: str, args: list[str], segment: list[str], cwd: Path) -> bool:
     if name == "helm":
         return subcommand(args, HELM_VALUED)[0] in HELM_VERBS
     if name == "kubectl":
-        return subcommand(args, KUBECTL_VALUED)[0] in KUBECTL_VERBS
+        verb, rest = subcommand(args, KUBECTL_VALUED)
+        if verb == "rollout":  # status and history only read
+            return subcommand(rest, KUBECTL_VALUED)[0] not in ("status", "history")
+        return verb in KUBECTL_VERBS
     if name in REMOTE_SHELLS:
         return remote_deploy(args, cwd)
     if name == "docker-compose" or (name == "docker"
@@ -965,6 +1011,36 @@ def deploys(name: str, args: list[str], segment: list[str], cwd: Path) -> bool:
     if name in ("fly", "flyctl"):
         return subcommand(args, FLY_VALUED)[0] == "deploy"
     return False
+
+
+def allowed_workflow(name: str, args: list[str], ctx: Context) -> bool:
+    """`gh [-R REPO] workflow run FILE [-f|-F|--ref|-R VALUE]...` as one literal command on
+    Claude, naming an entry of the command repository's guard.allow_workflows."""
+    if name != "gh" or ctx.runtime != "claude" or not ctx.autonomous:
+        return False
+    repo, words, i = None, [], 0
+    while i < len(args):
+        flag, eq, value = args[i].partition("=")
+        if args[i] in GH_RUN_VALUED and i + 1 < len(args):
+            flag, value, i = args[i], args[i + 1], i + 2
+        elif flag.startswith("--") and eq and flag in GH_RUN_VALUED:
+            i += 1
+        elif args[i].startswith("-"):
+            return False  # --json, attached short values, anything unvetted
+        else:
+            words.append(args[i])
+            i += 1
+            continue
+        if flag in ("-R", "--repo"):
+            if repo is not None:
+                return False
+            repo = value
+        if flag in ("-F", "--field") and "@" in (value[:1], value.partition("=")[2][:1]):
+            return False  # -F key=@path sends a file's content
+    if len(words) != 3 or words[:2] != ["workflow", "run"]:
+        return False
+    entry = f"{repo}:{words[2]}" if repo is not None else words[2]
+    return entry in rules(ctx.cwd).allow_workflows
 
 
 SUBSTITUTE = re.compile(r"(?:^|[;\s{])s([^\w\s\\])((?:\\.|(?!\1).)*)\1((?:\\.|(?!\1).)*)\1")
@@ -1043,7 +1119,7 @@ def segment_findings(segment: list[str], ctx: tuple[str, Path], depth: int) -> l
         found += python_findings(args, ctx, depth)
     if name == "git":
         found += git_findings(args, ctx, depth, fed)
-    if deploys(name, args, segment, cwd):
+    if deploys(name, args, segment, cwd) and not allowed_workflow(name, args, ctx):
         found.append(DEPLOY)
     if name in READERS and any(env_path(arg, cwd) for arg in args):
         found.append(ENV)
@@ -1063,7 +1139,7 @@ def shell_findings(command: str, ctx: tuple[str, Path], depth: int = 0) -> list:
     found = []
     parts = segments(outer)
     for segment in parts:
-        literal = len(parts) == 1 and not bodies and Path(segment[0]).name == "git"
+        literal = len(parts) == 1 and not bodies and Path(segment[0]).name in ("git", "gh")
         found += segment_findings(segment, Context(runtime, cwd, ctx.autonomous and literal), depth)
         if segment[0] == "cd" and len(segment) == 2:
             cwd = resolve(segment[1], cwd)
@@ -1078,7 +1154,8 @@ def shell_findings(command: str, ctx: tuple[str, Path], depth: int = 0) -> list:
 def is_env_file(path: str) -> bool:
     name = os.path.basename(path.rstrip("/")).casefold()
     if any(c in name for c in "*?[") and name.startswith("."):
-        return any(fnmatchcase(probe, name) for probe in (".env", ".env.local"))
+        return (any(fnmatchcase(probe, name) for probe in (".env", ".env.local"))
+                or re.split(r"[*?\[]", name, maxsplit=1)[0].startswith(".env."))
     return name == ".env" or (name.startswith(".env.") and name != ".env.example")
 
 
@@ -1086,10 +1163,82 @@ def real(path: Path) -> Path:
     return Path(os.path.realpath(path))
 
 
+def opened(raw: str, cwd: Path) -> Path | None:
+    """The file the kernel opens for raw (unlike resolve(), symlinks resolve before `..`), or
+    None when that cannot be told."""
+    try:
+        return real(cwd / os.path.expanduser(raw))
+    except (OSError, ValueError):
+        return None
+
+
 def env_path(raw: str, cwd: Path) -> bool:
-    """An .env name, or a path whose symlinks resolve to one."""
-    return is_env_file(raw) or (not raw.startswith("-")
-                                and is_env_file(real(resolve(raw, cwd)).name))
+    """An .env name, or a path whose symlinks resolve to one, that guard.env_exempt does not
+    exempt; an option is decided by its name alone, and a path with *, ? or [ is never
+    exempt (the shell may expand it)."""
+    if raw.startswith("-"):
+        return is_env_file(raw)
+    path, actual = resolve(raw, cwd), opened(raw, cwd)
+    named = is_env_file(raw) or env_named(path, actual)
+    if any(c in raw for c in "*?["):
+        return named
+    return named and not env_exempt(path, actual)
+
+
+def env_named(path: Path, actual: Path | None) -> bool:
+    try:
+        return any(is_env_file(p.name) for p in (path, real(path), actual) if p is not None)
+    except (OSError, ValueError):  # e.g. a NUL byte: no file has that name
+        return is_env_file(path.name)
+
+
+def env_blocked(path: Path, actual: Path | None) -> bool:
+    return env_named(path, actual) and not env_exempt(path, actual)
+
+
+def env_exempt(path: Path, actual: Path | None) -> bool:
+    """A file of the command's repository that its overlay's guard.env_exempt globs name:
+    the path and the file it resolves to are each committed and cleanly tracked as that
+    exact file there, and each one with an env name matches a glob. actual is the file the
+    kernel opens (opened()); unknown, or not the one path resolves to, exempts nothing. Any
+    error means not exempt: a crash would fail open."""
+    try:
+        if actual is None or actual != real(path):
+            return False
+        for candidate in dict.fromkeys((path, real(path))):
+            root = repo_root(candidate.parent)
+            if root is None or real(root) != COMMAND_REPO or candidate.is_dir():
+                return False
+            name = candidate.relative_to(root).as_posix()
+            parts = name.split("/")
+            if is_env_file(candidate.name) and not any(
+                    len(glob.split("/")) == len(parts)
+                    and all(map(fnmatchcase, parts, glob.split("/")))
+                    for glob in rules_at(root).env_exempt):
+                return False
+            if not committed(root, name):
+                return False
+        return True
+    except Exception:  # never let the exemption crash the guard open
+        return False
+
+
+def committed(root: Path, name: str) -> bool:
+    """name is exactly one file in HEAD and one plain index entry (stage 0, not skip-worktree
+    or assume-unchanged): staging a file is not enough, and the index cannot hide edits."""
+    entry = os.fsencode(name)
+    index = git_status(str(root), "--literal-pathspecs", "ls-files", "-z", "-s", "-v",
+                       "--error-unmatch", "--", name)
+    head = git_status(str(root), "--literal-pathspecs", "ls-tree", "-z", "HEAD", "--", name)
+    for result, kind in ((index, None), (head, b"blob")):
+        if result is None or result.returncode != 0 or result.stdout.count(b"\0") != 1:
+            return False
+        meta, _, tail = result.stdout[:-1].partition(b"\t")
+        fields = meta.split()
+        if tail != entry or (fields[1:2] != [kind] if kind else (
+                fields[:1] != [b"H"] or fields[3:4] != [b"0"])):
+            return False
+    return True
 
 
 def posix(path: Path) -> str:
@@ -1186,8 +1335,8 @@ def target_findings(raw: str, cwd: Path, runtime: str, kind: str) -> list:
     return found
 
 
-def file_findings(path: Path, old: str, new: str, runtime: str) -> list:
-    if is_env_file(path.name) or is_env_file(real(path).name):
+def file_findings(path: Path, old: str, new: str, runtime: str, actual: Path | None) -> list:
+    if env_blocked(path, actual):
         return [ENV]
     if is_local_settings(path):
         return [LOCAL_SETTINGS]
@@ -1230,15 +1379,17 @@ def applied(current: str, edits: list[tuple[str, str, bool]]) -> tuple[str, str]
     return "\n".join([current, *removed]), "\n".join([result, *added])
 
 
-def patch_changes(text: str, cwd: Path) -> list[tuple[Path, str, str]]:
-    """(path, before, after) per file of an apply_patch body, hunks applied to the file."""
+def patch_changes(text: str, cwd: Path) -> list[tuple[Path, str, str, Path | None]]:
+    """(path, before, after, opened path) per file of an apply_patch body, hunks applied to
+    the file."""
     files = []
     for line in text.splitlines():
         match = PATCH_PATH.fullmatch(line.strip())
         if match:
-            path = resolve(match.group(1).strip(), cwd)
+            raw = match.group(1).strip()
+            path = resolve(raw, cwd)
             moved = line.strip().startswith("*** Move to") and files
-            files.append((path, files[-1][1] if moved else path, [[[], []]]))
+            files.append((path, files[-1][1] if moved else path, [[[], []]], opened(raw, cwd)))
         elif files and line.startswith("@@"):
             files[-1][2].append([[], []])
         elif files and line and line[0] in "-+ ":
@@ -1248,26 +1399,27 @@ def patch_changes(text: str, cwd: Path) -> list[tuple[Path, str, str]]:
             if line[0] in "+ ":
                 new.append(line[1:])
     return [(path, *applied(current_text(base), [("\n".join(old), "\n".join(new), False)
-                                                  for old, new in hunks if old or new]))
-            for path, base, hunks in files]
+                                                  for old, new in hunks if old or new]), actual)
+            for path, base, hunks, actual in files]
 
 
-def tool_changes(data: dict, cwd: Path) -> list[tuple[Path, str, str]]:
+def tool_changes(data: dict, cwd: Path) -> list[tuple[Path, str, str, Path | None]]:
     raw = data.get("file_path") or data.get("notebook_path")
     if not isinstance(raw, str) or not raw:
         return []
-    path = resolve(raw, cwd)
+    path, actual = resolve(raw, cwd), opened(raw, cwd)
     current = current_text(path)
     if "content" in data:
-        return [(path, current, str(data["content"]))]
+        return [(path, current, str(data["content"]), actual)]
     edits = data.get("edits") if isinstance(data.get("edits"), list) else [data]
     edits = [(str(e.get("old_string") or ""), str(e.get("new_string") or ""),
               bool(e.get("replace_all"))) for e in edits if isinstance(e, dict)]
-    return [(path, *applied(current, edits))]
+    return [(path, *applied(current, edits), actual)]
 
 
-def changes_findings(changes: list[tuple[Path, str, str]], runtime: str) -> list:
-    return [f for change in changes for f in file_findings(*change, runtime)]
+def changes_findings(changes: list[tuple[Path, str, str, Path | None]], runtime: str) -> list:
+    return [f for path, old, new, actual in changes
+            for f in file_findings(path, old, new, runtime, actual)]
 
 
 # Decision
@@ -1280,8 +1432,12 @@ def decide(event: dict, runtime: str) -> tuple[str, str] | None:
         return None
     cwd = Path(event["cwd"]) if isinstance(event.get("cwd"), str) else Path.cwd()
     if isinstance(data.get("workdir"), str) and data["workdir"]:
-        cwd = resolve(data["workdir"], cwd)
+        # Codex changes into workdir like the kernel does: symlinks resolve before `..`.
+        cwd = opened(data["workdir"], cwd) or resolve(data["workdir"], cwd)
     rules(cwd)  # read the overlays now, so a broken one is noted on every call
+    global COMMAND_REPO
+    root = repo_root(cwd)
+    COMMAND_REPO = real(root) if root is not None else None
     findings = []
     command = data.get("command", data.get("cmd"))
     if isinstance(command, list) and all(isinstance(part, str) for part in command):

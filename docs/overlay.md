@@ -158,8 +158,10 @@ text before authorizing an issue or PR. See [Feedback](../README.md#feedback).
 
 ### guard
 
-Every key is optional. Lists **add to** the core rules. The scalar `push` is the sole
-owner-authorized relaxation described below; it cannot relax any other core rule.
+Every key is optional. Lists **add to** the core rules. Three keys relax a core rule, each
+described below and read only from the command repository's own overlay: the scalar `push`
+(owner-authorized pushes), `env_exempt` (committed env files) and `allow_workflows` (vetted
+workflow dispatches); none relaxes any other core rule.
 Unknown keys and invalid entries print a note and are skipped. The guard reads the overlay of the
 command's repository and that of the checkout holding the core.
 
@@ -171,6 +173,8 @@ command's repository and that of the checkout holding the core.
 | `deploy_host_files` | [string] | `.github/workflows/*deploy*`, `deploy/` | repository-relative globs, or directories ending in `/` (read recursively), whose IPv4 literals are deploy hosts; read at decision time; absolute paths and `..` are rejected |
 | `prod_compose` | [string] | none | basename globs of production compose files; `docker compose` / `docker-compose` with a matching file is denied |
 | `generated` | [{`path`, `hint`?}] | none | directories of generated output; `path` matches as a run of path segments anywhere, any case; shell writes and file edits there are denied with `"<path> is generated output; <hint>"` (default hint: "edit its source and regenerate it instead of changing it by hand.") |
+| `env_exempt` | [string] | none | repository-relative globs of committed, secret-free env files the `.env` rule skips, e.g. `"web/.env.*"`; loosens: command repository only (see below) |
+| `allow_workflows` | [string] | none | workflow files `[OWNER/REPO:]FILE.yml` that a Claude session may dispatch with `gh workflow run`, e.g. `"env-power.yml"`; loosens: command repository only (see below) |
 
 An owner who authorized autonomous work may opt in with `"guard": {"push": "allow"}`.
 The command repository's overlay must authorize it; a separate core checkout's permission
@@ -187,13 +191,52 @@ Separate push URLs, multiple URLs and URL rewrites ask because cached fetch HEAD
 prove the push repository’s default branch. Cached remote HEAD is required; initialize it
 with `git remote set-head <remote> -a`. The guard never contacts a remote to resolve it.
 
+`env_exempt` loosens the `.env` rule for env files that are committed and hold no secrets,
+such as a frontend's build-time settings (`["web/.env.production"]`); reads and edits of
+them then run without a decision on both runtimes. Loosens: command repository only. Only
+files of the repository the command runs in (Codex `workdir` included) are exempt, under
+that repository's overlay; a separate core checkout's overlay, another repository's, or an
+absolute `$HARNESS_PROJECT` used from another repository exempts nothing. An entry is a
+path relative to that repository: `*`, `?` and `[...]` stay within one path segment, `..`,
+`**`, absolute paths and backslashes are rejected, and the last segment must start with
+`.env.`, so no entry can name `.env` itself. A file is exempt only while that exact path is
+a file in `HEAD` and one plain index entry: staged-only, conflicted, skip-worktree and
+assume-unchanged entries stay denied. A path whose symlinks resolve elsewhere needs the link
+and its target tracked, and a target with an env name must match a glob too; a `..` after a
+symlink must lead to the same file the lexical path names. So an untracked or merely staged
+local override under the same glob, a new file, and a link to `.env` or to an untracked
+file all stay denied. A path with `*`, `?` or `[` (a shell glob such as `cat web/.env.*`,
+or a literal name) and Grep's `glob` are never exempt. Committing a file makes it tracked,
+so prefer exact names when a glob could also cover a local override, and keep local
+overrides ignored. A path the guard cannot inspect stays denied. Editing the key goes
+through the guard-configuration rule above. Skill evals refuse env files as inputs, so
+overlay docs and skills that the evals hash should quote env paths only inside JSON or
+fenced examples.
+
+`allow_workflows` lets an owner name the GitHub Actions workflows a Claude session may
+dispatch itself, such as powering a dev environment or a read-only data check, while every
+other `gh workflow run` stays a denied deploy. Loosens: command repository only. An entry is
+a workflow file name (`.yml`/`.yaml`); `OWNER/REPO:FILE` matches only with that exact
+`-R`/`--repo`, a bare file only without one. It applies to one literal `gh` command with no
+other command, pipe, wrapper, variable prefix or substitution, whose only options are
+`-f`/`--raw-field`, `-F`/`--field` (never `@file`), `-r`/`--ref` and `-R`/`--repo`; a workflow
+named by title or ID, `--json` and anything else keep the deploy rule. Inputs and refs are
+not checked, so list only workflows whose every input is acceptable. Codex lanes stay
+denied, as for pushes: remote side effects belong to the owner-authorized orchestrator.
+The guard recognizes deploy tools by name (helm, kubectl, gh, railway, fly, ssh to deploy
+hosts, production compose files) and does not inspect a repository's own scripts, so vetted
+release or ops wrappers need no entry; what they run is the owner's review. `kubectl
+rollout status` and `kubectl rollout history` are reads and are not denied.
+
 ```json
 "guard": {
   "deploy_hosts": ["deploy.tasklist.example"],
   "deploy_users": ["release"],
   "deploy_host_files": ["infra/*.hosts"],
   "prod_compose": ["compose.prod*"],
-  "generated": [{"path": "web/src/api-client/", "hint": "run npm run gen in web/ instead."}]
+  "generated": [{"path": "web/src/api-client/", "hint": "run npm run gen in web/ instead."}],
+  "env_exempt": ["web/.env.development", "web/.env.production"],
+  "allow_workflows": ["env-power.yml", "acme/infra:plan.yml"]
 }
 ```
 
@@ -691,7 +734,7 @@ class GatesTest(unittest.TestCase):
 
 | Overlay | Core | Result |
 |---|---|---|
-| `guard` lists | core rules and defaults | added; nothing is removed |
+| `guard` lists | core rules and defaults | added; nothing is removed (`env_exempt` frees only the tracked env files it names) |
 | `interview.extra_rows` | nine core rows | inserted after Contracts, in order |
 | `roles` in `project.json` | eight core roles | added; a core role name is an error |
 | `roles/<core-role>.md` | the core role | appended under `## Project specifics` |
