@@ -536,8 +536,8 @@ added/changed skill it requires an added/changed registered case and evidence ma
 current SHA-256 of the whole skill directory, declared references and every case file. It validates new-case Δ
 and existing-case regressions against accepted history at REF: an unchanged case's baseline is
 the median score with the skill over accepted results that measured the same case content, so
-one lucky run cannot raise the bar (legacy results without case hashes count as the latest
-one). It makes no model calls.
+one lucky run cannot raise the bar; with fewer than three such results (or only legacy
+results without case hashes) the case has no regression baseline yet. It makes no model calls.
 Case-only edits also require refreshed evidence. Reference-only changes also require a changed case and fresh evidence for each dependent skill. Deleted skills need no eval. Registry-only edits do not count as a new scenario or grader.
 External Markdown references normalize only standalone `Version: X.Y.Z` and
 `Date: YYYY-MM-DD` lines, and release headings in `CHANGELOG.md` (`## X.Y.Z`, optionally

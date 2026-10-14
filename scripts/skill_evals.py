@@ -446,6 +446,9 @@ def git_json(root, base, path):
         raise EvalError(f'{base}:{relative_path}: invalid JSON') from None
 
 
+BASELINE_RUNS = 3  # comparable accepted results a case needs before a regression is judged
+
+
 def accepted_at_base(root, base, key, item):
     """Accepted results (no acceptance findings) in the skill's history at REF, oldest first."""
     if 'eval_dir' not in item:
@@ -472,8 +475,8 @@ def previous_at_base(root, base, key, item):
 def baseline(accepted, case_hashes):
     """Per-case regression baseline: the median accepted score with the skill over results
     that measured the same case content, so one lucky run cannot raise the bar. Results of
-    other case content are not comparable; legacy results without case hashes count only
-    as the latest one, when no hashed result matches."""
+    other content, or without case hashes, are not comparable, and a case with fewer than
+    BASELINE_RUNS comparable results has no baseline yet: a sample that small is one run's luck."""
     for prior in accepted:
         if not isinstance(prior, dict) or not isinstance(prior.get('cases'), list) \
                 or any(not isinstance(c, dict) or not isinstance(c.get('name'), str)
@@ -485,11 +488,7 @@ def baseline(accepted, case_hashes):
         same = [c['score_with'] for prior in accepted
                 if (prior.get('case_hashes') or {}).get(name) == digest
                 for c in prior['cases'] if c['name'] == name]
-        if not same:
-            same = [c['score_with'] for prior in reversed(accepted)
-                    if not prior.get('case_hashes')
-                    for c in prior['cases'] if c['name'] == name][:1]
-        if same:
+        if len(same) >= BASELINE_RUNS:
             scores[name] = statistics.median(same)
     return scores
 

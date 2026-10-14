@@ -8,8 +8,9 @@ with defaults; a major release may require an overlay change and says which.
 - The skill-eval gate's regression baseline for an unchanged case is the median score with
   the skill over accepted results that measured the same case content, instead of the
   single latest accepted run, so one lucky run no longer raises the bar for every later
-  change. Results of older case content are not compared; legacy results without case
-  hashes still count as the latest one. Findings name the median they missed.
+  change. Results of older case content or without case hashes are not compared, and a
+  case needs three comparable accepted results before a regression is judged. Findings
+  name the median they missed.
 - Dashboard regeneration reads the run and writes the page under one exclusive lock, so a
   compare and its detached lane supervisors can no longer leave a stale page that shows a
   finished round as running. The compare tests drain those supervisors before reading the
