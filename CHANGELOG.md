@@ -10,6 +10,10 @@ with defaults; a major release may require an overlay change and says which.
   single latest accepted run, so one lucky run no longer raises the bar for every later
   change. Results of older case content are not compared; legacy results without case
   hashes still count as the latest one. Findings name the median they missed.
+- Dashboard regeneration reads the run and writes the page under one exclusive lock, so a
+  compare and its detached lane supervisors can no longer leave a stale page that shows a
+  finished round as running. The compare tests drain those supervisors before reading the
+  page or removing the run, which made the core suite flaky on busy hosts.
 - The env-exemption eval cases drop the setting-name grader, which no arm can pass while
   the eval sandbox denies reading the core README.
 
