@@ -341,5 +341,41 @@ class DashboardTest(unittest.TestCase):
         self.assertEqual(snapshot(self.run_dir, {output}), before)
 
 
+class RegenerateLockTest(unittest.TestCase):
+    """A compare and its detached lane supervisors regenerate one page; a regeneration that
+    read older events must not write after a newer one, so reading and writing hold a lock."""
+
+    @unittest.skipIf(sys.platform == "win32", "fcntl locks are POSIX only")
+    def test_render_and_write_happen_under_one_exclusive_lock(self):
+        import fcntl
+        from unittest import mock
+        sys.path.insert(0, str(SCRIPTS))
+        import dashboard
+        with tempfile.TemporaryDirectory() as temp:
+            primary = Path(temp).resolve()
+            run = primary / ".harness" / "tasks" / "t1"
+            run.mkdir(parents=True)
+            held = []
+
+            def render(*args):
+                with open(run / ".dashboard-lock") as other:
+                    try:
+                        fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                        held.append(False)
+                    except BlockingIOError:
+                        held.append(True)
+                return "<html></html>"
+
+            with mock.patch.object(dashboard, "render", render):
+                self.assertEqual(dashboard.regenerate(run, primary), run / "dashboard.html")
+            self.assertEqual(held, [True])
+            self.assertEqual((run / "dashboard.html").read_text(), "<html></html>")
+            # The lock file is not one of the run's files the page lists.
+            page = dashboard.render(run, primary, run / "dashboard.html",
+                                    dashboard.datetime.now(dashboard.timezone.utc),
+                                    dashboard.timedelta(minutes=30))
+            self.assertNotIn("dashboard-lock", page)
+
+
 if __name__ == "__main__":
     unittest.main()

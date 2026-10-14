@@ -19,6 +19,7 @@ import re
 from pathlib import Path
 import shlex
 import shutil
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -445,39 +446,65 @@ def git_json(root, base, path):
         raise EvalError(f'{base}:{relative_path}: invalid JSON') from None
 
 
-def previous_at_base(root, base, key, item):
+BASELINE_RUNS = 3  # comparable accepted results a case needs before a regression is checked
+
+
+def accepted_at_base(root, base, key, item):
+    """Accepted results (no acceptance findings) in the skill's history at REF, oldest first."""
     if 'eval_dir' not in item:
-        return None
+        return []
     directory = item['eval_dir'] / 'history' / identity(canonical(key, item))
     proc = subprocess.run(['git', 'ls-tree', '-r', '--name-only', base, '--',
                            directory.relative_to(root).as_posix()], cwd=root,
                           capture_output=True, text=True, check=True)
-    files = sorted(p for p in proc.stdout.splitlines() if p.endswith('.json'))
-    for path in reversed(files):
+    accepted = []
+    for path in sorted(p for p in proc.stdout.splitlines() if p.endswith('.json')):
         result = git_json(root, base, root / path)
         if not isinstance(result, dict):
             raise EvalError(f'{base}:{path}: invalid result object')
         if not result.get('acceptance_findings'):
-            return result
-    return None
+            accepted.append(result)
+    return accepted
 
 
-def acceptance(result, prior, changed_cases, tolerance):
-    findings = []
-    if prior is not None:
+def previous_at_base(root, base, key, item):
+    accepted = accepted_at_base(root, base, key, item)
+    return accepted[-1] if accepted else None
+
+
+def baseline(accepted, case_hashes):
+    """Per-case regression baseline: the median accepted score with the skill over results
+    that measured the same case content, so one lucky run cannot raise the bar. Results of
+    other content, or without case hashes, are not comparable, and a case with fewer than
+    BASELINE_RUNS comparable results has no baseline yet: a sample that small is one run's luck."""
+    for prior in accepted:
         if not isinstance(prior, dict) or not isinstance(prior.get('cases'), list) \
                 or any(not isinstance(c, dict) or not isinstance(c.get('name'), str)
                        for c in prior['cases']):
             raise EvalError('invalid prior result cases')
         validate(prior, [c['name'] for c in prior['cases']])
-    old = {c['name']: c for c in prior['cases']} if prior else {}
+    scores = {}
+    for name, digest in case_hashes.items():
+        same = [c['score_with'] for prior in accepted
+                if (prior.get('case_hashes') or {}).get(name) == digest
+                for c in prior['cases'] if c['name'] == name]
+        if len(same) >= BASELINE_RUNS:
+            scores[name] = statistics.median(same)
+    return scores
+
+
+def acceptance(result, prior, changed_cases, tolerance):
+    """Findings for a result: Δ <= 0 on an added/changed case, or an unchanged case whose
+    score with the skill falls below its baseline (baseline()) by more than the tolerance."""
+    findings = []
     for case in result['cases']:
         name = case['name']
         if name in changed_cases and case['delta'] <= 0:
             findings.append(f'{name}: Δ must be > 0; got {case["delta"]:+.3f}; fix the case')
-        if name in old and name not in changed_cases \
-                and case['score_with'] + tolerance + 1e-9 < old[name]['score_with']:
-            findings.append(f'{name}: score regressed beyond tolerance {tolerance}')
+        if name in prior and name not in changed_cases \
+                and case['score_with'] + tolerance + 1e-9 < prior[name]:
+            findings.append(f'{name}: score regressed beyond tolerance {tolerance} '
+                            f'(median accepted {prior[name]:.3f})')
     return findings
 
 
@@ -493,7 +520,8 @@ def check(root, base, settings, skills):
     for key, item in skills.items():
         case_changes = changed_cases(item, changed, root)
         result = latest(key, item)
-        prior = previous_at_base(root, base, key, item)
+        accepted = accepted_at_base(root, base, key, item)
+        prior = accepted[-1] if accepted else None
         affected = skill_changed(item, changed, result, base) or skill_changed(item, changed, prior, base)
         if not affected and not case_changes:
             continue
@@ -504,7 +532,7 @@ def check(root, base, settings, skills):
             findings.append(f'{key}: no fresh result for current skill/case hashes; run skill_evals.py run --skill {key}')
         else:
             findings.extend(f'{key}: {message}' for message in acceptance(
-                result, prior, touched, settings['tolerance']))
+                result, baseline(accepted, hashes(item)), touched, settings['tolerance']))
     return findings
 
 
@@ -565,11 +593,12 @@ def run(root, args, settings, skills):
         raise EvalError(f'{key}: no registered eval cases')
     before_inputs, case_hashes = input_hashes(item), hashes(item)
     before = content_hash(item)
-    prior = previous_at_base(root, args.base, key, item)
-    if prior is None:
-        # Until history is committed, compare only to an accepted prior attempt.
-        prior = next((read(p) for p in reversed(histories(key, item))
-                      if not read(p).get('acceptance_findings')), None)
+    accepted = accepted_at_base(root, args.base, key, item)
+    if not accepted:
+        # Until history is committed, compare only to accepted prior attempts.
+        accepted = [result for result in map(read, histories(key, item))
+                    if not result.get('acceptance_findings')]
+    prior = accepted[-1] if accepted else None
     # Compare acceptance to the branch base, including untracked new cases.
     touched = changed_cases(item, changed_files(root, args.base), root)
     touched.update(name for name, value in case_hashes.items()
@@ -623,7 +652,7 @@ def run(root, args, settings, skills):
     result.update({'schema_version': 2, 'skill': canonical(key, item), 'content_hash': before,
                    'input_hashes': before_inputs,
                    'case_hashes': case_hashes, 'run_date': now})
-    problems = acceptance(result, prior, touched, settings['tolerance'])
+    problems = acceptance(result, baseline(accepted, case_hashes), touched, settings['tolerance'])
     result['acceptance_findings'] = problems
     history = item['eval_dir'] / 'history' / identity(canonical(key, item)) / (now.replace(':', '-') + '.json')
     write(history, result)

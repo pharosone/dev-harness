@@ -97,6 +97,11 @@ sys.exit(int(os.environ.get('EXIT','0')))
             return self.cli('run', '--skill', 'example', '--model', 'fake-model',
                             '--max-cost-usd', '1', '--run-dir', str(self.root/'run'))
 
+    def accept_runs(self, count=ev.BASELINE_RUNS):
+        """The accepted results a case needs before a regression is checked."""
+        for _ in range(count):
+            self.assertEqual(self.run_eval()[0], 0)
+
     def settings(self):
         settings = ev.config(self.root)
         return settings, ev.inventory(self.root, settings)
@@ -357,7 +362,7 @@ Path(args[args.index('--out') + 1]).write_text(json.dumps({'model': 'fake', 'cos
                 self.assertEqual(self.cli('check', '--base', self.base)[0], 1)
 
     def test_tolerance_and_regression_at_git_base(self):
-        self.assertEqual(self.run_eval()[0], 0)
+        self.accept_runs()
         self.git('add', 'plugin/evals/history')
         self.git('commit', '-qm', 'prior measured result')
         self.base = self.git('rev-parse', 'HEAD').strip()
@@ -371,6 +376,52 @@ Path(args[args.index('--out') + 1]).write_text(json.dumps({'model': 'fake', 'cos
         code, output = self.cli('check', '--base', self.base)
         self.assertEqual(code, 1, output)  # baseline at REF remains 1.00
         self.assertIn('regressed', output)
+
+    def test_one_lucky_accepted_run_does_not_raise_the_regression_baseline(self):
+        for score in ('0.6', '0.6', '1'):
+            self.assertEqual(self.run_eval(WITH=score)[0], 0)
+        self.git('add', 'plugin/evals/history')
+        self.git('commit', '-qm', 'accepted runs: 0.6, 0.6, then a lucky 1.0')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+        self.put(self.skill, 'changed instructions')
+        self.put('plugin/evals/extra/prompt.md', 'additional acceptance scenario')
+        self.put('plugin/evals/extra/graders/score.md', 'grader')
+        self.put('plugin/evals/cases.json', json.dumps({self.skill:['case','extra']}))
+        self.assertEqual(self.run_eval(WITH='0.6')[0], 0)  # median 0.6, not the latest 1.0
+        self.assertEqual(self.cli('check', '--base', self.base)[0], 0)
+        code, output = self.run_eval(WITH='0.5')
+        self.assertEqual(code, 1, output)
+        self.assertIn('median accepted 0.600', output)
+        code, output = self.cli('check', '--base', self.base)
+        self.assertEqual(code, 1, output)
+        self.assertIn('regressed', output)
+
+    def test_a_case_with_too_few_accepted_runs_has_no_regression_baseline_yet(self):
+        self.accept_runs(ev.BASELINE_RUNS - 1)
+        self.git('add', 'plugin/evals/history')
+        self.git('commit', '-qm', 'two accepted runs at 1.0')
+        self.base = self.git('rev-parse', 'HEAD').strip()
+        self.put(self.skill, 'changed instructions')
+        self.put('plugin/evals/extra/prompt.md', 'additional acceptance scenario')
+        self.put('plugin/evals/extra/graders/score.md', 'grader')
+        self.put('plugin/evals/cases.json', json.dumps({self.skill:['case','extra']}))
+        self.assertEqual(self.run_eval(WITH='0.6')[0], 0)
+        self.assertEqual(self.cli('check', '--base', self.base)[0], 0)
+
+    def test_baseline_is_the_median_of_the_same_case_content(self):
+        def result(score, digest):
+            return {'model': 'm', 'cost_usd': 0, 'case_hashes': {'case': digest} if digest else None,
+                    'cases': [{'name': 'case', 'score_with': score, 'score_without': 0}]}
+        accepted = [result(.2, 'old'), result(.6, 'h'), result(1, 'h'), result(.6, 'h'),
+                    result(.8, 'h')]
+        self.assertEqual(ev.baseline(accepted, {'case': 'h'}), {'case': .7})
+        self.assertEqual(ev.baseline(accepted, {'case': 'new'}), {})  # other content
+        self.assertEqual(ev.baseline([result(.4, None), result(.3, None), result(.9, 'old')],
+                                     {'case': 'h'}), {})  # no comparable content
+        self.assertEqual(ev.baseline(accepted[1:3], {'case': 'h'}), {})  # one run's luck
+        self.assertEqual(ev.baseline([], {'case': 'h'}), {})
+        with self.assertRaises(ev.EvalError):
+            ev.baseline([{'cases': 'bad'}], {'case': 'h'})
 
     def test_case_only_changes_need_new_evidence(self):
         self.assertEqual(self.run_eval()[0], 0)
@@ -392,7 +443,7 @@ Path(args[args.index('--out') + 1]).write_text(json.dumps({'model': 'fake', 'cos
         self.assertEqual(self.cli('check', '--base', self.base)[0], 0)
 
     def test_committed_failed_attempt_does_not_ratchet_baseline(self):
-        self.assertEqual(self.run_eval()[0], 0)
+        self.accept_runs()
         self.put(self.skill, 'changed instructions')
         self.assertEqual(self.run_eval(WITH='0.8')[0], 1)
         self.git('add', 'plugin/evals/history')
@@ -404,7 +455,7 @@ Path(args[args.index('--out') + 1]).write_text(json.dumps({'model': 'fake', 'cos
         self.assertIn('regressed', output)
 
     def test_failed_attempt_cannot_ratchet_regression_baseline(self):
-        self.assertEqual(self.run_eval()[0], 0)
+        self.accept_runs()
         self.put(self.skill, 'changed instructions')
         self.assertEqual(self.run_eval(WITH='0.8')[0], 1)
         self.assertEqual(self.run_eval(WITH='0.8')[0], 1)
@@ -438,7 +489,7 @@ Path(args[args.index('--out') + 1]).write_text(json.dumps({'model': 'fake', 'cos
         self.put('harness/project/project.json', json.dumps({'skills': {'tolerance': .1}}))
         self.assertEqual(ev.config(self.root)['tolerance'], .1)
         self.assertFalse(ev.acceptance({'cases':[{'name':'case','score_with':.9,'delta':.5}]},
-                                      {'model':'prior','cost_usd':0,'cases':[{'name':'case','score_with':1,'score_without':.4}]}, {'case'}, .1))
+                                      {'case': 1}, {'case'}, .1))
 
     def test_new_untracked_skill_with_case_passes(self):
         new = 'skills/new/SKILL.md'

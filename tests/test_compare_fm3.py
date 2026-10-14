@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(CORE / "scripts"))
 import test_compare as design_tests  # noqa: E402  (module import: its TestCase is not re-run)
 import test_compare_investigation as investigation_tests  # noqa: E402
+from test_qa_compare import wait_for_supervisors  # noqa: E402
 
 COMPARE = CORE / "scripts" / "compare.py"
 TASK_STATE = CORE / "scripts" / "task_state.py"
@@ -56,6 +57,14 @@ class CompareFM3Test(unittest.TestCase):
         subprocess.run([sys.executable, str(TASK_STATE), "init", "t1"], cwd=self.repo,
                        env=self.env, check=True, capture_output=True)
         self.run_dir = self.repo / ".harness" / "tasks" / "t1"
+        self.addCleanup(self.drain_supervisors)  # runs before the temporary directory goes
+
+    def drain_supervisors(self):
+        """A finished compare's lane supervisors may still record dispatch.end and regenerate
+        the dashboard; wait for them before reading the page or removing the run."""
+        states = [json.loads(path.read_text()) for path in
+                  (self.run_dir / "lanes").glob("*.json") if not path.name.startswith("_")]
+        wait_for_supervisors([state["pid"] for state in states if state.get("pid")])
 
     def git(self, *args):
         return subprocess.check_output(["git", *args], cwd=self.repo, env=self.env, text=True)
@@ -288,6 +297,7 @@ class CompareFM3Test(unittest.TestCase):
 
     def test_the_dashboard_shows_the_compare_result_after_the_round(self):
         out, _ = self.design()
+        self.drain_supervisors()
         page = (self.run_dir / "dashboard.html").read_text()
         row = re.search(rf'<tr id="compare-{out["compare"]}">.*?</tr>', page, re.DOTALL)
         self.assertIsNotNone(row, page)

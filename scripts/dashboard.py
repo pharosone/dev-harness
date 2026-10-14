@@ -36,6 +36,9 @@ ledger line has an unknown dispatch count).
 
 regenerate(run, primary) rewrites the default output best effort (lanes.py and the tripwire
 hook call it after each event they write); a failure is a note on stderr, never an error.
+Concurrent regenerations (a compare and its detached lane supervisors) hold an exclusive
+`fcntl.flock` on `.dashboard-lock` beside the page while they read the run and write it, so
+the last page written reflects the latest events, never an older read (unlocked on Windows).
 
 Safety: the page has no scripts and no external references; every value is HTML-escaped,
 and a string that looks like a secret (the patterns of xreview.py) is shown as [redacted].
@@ -51,6 +54,11 @@ import re
 import sys
 import tempfile
 from urllib.parse import quote
+
+try:
+    import fcntl
+except ImportError:  # Windows: regenerations are not serialized.
+    fcntl = None
 
 # Importing must not write __pycache__ into a read-only installed harness.
 sys.dont_write_bytecode = True
@@ -865,9 +873,13 @@ def regenerate(run: Path, primary: Path) -> Path | None:
     try:
         run, primary = run.resolve(), primary.resolve()
         out = default_output(run, primary)
-        page = render(run, primary, out, datetime.now(timezone.utc),
-                      timedelta(minutes=DEFAULT_STALE_MINUTES))
-        write_page(out, page)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with open(out.parent / ".dashboard-lock", "a") as lock:
+            if fcntl is not None:  # read and write as one step: no stale page wins a race
+                fcntl.flock(lock, fcntl.LOCK_EX)
+            page = render(run, primary, out, datetime.now(timezone.utc),
+                          timedelta(minutes=DEFAULT_STALE_MINUTES))
+            write_page(out, page)
         return out
     except Exception as exc:  # noqa: BLE001 - never fail the caller over its dashboard
         print(f"dashboard: not regenerated: {exc}", file=sys.stderr)

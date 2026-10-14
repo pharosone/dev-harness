@@ -3,6 +3,21 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.8.1 — 2026-10-14
+
+- The skill-eval gate's regression baseline for an unchanged case is the median score with
+  the skill over accepted results that measured the same case content, instead of the
+  single latest accepted run, so one lucky run no longer raises the bar for every later
+  change. Results of older case content or without case hashes are not compared, and a
+  case needs three comparable accepted results before a regression is checked. Findings
+  name the median they missed.
+- Dashboard regeneration reads the run and writes the page under one exclusive lock, so a
+  compare and its detached lane supervisors can no longer leave a stale page that shows a
+  finished round as running. The compare tests drain those supervisors before reading the
+  page or removing the run, which made the core suite flaky on busy hosts.
+- The env-exemption eval cases drop the setting-name grader, which no arm can pass while
+  the eval sandbox denies reading the core README.
+
 ## 1.8.0 — 2026-10-13
 
 - Optional `guard.env_exempt` lists repository-relative globs of committed, secret-free env

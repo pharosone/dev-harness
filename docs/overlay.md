@@ -792,7 +792,8 @@ directory. `eval_command` is a command string split into argv without a shell; i
 `--skill`, `--out` and requested `--model`/`--max-cost-usd`. It must run both arms and output
 scores, actual model and total cost according to README "Skill evals". No command is the
 default: product `run` errors rather than pretending it evaluated a skill. `tolerance` is a
-finite number in 0..1, default 0.05, the largest allowed existing-case score drop.
+finite number in 0..1, default 0.05, the largest allowed existing-case score drop below the
+case's median accepted score.
 
 The cheap product gate step is
 `{"name": "skill-evals", "cwd": ".", "cmd": ["python3", "harness/core/scripts/skill_evals.py", "check", "--base", "{base}"]}`.
