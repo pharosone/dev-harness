@@ -3,6 +3,16 @@
 All notable changes to the core. Versions follow semver: a minor release may add overlay keys
 with defaults; a major release may require an overlay change and says which.
 
+## 1.8.1 — 2026-10-14
+
+- The skill-eval gate's regression baseline for an unchanged case is the median score with
+  the skill over accepted results that measured the same case content, instead of the
+  single latest accepted run, so one lucky run no longer raises the bar for every later
+  change. Results of older case content are not compared; legacy results without case
+  hashes still count as the latest one. Findings name the median they missed.
+- The env-exemption eval cases drop the setting-name grader, which no arm can pass while
+  the eval sandbox denies reading the core README.
+
 ## 1.8.0 — 2026-10-13
 
 - Optional `guard.env_exempt` lists repository-relative globs of committed, secret-free env
